@@ -1,11 +1,9 @@
-<<<<<<< HEAD
 # File created using '.gitignore Generator' for Visual Studio Code: https://bit.ly/vscode-gig
 
 # Created by https://www.toptal.com/developers/gitignore/api/visualstudiocode,linux
 # Edit at https://www.toptal.com/developers/gitignore?templates=visualstudiocode,linux
 
 ### Linux ###
-=======
 ##### Windows
 # Windows thumbnail cache files
 Thumbs.db
@@ -33,7 +31,6 @@ $RECYCLE.BIN/
 *.lnk
 
 ##### Linux
->>>>>>> 859c7169b23a3185e550ddbc31718e8def03053c
 *~
 
 # temporary files which can be created if a process still has a handle open of a deleted file
@@ -48,7 +45,6 @@ $RECYCLE.BIN/
 # .nfs files are created when an open file is removed but is still being accessed
 .nfs*
 
-<<<<<<< HEAD
 ### VisualStudioCode ###
 .vscode/*
 !.vscode/tasks.json
@@ -70,7 +66,6 @@ build
 # End of https://www.toptal.com/developers/gitignore/api/visualstudiocode,linux
 
 # Custom rules (everything added below won't be overriden by 'Generate .gitignore File' if you use 'Update' option)
-=======
 ##### MacOS
 # General
 .DS_Store
@@ -1076,5 +1071,4 @@ build/*
 
 data/planet-coastlines.pbf
 
->>>>>>> 859c7169b23a3185e550ddbc31718e8def03053c
 
