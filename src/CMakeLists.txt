@@ -24,8 +24,14 @@ set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
 include(CPack)
 
+
+
+
+
+
+
 # Add additonial compile options to enable more warnings
-add_compile_options(-Wall -Wextra -lvtk -O3)
+add_compile_options(-Wall -Wextra -O3 -losmpbf -lprotobuf-lite -lpthread -lz)
 
 # Set the version of the C++ standard to use, we use C++14, published in 2014
 set(CMAKE_CXX_STANDARD 14)
@@ -33,8 +39,3 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 
 message("CMAKE_BUILD_TYPE: ${CMAKE_BUILD_TYPE}")
-
-
-
-
-
