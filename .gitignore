@@ -45,27 +45,6 @@ $RECYCLE.BIN/
 # .nfs files are created when an open file is removed but is still being accessed
 .nfs*
 
-### VisualStudioCode ###
-.vscode/*
-!.vscode/tasks.json
-!.vscode/launch.json
-*.code-workspace
-.vscode
-
-### VisualStudioCode Patch ###
-# Ignore all local history of files
-.history
-.ionide
-
-# build folder
-build
-
-# data
-*.pbf
-
-# End of https://www.toptal.com/developers/gitignore/api/visualstudiocode,linux
-
-# Custom rules (everything added below won't be overriden by 'Generate .gitignore File' if you use 'Update' option)
 ##### MacOS
 # General
 .DS_Store
@@ -270,7 +249,6 @@ vc_hdrs.h
 [._]s[a-rt-v][a-z]
 [._]ss[a-gi-z]
 [._]sw[a-p]
-
 # Session
 Session.vim
 Sessionx.vim
