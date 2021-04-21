@@ -23,11 +23,18 @@
 !.vscode/tasks.json
 !.vscode/launch.json
 *.code-workspace
+.vscode
 
 ### VisualStudioCode Patch ###
 # Ignore all local history of files
 .history
 .ionide
+
+# build folder
+build
+
+# data
+*.pbf
 
 # End of https://www.toptal.com/developers/gitignore/api/visualstudiocode,linux
 
