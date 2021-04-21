@@ -1,0 +1,3 @@
+[submodule "libosmium"]
+	path = libosmium
+	url = https://github.com/osmcode/libosmium.git
