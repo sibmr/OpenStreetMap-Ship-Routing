@@ -4,9 +4,6 @@
 
 using namespace CanalTP;
 
-
-
-
 struct Counter {
     // Three integers count how many times each object type occurs
     int nodes;
@@ -41,10 +38,6 @@ struct Counter {
     }
 };
 
-
-
-
-
 int main(int argc, char** argv) {
     std::cout << "Hello World\n";
     if(argc != 2) {
@@ -52,13 +45,11 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-
     Counter counter; 
     read_osm_pbf(argv[1], counter);
 
     std::cout << "We read " << counter.nodes << " nodes, " << counter.ways << " ways and " << counter.relations << " relations" << std::endl;
 
     return 0;
-
 
 }
