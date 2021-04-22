@@ -51,7 +51,7 @@ int main(int argc, char** argv) {
 
      // Let's read that file !
      Counter counter;
-     //read_osm_pbf(argv[1], counter);
+     read_osm_pbf(argv[1], counter);
      std::cout << "We read " << counter.nodes << " nodes, " << counter.ways << " ways and " << counter.relations << " relations" << std::endl;
      return 0;
 }

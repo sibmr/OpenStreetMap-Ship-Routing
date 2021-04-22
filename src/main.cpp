@@ -45,11 +45,16 @@ struct Counter {
 
 
 
-int main(){
+int main(int argc, char** argv) {
     std::cout << "Hello World\n";
+    if(argc != 2) {
+        std::cout << "Usage: " << argv[0] << " file_to_read.osm.pbf" << std::endl;
+        return 1;
+    }
+
 
     Counter counter; 
-    read_osm_pbf("../data/planet-coastlines.pbf", counter);
+    read_osm_pbf(argv[1], counter);
 
     std::cout << "We read " << counter.nodes << " nodes, " << counter.ways << " ways and " << counter.relations << " relations" << std::endl;
 
