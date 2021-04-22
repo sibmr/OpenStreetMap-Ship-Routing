@@ -1045,6 +1045,7 @@ Mkfile.old
 dkms.conf
 
 .vscode/*
+.idea/*
 
 build/
 build/*
