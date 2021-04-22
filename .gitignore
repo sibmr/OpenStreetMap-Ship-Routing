@@ -1052,3 +1052,10 @@ build/*
 data/planet-coastlines.pbf
 
 
+CPackConfig.cmake
+CPackSourceConfig.cmake
+DartConfiguration.tcl
+.idea/misc.xml
+include/README.rst
+osmrouting.cbp
+include/osmpbfreader.cbp

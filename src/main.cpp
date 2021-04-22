@@ -1,6 +1,6 @@
 # include <iostream>
 
-# include "lib/osmpbfreader.h"
+# include "osmpbfreader.h"
 
 using namespace CanalTP;
 
