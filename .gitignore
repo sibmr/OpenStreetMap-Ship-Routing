@@ -1051,7 +1051,7 @@ build/
 build/*
 
 data/planet-coastlines.pbf
-
+data/*.pbf
 
 CPackConfig.cmake
 CPackSourceConfig.cmake

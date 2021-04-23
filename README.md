@@ -18,47 +18,15 @@ Two neighboring Nodes in the water -> We assume there is water in between the no
 Read PBF File and extract coastlines.  
 Output them to the console or display them by converting them to geoJSON.
 
-### Installing Osmium
-Clone https://github.com/osmcode/libosmium  
-Install Dependencies:  
+### libosmiumpbfreader:
+https://github.com/CanalTP/libosmpbfreader
 
-    apt-get install -q -y \
-    cmake \
-    doxygen \
-    g++ \
-    git \
-    graphviz \
-    libboost-dev \
-    libbz2-dev \
-    libexpat1-dev \
-    libgdal-dev \
-    libgeos++-dev \
-    libproj-dev \
-    libsparsehash-dev \
-    make \
-    ruby \
-    ruby-json \
-    spatialite-bin \
-    zlib1g-dev \
-    cmake-curses-gui
+Dependency:  
+
+    sudo apt-get install libosmpbf-dev
 
 
-Build using:
-
-    mkdir build
-    cd build
-    cmake ..
-    ccmake ..
-This will open a curses gui.  
-Configure ccmake, then press c, then press g.
-Finally, if there were no errors:  
-    
-    make
-Or
-
-    make -j4
-
-### Using Osmium
+### Approach
 
 * Create Reader object of pbf
 * Create Handler that reads coastlines
