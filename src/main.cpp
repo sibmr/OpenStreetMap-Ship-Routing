@@ -2,6 +2,7 @@
 # include <string>
 # include <vector>
 # include <map>
+//# include <ios>
 
 # include "osmpbfreader.h"
 
@@ -15,16 +16,26 @@ struct Way {
 
 struct Node {
     uint64_t osmid;
-    double logitude;
+    double longitude;
     double latitude;
     const Tags tags;
 };
 
+struct SimpleNode {
+    uint64_t osmid;
+    double longitude;
+    double latitude;
+};
+
+struct {
+    bool operator()(SimpleNode a, SimpleNode b) const { return a.osmid < b.osmid; }
+} compareSimpleNode;
+
 struct CoastlineWaysExtractor {
     
-    std::vector<Way> coastline_ways;
+    std::vector<Way> &ways;
 
-    CoastlineWaysExtractor() {}
+    CoastlineWaysExtractor(std::vector<Way> &coastline_ways) : ways(coastline_ways) {}
 
     // This method is called every time a Way is read
     // refs is a vector that contains the reference to the nodes that compose the way
@@ -34,7 +45,7 @@ struct CoastlineWaysExtractor {
             if(tags.count("natural") > 0){
                 if(tags.at("natural").compare("coastline") == 0){
                     //std::cout << "found stuff\n";
-                    coastline_ways.push_back({osmid, tags, refs});
+                    ways.push_back({osmid, tags, refs});
                 }
             }
         }
@@ -45,91 +56,78 @@ struct CoastlineWaysExtractor {
 
 struct CoastlineNodesExtractor {
     
-    std::map<uint64_t, Node*> coastlineNodes;
+    static const uint64_t MAX_NODES = 57000000;
+    std::vector<SimpleNode> &nodes;
 
-    CoastlineNodesExtractor(std::map<uint64_t, Node*> &nodeMap) : coastlineNodes(nodeMap) {}
+    CoastlineNodesExtractor(std::vector<SimpleNode> &coastlineNodes): nodes(coastlineNodes){}
 
     void node_callback(uint64_t osmid, double longitude, double latitude, const Tags &tags){
-        // find node id in the map and link the next node to it
-        std::map<uint64_t, Node*>::iterator it = coastlineNodes.find(osmid); 
-        if(it != coastlineNodes.end()){
-            it->second = new Node({osmid, longitude, latitude, tags});
+        // binary-search the node with osmid
+        std::vector<SimpleNode>::iterator it = std::lower_bound(nodes.begin(), nodes.end(), SimpleNode{osmid}, compareSimpleNode);
+        if(it->osmid == osmid){
+            it->longitude = longitude;
+            it->latitude = latitude;
         }
     }
     void relation_callback(uint64_t /*osmid*/, const Tags &/*tags*/, const References & /*refs*/){}
     void way_callback(uint64_t /*osmid*/, const Tags &/*tags*/, const std::vector<uint64_t> &/*refs*/){}
 };
 
-
-
-struct Counter {
-    // Three integers count how many times each object type occurs
-    int nodes;
-    int ways;
-    int relations;
-    std::vector<Way> coastline_ways;
-
-
-    Counter() : nodes(0), ways(0), relations(0) {}
-
-    // This method is called every time a Node is read
-    void node_callback(uint64_t /*osmid*/, double longitude, double latitude, const Tags &tags){
-        if(tags.size() > 0)
-        {
-            if(tags.count("natural") > 0){
-                if(tags.at("natural").compare("coastline") == 0){
-                    std::cout << "found stuff\n";
-                }
-            }
-            //std::cout << longitude << " " << latitude << " " << tags.at(0).at(0) << std::endl;
-        }
-        else
-        {
-            //std::cout << longitude << " " << latitude << std::endl;
-        }
-        ++nodes;
-    }
-
-    // This method is called every time a Way is read
-    // refs is a vector that contains the reference to the nodes that compose the way
-    void way_callback(uint64_t osmid, const Tags &tags, const std::vector<uint64_t> &refs){
-        if(tags.size() > 0)
-        {
-            if(tags.count("natural") > 0){
-                if(tags.at("natural").compare("coastline") == 0){
-                    //std::cout << "found stuff\n";
-                    coastline_ways.push_back(Way({osmid, tags, refs}));
-                }
-            }
-            //std::cout << longitude << " " << latitude << " " << tags.at(0).at(0) << std::endl;
-        }
-        else
-        {
-            //std::cout << longitude << " " << latitude << std::endl;
-        }
-        ++ways;
-    }
-
-    // This method is called every time a Relation is read
-    // refs is a vector of pair corresponding of the relation type (Node, Way, Relation) and the reference to the object
-    void relation_callback(uint64_t /*osmid*/, const Tags &/*tags*/, const References & /*refs*/){
-        ++relations;
-    }
-};
-
-void coast_polyline_assembly(std::string pbfPath, std::map<uint64_t, Node*> &nodeMap, std::vector<Way> &ways){
-    CoastlineWaysExtractor wayExtractor;
+/**
+ * Adds around 2.5GB of data to the nodes and ways vector combined 
+ **/
+void load_coastline_data(std::string pbfPath, std::vector<SimpleNode> &nodes, std::vector<Way> &ways){
+    CoastlineWaysExtractor wayExtractor(ways);
     read_osm_pbf(pbfPath, wayExtractor);
 
-    for(Way way : wayExtractor.coastline_ways){
+    for(Way way : ways){
         for(uint64_t ref : way.refs){
-            nodeMap.insert(std::pair<uint64_t, Node*>(ref, nullptr));
-            //std::cout << ref << std::endl;
+            nodes.push_back(SimpleNode{ref});
         }
     }
 
-    CoastlineNodesExtractor nodeExtractor(nodeMap);
+    std::sort(nodes.begin(), nodes.end(), compareSimpleNode);
+
+    CoastlineNodesExtractor nodeExtractor(nodes);
     read_osm_pbf(pbfPath, nodeExtractor);
+}
+
+void save_coastline_to_geojson(std::string geoJsonPath, std::vector<SimpleNode> &nodes, std::vector<Way> &ways){
+    std::ofstream file;
+
+    file.open(geoJsonPath, std::ios::out | std::ios::trunc);
+    file.exceptions(file.exceptions() | std::ios::failbit | std::ifstream::badbit);
+
+    file <<     "{ \"type\": \"FeatureCollection\",\n";
+    file <<     "  \"features\": [\n";
+
+    uint64_t count = 0;
+    bool first_way = true;
+    for(Way way : ways){
+        if(!first_way){file << ",";}
+        file << "   {\"type\": \"Feature\",\n"
+                "    \"geometry\": {\n"
+                "       \"type\": \"LineString\",\n"
+                "       \"coordinates\": [\n";
+
+        bool first_node = true;
+        for(SimpleNode node : nodes){
+            std::vector<SimpleNode>::iterator it = std::lower_bound(nodes.begin(), nodes.end(), SimpleNode{node.osmid}, compareSimpleNode);
+            if(!first_node){file << ",";};
+            file << "[" << it->longitude << "," << it->latitude << "]\n";
+            first_node=false;
+        }
+
+        file << "   ]\n";
+        file << "   }}";
+        
+        count++;
+        if(count%1 == 0){file.flush();}
+        if(count%1 == 0){break;}
+        first_way = false;
+    }
+    file <<     "]}\n" << std::endl;
+    
 }
 
 void test(std::vector<std::string> &testv){
@@ -139,23 +137,23 @@ void test(std::vector<std::string> &testv){
 
 int main(int argc, char** argv) {
     std::cout << "Hello World\n";
-    if(argc != 2) {
-        std::cout << "Usage: " << argv[0] << " file_to_read.osm.pbf" << std::endl;
-        return 1;
-    }
+    // if(argc != 2) {
+    //     std::cout << "Usage: " << argv[0] << " file_to_read.osm.pbf" << std::endl;
+    //     return 1;
+    // }
 
     std::vector<std::string> oldV {"ok"};
     std::cout << oldV.at(0) << std::endl;
     test(oldV);
     std::cout << oldV.at(0) << std::endl;
 
-    std::map<uint64_t, Node *> nodes;
+    std::vector<SimpleNode> nodes;
     std::vector<Way> ways;
+    load_coastline_data("/home/simonb/git/OpenStreetMap-Ship-Routing/data/antarctica-latest.osm.pbf", nodes, ways);
+    std::cout << "Nodes vector takes up " << (nodes.size()*3.*4.)/1e6 << " MB\n";
     
-    coast_polyline_assembly(argv[1], nodes, ways);
-
-    //Counter counter; 
-    //read_osm_pbf(argv[1], counter);
+    save_coastline_to_geojson("/home/simonb/git/OpenStreetMap-Ship-Routing/data/planet-coastlines.json", nodes, ways);
+    
     //CoastlineWaysExtractor wayExtractor;
     //read_osm_pbf(argv[1], wayExtractor);
 
