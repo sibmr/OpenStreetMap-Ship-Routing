@@ -111,19 +111,21 @@ void save_coastline_to_geojson(std::string geoJsonPath, std::vector<SimpleNode> 
                 "       \"coordinates\": [\n";
 
         bool first_node = true;
-        for(SimpleNode node : nodes){
-            std::vector<SimpleNode>::iterator it = std::lower_bound(nodes.begin(), nodes.end(), SimpleNode{node.osmid}, compareSimpleNode);
+        for(uint64_t osmid : way.refs){
+            std::vector<SimpleNode>::iterator it = std::lower_bound(nodes.begin(), nodes.end(), SimpleNode{osmid}, compareSimpleNode);
             if(!first_node){file << ",";};
             file << "[" << it->longitude << "," << it->latitude << "]\n";
             first_node=false;
         }
 
-        file << "   ]\n";
-        file << "   }}";
+        file << "   ]\n"
+                "   },\n"
+                "   \"properties\": {}\n"
+                "   }";
         
         count++;
-        if(count%1 == 0){file.flush();}
-        if(count%1 == 0){break;}
+        if(count%100 == 0){file.flush();}
+        if(count%20 == 0){break;}
         first_way = false;
     }
     file <<     "]}\n" << std::endl;
