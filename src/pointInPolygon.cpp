@@ -65,6 +65,14 @@ Vec3D sub(Vec3D v1, Vec3D v2){
     };
 }
 
+Vec3D div(Vec3D v, double divisor){
+    return Vec3D{
+        v.x/divisor,
+        v.y/divisor,
+        v.z/divisor
+    };
+}
+
 double dotProduct(Vec3D v1, Vec3D v2){
     return v1.x*v2.x+v1.y*v2.y+v1.z*v2.z;
 }
@@ -95,6 +103,28 @@ bool isArcIntersecting(Edge e1, Edge e2){
     return e1node1L != e1node2L && e2node1L != e2node2L;
 }
 
+/**
+ * TODO: finish implementing !
+ **/
+bool isPointInPolygon(Node n, std::vector<Edge> edges){
+    Edge firstEdge = edges.at(0);
+    bool nLeftOfEdge = isNodeLeftOfEdge(n, firstEdge);
+
+    Node centerNode = Node{0,0,0}; // TODO: calculate center point on arc between firstEdge.sourceNode and firstEdge.destinationNode;
+    Edge intersectionEdge {n, centerNode};
+    
+    uint64_t intersectionCount = 0;
+    for(Edge edge : edges){
+        intersectionCount += isArcIntersecting(edge, intersectionEdge);
+    }
+
+    bool even = (intersectionCount%2) == 0;
+
+    // (left and !even) OR (!left and even) means the node is outside, otherwise it is inside
+    // equivalent to left XOR even
+    return nLeftOfEdge != even;
+}
+
 int main(int argc, char** argv) {
 
     // check rectangular to spherical
@@ -121,9 +151,15 @@ int main(int argc, char** argv) {
     double cres = dotProduct(Vec3D{1,2,3},Vec3D{-7,8,9});
     std::cout << "should be 36, is " << cres << std::endl; 
 
+    
+    std::vector<Node> nodes {Node{0,-1,0},Node{1,1,0},Node{2,0,-1},Node{2,0,1}};
+    std::vector<Edge> edges {Edge{nodes.at(0),nodes.at(1)},Edge{nodes.at(2),nodes.at(3)}};
+    
     // check on which side of the edge arc node 2 is
-    std::vector<Node> nodes {Node{0,-1,0},Node{1,1,0},Node{2,0,-1}};
-    std::vector<Edge> edges {Edge{nodes.at(0),nodes.at(1)}};
     bool bres = isNodeLeftOfEdge(nodes.at(2), edges.at(0));
     std::cout << "is Left? " << bres << std::endl;
+
+    // check if arcs are intersecting
+    bool bres2 = isArcIntersecting(edges.at(0),edges.at(1));
+    std::cout << "is Intersecting? " << bres2 << std::endl;
 } 
