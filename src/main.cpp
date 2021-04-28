@@ -102,89 +102,50 @@ void load_coastline_data(std::string pbfPath, std::vector<SimpleNode> &nodes, st
     CoastlineWaysExtractor wayExtractor(ways);
     read_osm_pbf(pbfPath, wayExtractor);
 
+    std::map<uint64_t, uint64_t> node_vectid; // store for each first node, which ways starts with it
+
     for (uint64_t i = 0; i < ways.size(); i++)
     {
+        node_vectid.insert({ways.at(i).refs.front(), i});
         for(uint64_t ref : ways.at(i).refs){
             nodes.push_back(SimpleNode{ref});
         }
-        //ways.at(lower_wayid).refs.insert(ways.at(lower_wayid).refs.end(), ways.at(i).refs.begin(), ways.at(i).refs.end());
+
     }
     
-    
-    
-    uint64_t tempLastNode = 0;
-    uint64_t tempiLastNode = 0;
-    uint64_t tempjLastNode = 0;
+    uint64_t next_way_id = 0;
+     
+    std::vector<uint64_t> remove_ways = {};
 
-    uint64_t iFirstNode = 0;
-    uint64_t iLastNode = 0;
-    int waysize = 0;
-    int nways = ways.size();
+    for (uint64_t i = 0; i < ways.size(); i++){
 
-    for (uint64_t i = 0; i < ways.size(); i++)
-    {
-        // if way is not closed
-        iFirstNode = ways.at(i).firstNode; 
-        iLastNode = ways.at(i).lastNode;
-        while (ways.at(i).lastNode != ways.at(i).firstNode)
-        {
-            //std::cout << ways.at(i).lastNode << " " << ways.at(i).firstNode << std::endl;
+        if (std::find(remove_ways.begin(), remove_ways.end(), i) == remove_ways.end()){ // way does not get removed later
 
-            tempLastNode = ways.at(i).lastNode;
-            tempiLastNode = ways.at(i).lastNode;
+            // if way is not closed
+            while (ways.at(i).lastNode != ways.at(i).firstNode){
+                next_way_id = node_vectid.at(ways.at(i).lastNode);
 
-            // FIND NEXT WAY
-            for (uint64_t j = 0; j < ways.size(); j++)
-            {
-                if(tempLastNode == ways.at(j).firstNode)
-                {
-                    ways.at(i).refs.insert(ways.at(i).refs.end(), ways.at(j).refs.begin(), ways.at(j).refs.end());
-                    ways.at(i).lastNode = ways.at(j).lastNode;
-                    tempiLastNode = ways.at(i).lastNode;
-                    tempjLastNode = ways.at(j).lastNode;
-                    tempLastNode = ways.at(j).lastNode;
-
-                    iFirstNode = ways.at(i).firstNode; 
-                    iLastNode = ways.at(i).lastNode;
-                    waysize = ways.at(i).refs.size();
-
-                    ways.erase(ways.begin() + j);
-                    nways = ways.size();
-                    std::cout << nways << std::endl;
-                    std::cout  << std::endl;
-                    break;
-                }
+                ways.at(i).refs.insert(ways.at(i).refs.end(), ways.at(next_way_id).refs.begin(), ways.at(next_way_id).refs.end());
+                ways.at(i).lastNode = ways.at(next_way_id).refs.back();
+                remove_ways.push_back(next_way_id); // store which ways do not have to be watched further
             }
-            //ways.at(i).refs.insert(ways.at(i).refs.end(), ways.at(i).)
-
         }
     }
 
 
-    //for(Way way : ways){
-    //    //std::cout << way.refs.front() << std::endl;
-    //    //std::cout << way.refs.back() << std::endl;
-    //    //std::cout << std::endl;
+    std::map<uint64_t,uint64_t>().swap(node_vectid); // free up space of temp map
 
 
+    std::sort(remove_ways.begin(), remove_ways.end()); // list has to be sorted so the offset (- i) stays consistent
 
-    //    //front_wayid = add_element_map(node_wayid, way.refs.front(), way.osmid);
-    //    //back_wayid = add_element_map(node_wayid, way.refs.back(), way.osmid);
-    //    //lower_wayid = std::min(front_wayid, back_wayid);
+    for (uint64_t i = 0; i < remove_ways.size(); i++){
+        ways.erase(ways.begin() + remove_ways.at(i) - i);
+    }
 
+    std::vector<uint64_t>().swap(remove_ways); // free up space of temp vector
 
-    //    //origin_osmid.insert({way.osmid, add_element_map(node_wayid, way.refs.front(), way.osmid)})
-    //    //if(way.osmid == add_element_map(node_wayid, way.refs.front(), way.osmid))
-    //    //{
-    //    //    origin_osmid.insert({way.osmid, way.osmid});
-    //    //}
+    std::cout << "Total number of ways: " << ways.size() << std::endl;
 
-
-
-    //    for(uint64_t ref : way.refs){
-    //        nodes.push_back(SimpleNode{ref});
-    //    }
-    //}
 
     std::sort(nodes.begin(), nodes.end(), compareSimpleNode);
 
