@@ -1,0 +1,129 @@
+# include <iostream>
+# include <vector>
+# include <math.h>
+
+struct Node {
+    uint64_t id;
+    double longitude;
+    double latitude;
+};
+
+/**
+ * to the left there is land, to the right there is ocean
+ **/
+struct Edge {
+    Node &sourceNode;
+    Node &destinationNode;  
+};
+
+struct Vec3D {
+    double x;
+    double y;
+    double z;
+};
+
+void printVec(Vec3D vec){
+    std::cout << "x=" << vec.x << " y=" << vec.y << " z=" << vec.z << "\n";
+}
+
+/**
+ * supposed position in 3D on a sphere of radius 1
+ **/
+Vec3D sphericalToRectangular(double longitude, double latitude){
+    double theta = (M_PI*(latitude+90))/180.0;
+    double phi = (M_PI*longitude)/180.0;
+    double stheta = sin(theta);
+    double x = stheta*cos(phi);
+    double y = stheta*sin(phi);
+    double z = cos(theta);
+    return Vec3D{x, y, z};
+}
+
+Vec3D rectangularToSpherical(Vec3D coords){
+    double r = sqrt(coords.x*coords.x + coords.y*coords.y + coords.z*coords.z);
+    double theta = acos(coords.z/r);
+    double phi = 0;
+    if(coords.x != 0){
+        double phi = atan(coords.y/coords.x);
+    }
+    return Vec3D{r, theta, phi};
+}
+
+Vec3D crossProduct(Vec3D v1, Vec3D v2){
+    return Vec3D{
+        v1.y*v2.z - v1.z*v2.y,
+        v1.z*v2.x - v1.x*v2.z,
+        v1.x*v2.y - v1.y*v2.x
+    };
+}
+
+Vec3D sub(Vec3D v1, Vec3D v2){
+    return Vec3D{
+        v1.x-v2.x,
+        v1.y-v2.y,
+        v1.z-v2.z
+    };
+}
+
+double dotProduct(Vec3D v1, Vec3D v2){
+    return v1.x*v2.x+v1.y*v2.y+v1.z*v2.z;
+}
+
+bool isNodeLeftOfEdge(Node n, Edge e){
+    Vec3D c = sphericalToRectangular(n.longitude,                   n.latitude);
+    Vec3D a = sphericalToRectangular(e.sourceNode.longitude,        e.sourceNode.latitude);
+    Vec3D b = sphericalToRectangular(e.destinationNode.longitude,   e.destinationNode.latitude);
+    Vec3D o = Vec3D{0,0,0};
+    
+    Vec3D ao = sub(o,a);
+    Vec3D ab = sub(b,a);
+    Vec3D ac = sub(c,a);
+    Vec3D aoxab = crossProduct(ao,ab);
+    double w = dotProduct(aoxab,ac);
+    
+    std::cout << w << std::endl;
+
+    return w < 0;
+}
+
+bool isArcIntersecting(Edge e1, Edge e2){
+    bool e1node1L = isNodeLeftOfEdge(e1.sourceNode, e2);
+    bool e1node2L = isNodeLeftOfEdge(e1.destinationNode, e2);
+    bool e2node1L = isNodeLeftOfEdge(e2.sourceNode, e1);
+    bool e2node2L = isNodeLeftOfEdge(e2.destinationNode, e1);
+    
+    return e1node1L != e1node2L && e2node1L != e2node2L;
+}
+
+int main(int argc, char** argv) {
+
+    // check rectangular to spherical
+    double lo = 0;
+    double la = 0;
+    Vec3D rect = sphericalToRectangular(lo, la);
+    std::cout << "rectangular coordinate of long = " << lo << ", lat = " << la << 
+    " is x=" << rect.x << " y=" << rect.y << " z=" << rect.z << "\n";
+    Vec3D back = rectangularToSpherical(rect);
+    std::cout << "transformed back" 
+    " is r=" << back.x << " long=" << back.y << " lat=" << back.z << "\n";
+
+    // check cross product
+    Vec3D res = crossProduct(Vec3D{1,2,3},Vec3D{-7,8,9});
+    std::cout << "should be -6, -30, 22\n";
+    printVec(res);
+
+    // check sub
+    Vec3D sres = sub(Vec3D{1,2,3},Vec3D{-7,8,10});
+    std::cout << "should be 8, -6, -7\n";
+    printVec(sres);
+
+    // check dot product
+    double cres = dotProduct(Vec3D{1,2,3},Vec3D{-7,8,9});
+    std::cout << "should be 36, is " << cres << std::endl; 
+
+    // check on which side of the edge arc node 2 is
+    std::vector<Node> nodes {Node{0,-1,0},Node{1,1,0},Node{2,0,-1}};
+    std::vector<Edge> edges {Edge{nodes.at(0),nodes.at(1)}};
+    bool bres = isNodeLeftOfEdge(nodes.at(2), edges.at(0));
+    std::cout << "is Left? " << bres << std::endl;
+} 
