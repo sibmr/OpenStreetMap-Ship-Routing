@@ -98,7 +98,7 @@ uint64_t add_element_map(std::map<uint64_t, std::vector<uint64_t>> mymap, uint64
 /**
  * Adds around 2.5GB of data to the nodes and ways vector combined 
  **/
-void load_coastline_data(std::string pbfPath, std::vector<SimpleNode> &nodes, std::vector<Way> &ways){
+void load_coastline_data(std::string pbfPath, std::vector<SimpleNode> &nodes, std::vector<Way> &ways, std::vector<uint64_t> &export_ways){
     CoastlineWaysExtractor wayExtractor(ways);
     read_osm_pbf(pbfPath, wayExtractor);
 
@@ -113,9 +113,15 @@ void load_coastline_data(std::string pbfPath, std::vector<SimpleNode> &nodes, st
 
     }
     
+
+    std::cout << "All Nodes pushed" << std::endl;
+    
     uint64_t next_way_id = 0;
      
     std::vector<uint64_t> remove_ways = {};
+    //std::vector<uint64_t> export_ways = {};
+    std::vector<uint64_t>().swap(export_ways);
+
 
     for (uint64_t i = 0; i < ways.size(); i++){
 
@@ -129,22 +135,25 @@ void load_coastline_data(std::string pbfPath, std::vector<SimpleNode> &nodes, st
                 ways.at(i).lastNode = ways.at(next_way_id).refs.back();
                 remove_ways.push_back(next_way_id); // store which ways do not have to be watched further
             }
+            export_ways.push_back(i);
         }
     }
+
+    std::cout << "All ways merged. Total ways: " << export_ways.size() <<  std::endl; 
 
 
     std::map<uint64_t,uint64_t>().swap(node_vectid); // free up space of temp map
 
 
-    std::sort(remove_ways.begin(), remove_ways.end()); // list has to be sorted so the offset (- i) stays consistent
+    //std::sort(remove_ways.begin(), remove_ways.end()); // list has to be sorted so the offset (- i) stays consistent
 
-    for (uint64_t i = 0; i < remove_ways.size(); i++){
-        ways.erase(ways.begin() + remove_ways.at(i) - i);
-    }
+    //for (uint64_t i = 0; i < remove_ways.size(); i++){
+    //    ways.erase(ways.begin() + remove_ways.at(i) - i);
+    //}
 
-    std::vector<uint64_t>().swap(remove_ways); // free up space of temp vector
+    //std::vector<uint64_t>().swap(remove_ways); // free up space of temp vector
 
-    std::cout << "Total number of ways: " << ways.size() << std::endl;
+    //std::cout << "Total number of ways: " << ways.size() << std::endl;
 
 
     std::sort(nodes.begin(), nodes.end(), compareSimpleNode);
@@ -153,7 +162,7 @@ void load_coastline_data(std::string pbfPath, std::vector<SimpleNode> &nodes, st
     read_osm_pbf(pbfPath, nodeExtractor);
 }
 
-void save_coastline_to_geojson(std::string geoJsonPath, std::vector<SimpleNode> &nodes, std::vector<Way> &ways){
+void save_coastline_to_geojson(std::string geoJsonPath, std::vector<SimpleNode> &nodes, std::vector<Way> &ways, std::vector<uint64_t> &export_ways){
     std::ofstream file;
 
     file.open(geoJsonPath, std::ios::out | std::ios::trunc);
@@ -164,7 +173,8 @@ void save_coastline_to_geojson(std::string geoJsonPath, std::vector<SimpleNode> 
 
     uint64_t count = 0;
     bool first_way = true;
-    for(Way way : ways){
+    //for(Way way : ways){
+    for(uint64_t i : export_ways){
         if(!first_way){file << ",";}
         file << "   {\"type\": \"Feature\",\n"
                 "    \"geometry\": {\n"
@@ -172,19 +182,21 @@ void save_coastline_to_geojson(std::string geoJsonPath, std::vector<SimpleNode> 
                 "       \"coordinates\": [\n";
 
         bool first_node = true;
-        for(SimpleNode node : nodes){
-            std::vector<SimpleNode>::iterator it = std::lower_bound(nodes.begin(), nodes.end(), SimpleNode{node.osmid}, compareSimpleNode);
+        for(uint64_t osmid : ways.at(i).refs){
+            std::vector<SimpleNode>::iterator it = std::lower_bound(nodes.begin(), nodes.end(), SimpleNode{osmid}, compareSimpleNode);
             if(!first_node){file << ",";};
             file << "[" << it->longitude << "," << it->latitude << "]\n";
             first_node=false;
         }
 
-        file << "   ]\n";
-        file << "   }}";
+        file << "   ]\n"
+                "   },\n"
+                "   \"properties\": {}\n"
+                "   }";
         
         count++;
         if(count%1 == 0){file.flush();}
-        if(count%1 == 0){break;}
+        //if(count%100 == 0){break;}
         first_way = false;
     }
     file <<     "]}\n" << std::endl;
@@ -200,10 +212,11 @@ int main(int argc, char** argv) {
 
     std::vector<SimpleNode> nodes;
     std::vector<Way> ways;
-    load_coastline_data(argv[1], nodes, ways);
+    std::vector<uint64_t> export_ways;
+    load_coastline_data(argv[1], nodes, ways, export_ways);
     std::cout << "Nodes vector takes up " << (nodes.size()*3.*4.)/1e6 << " MB\n";
     
-    save_coastline_to_geojson(argv[2], nodes, ways);
+    save_coastline_to_geojson(argv[2], nodes, ways, export_ways);
     
     //CoastlineWaysExtractor wayExtractor;
     //read_osm_pbf(argv[1], wayExtractor);
