@@ -113,7 +113,7 @@ bool isArcIntersecting(Edge e1, Edge e2){
     bool e2node1L = isNodeLeftOfEdge(e2.sourceNode, e1);
     bool e2node2L = isNodeLeftOfEdge(e2.destinationNode, e1);
     
-    return e1node1L != e1node2L && e2node1L != e2node2L;
+    return (e1node1L != e1node2L) && (e2node1L != e2node2L);
 }
 
 /**
