@@ -41,12 +41,12 @@ Vec3D sphericalToRectangular(double longitude, double latitude){
 
 Vec3D rectangularToSpherical(Vec3D coords){
     double r = sqrt(coords.x*coords.x + coords.y*coords.y + coords.z*coords.z);
-    double theta = acos(coords.z/r);
+    double theta = acos(coords.z/r) - M_PI_2;
     double phi = 0;
     if(coords.x != 0){
         double phi = atan(coords.y/coords.x);
     }
-    return Vec3D{r, theta, phi};
+    return Vec3D{r, phi, theta};
 }
 
 Vec3D crossProduct(Vec3D v1, Vec3D v2){
@@ -54,6 +54,14 @@ Vec3D crossProduct(Vec3D v1, Vec3D v2){
         v1.y*v2.z - v1.z*v2.y,
         v1.z*v2.x - v1.x*v2.z,
         v1.x*v2.y - v1.y*v2.x
+    };
+}
+
+Vec3D add(Vec3D v1, Vec3D v2){
+    return Vec3D{
+        v1.x+v2.x,
+        v1.y+v2.y,
+        v1.z+v2.z
     };
 }
 
@@ -75,6 +83,11 @@ Vec3D div(Vec3D v, double divisor){
 
 double dotProduct(Vec3D v1, Vec3D v2){
     return v1.x*v2.x+v1.y*v2.y+v1.z*v2.z;
+}
+
+Vec3D normalize(Vec3D v){
+    double norm = std::sqrt(dotProduct(v,v));
+    return div(v, norm); 
 }
 
 bool isNodeLeftOfEdge(Node n, Edge e){
@@ -104,20 +117,34 @@ bool isArcIntersecting(Edge e1, Edge e2){
 }
 
 /**
- * TODO: finish implementing !
+ * TODO: test this method better
  **/
 bool isPointInPolygon(Node n, std::vector<Edge> edges){
     Edge firstEdge = edges.at(0);
     bool nLeftOfEdge = isNodeLeftOfEdge(n, firstEdge);
 
-    Node centerNode = Node{0,0,0}; // TODO: calculate center point on arc between firstEdge.sourceNode and firstEdge.destinationNode;
+    // calculate halfway vector beetween edge nodes, then normalize and convert to node with lat-long
+    Vec3D centerRect = normalize(
+        add(
+            sphericalToRectangular(
+                firstEdge.sourceNode.longitude, firstEdge.sourceNode.latitude
+            ),
+            sphericalToRectangular(
+                firstEdge.destinationNode.longitude, firstEdge.destinationNode.latitude)
+        ));
+    Vec3D centerSpherical = rectangularToSpherical(centerRect);
+    Node centerNode = Node{0, centerSpherical.y, centerSpherical.z};
+    
+    // edge representing arc from centerNode of edge to query point
     Edge intersectionEdge {n, centerNode};
     
+    // check for all edges (except the first one) if they intersect the intersection edge and count intersections
     uint64_t intersectionCount = 0;
-    for(Edge edge : edges){
-        intersectionCount += isArcIntersecting(edge, intersectionEdge);
+    for(auto edgeIter = edges.begin()+1; edgeIter!=edges.end(); ++edgeIter){
+        intersectionCount += isArcIntersecting(*edgeIter, intersectionEdge);
     }
 
+    std::cout << intersectionCount << "\n";
     bool even = (intersectionCount%2) == 0;
 
     // (left and !even) OR (!left and even) means the node is outside, otherwise it is inside
@@ -162,4 +189,21 @@ int main(int argc, char** argv) {
     // check if arcs are intersecting
     bool bres2 = isArcIntersecting(edges.at(0),edges.at(1));
     std::cout << "is Intersecting? " << bres2 << std::endl;
+
+    // testing data for polygon
+    std::vector<Node> pNodes{
+        Node{0,-1,-1},Node{1,-1,1},Node{2,1,1},Node{3,1,-1}
+    };
+    std::vector<Edge> polygon{
+        Edge{pNodes.at(1),pNodes.at(0)},
+        Edge{pNodes.at(2),pNodes.at(1)},
+        Edge{pNodes.at(3),pNodes.at(2)},
+        Edge{pNodes.at(0),pNodes.at(3)},
+    };
+
+    // check if point is in polygon
+    Node toCheck = Node{0,2,0};
+    bool inPoly = isPointInPolygon(toCheck, polygon);
+    std::cout << "in Polygon? " << inPoly << std::endl;
+    std::cout << "is left of first? " << isNodeLeftOfEdge(toCheck, edges.at(0)) << std::endl;
 } 
