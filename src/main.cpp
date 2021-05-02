@@ -4,7 +4,12 @@
 # include <map>
 # include <algorithm>
 # include <math.h>
+#include <chrono>
+
 //# include <ios>
+
+
+
 
 # include "osmpbfreader.h"
 
@@ -298,6 +303,10 @@ int main(int argc, char** argv) {
         return 1;
     }
 
+
+    std::chrono::duration<double> main_program_timing;
+    auto startMain = std::chrono::high_resolution_clock::now();
+
     std::vector<SimpleNode> nodes;
     std::vector<Way> ways;
     std::vector<uint64_t> export_ways;
@@ -307,6 +316,12 @@ int main(int argc, char** argv) {
     //save_coastline_to_geojson(argv[2], nodes, ways, export_ways);
     save_coastline_edges_to_file(argv[2], nodes, ways, export_ways);
     
+    
+    auto endMain = std::chrono::high_resolution_clock::now();
+    main_program_timing = endMain - startMain;
+    std::cout << "Total .save export time: " << main_program_timing.count() << "seconds" << std::endl;
+
+
     //CoastlineWaysExtractor wayExtractor;
     //read_osm_pbf(argv[1], wayExtractor);
 

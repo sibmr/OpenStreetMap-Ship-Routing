@@ -31,3 +31,15 @@ Dependency:
 * Create Reader object of pbf
 * Create Handler that reads coastlines
 * Save Coastlines to geoJson (or use data directly)
+
+
+
+### install execute program
+
+cmake -DCMAKE_BUILD_TYPE=Release .
+make 
+make install 
+
+./bin/osmrouting data/planet-coastline.pbf data/planet-coastlin
+
+
