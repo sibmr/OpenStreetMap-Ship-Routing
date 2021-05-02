@@ -3,6 +3,7 @@
 # include <vector>
 # include <map>
 # include <algorithm>
+# include <math.h>
 //# include <ios>
 
 # include "osmpbfreader.h"
@@ -203,6 +204,93 @@ void save_coastline_to_geojson(std::string geoJsonPath, std::vector<SimpleNode> 
     
 }
 
+void save_coastline_edges_to_file(std::string save_string, std::vector<SimpleNode> &nodes, std::vector<Way> &ways, std::vector<uint64_t> &export_ways){
+    std::ofstream textfile;
+    size_t lastindex = save_string.find_last_of(".");
+    std::string text_file_name = save_string.substr(0, lastindex);
+    text_file_name += ".save";
+    textfile.open(text_file_name, std::ios::out | std::ios::trunc);
+    textfile.exceptions(textfile.exceptions() | std::ios::failbit | std::ifstream::badbit);
+
+
+    SimpleNode SourceNode;
+    SimpleNode TargetNode;
+
+    uint64_t tmp_osmid_source;
+    uint64_t tmp_osmid_target;
+
+    double source_longitude;
+    double source_latitude;
+
+    double target_longitude;
+    double target_latitude;
+
+    for (uint64_t way_id : export_ways){
+        for(uint64_t ref_iterator = 0; ref_iterator < ways.at(way_id).refs.size() - 1; ref_iterator++){
+            tmp_osmid_source = ways.at(way_id).refs.at(ref_iterator);
+            tmp_osmid_target = ways.at(way_id).refs.at(ref_iterator+1);
+            
+            std::vector<SimpleNode>::iterator it_source = std::lower_bound(nodes.begin(), nodes.end(), SimpleNode{tmp_osmid_source}, compareSimpleNode);
+            std::vector<SimpleNode>::iterator it_target = std::lower_bound(nodes.begin(), nodes.end(), SimpleNode{tmp_osmid_target}, compareSimpleNode);
+
+            source_latitude = it_source->latitude;
+            source_longitude = it_source->longitude;
+
+            target_latitude = it_target->latitude;
+            target_longitude = it_target->longitude;
+
+
+            double plus_long_bound = 180.0;
+            double minus_long_bound = -180.0;
+
+            // cut edge if there is a wraparound on longitude
+            if (!(signbit(source_longitude) != signbit(target_longitude) && abs(source_longitude > 100))){                    
+                // do not cut the the edges
+                textfile.write(reinterpret_cast<const char*>(&source_latitude), sizeof(source_latitude));
+                textfile.write(reinterpret_cast<const char*>(&source_longitude), sizeof(source_longitude));
+                textfile.write(reinterpret_cast<const char*>(&target_latitude), sizeof(target_latitude));
+                textfile.write(reinterpret_cast<const char*>(&target_longitude), sizeof(target_longitude));
+
+            }else{
+                std::cout << "nocut:" << source_longitude << " " << target_longitude << std::endl;
+                double intermediate_lat = 0.5 * (source_latitude + target_latitude);
+                if(signbit(source_longitude)){
+                    // first edge
+                    textfile.write(reinterpret_cast<const char*>(&source_latitude), sizeof(source_latitude));
+                    textfile.write(reinterpret_cast<const char*>(&source_longitude), sizeof(source_longitude));
+                    textfile.write(reinterpret_cast<const char*>(&intermediate_lat), sizeof(source_latitude));
+                    textfile.write(reinterpret_cast<const char*>(&plus_long_bound), sizeof(source_longitude));
+
+                    // second edge
+                    textfile.write(reinterpret_cast<const char*>(&intermediate_lat), sizeof(source_latitude));
+                    textfile.write(reinterpret_cast<const char*>(&minus_long_bound), sizeof(source_longitude));
+                    textfile.write(reinterpret_cast<const char*>(&target_latitude), sizeof(target_latitude));
+                    textfile.write(reinterpret_cast<const char*>(&target_longitude), sizeof(target_longitude));
+                }else{
+                    // first edge
+                    textfile.write(reinterpret_cast<const char*>(&source_latitude), sizeof(source_latitude));
+                    textfile.write(reinterpret_cast<const char*>(&source_longitude), sizeof(source_longitude));
+                    textfile.write(reinterpret_cast<const char*>(&intermediate_lat), sizeof(source_latitude));
+                    textfile.write(reinterpret_cast<const char*>(&minus_long_bound), sizeof(source_longitude));
+
+                    // second edge
+                    textfile.write(reinterpret_cast<const char*>(&intermediate_lat), sizeof(source_latitude));
+                    textfile.write(reinterpret_cast<const char*>(&plus_long_bound), sizeof(source_longitude));
+                    textfile.write(reinterpret_cast<const char*>(&target_latitude), sizeof(target_latitude));
+                    textfile.write(reinterpret_cast<const char*>(&target_longitude), sizeof(target_longitude));
+                }
+
+            }
+        }
+
+        textfile.flush();
+    }
+
+
+
+
+}
+
 int main(int argc, char** argv) {
     std::cout << "Hello World\n";
     if(argc != 3) {
@@ -216,7 +304,8 @@ int main(int argc, char** argv) {
     load_coastline_data(argv[1], nodes, ways, export_ways);
     std::cout << "Nodes vector takes up " << (nodes.size()*3.*4.)/1e6 << " MB\n";
     
-    save_coastline_to_geojson(argv[2], nodes, ways, export_ways);
+    //save_coastline_to_geojson(argv[2], nodes, ways, export_ways);
+    save_coastline_edges_to_file(argv[2], nodes, ways, export_ways);
     
     //CoastlineWaysExtractor wayExtractor;
     //read_osm_pbf(argv[1], wayExtractor);
