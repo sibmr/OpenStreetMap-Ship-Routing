@@ -11,3 +11,7 @@ set_target_properties(example_routing PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMA
 add_executable(osmrouting main.cpp)
 target_link_libraries(osmrouting PRIVATE osmpbfreader)
 set_target_properties(osmrouting PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+
+add_executable(pointInPolygon pointInPolygon.cpp)
+target_link_libraries(osmrouting PRIVATE osmpbfreader)
+set_target_properties(osmrouting PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")

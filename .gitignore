@@ -1069,3 +1069,4 @@ lib/osmpbfreader/cmake/osmpbfreaderTargets.cmake
 lib/osmpbfreader/cmake/modules/Findosmpbf.cmake
 osmpbfreader.h
 data/planet-coastlines.save
+src/pointInPolygon
