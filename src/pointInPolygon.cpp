@@ -1,4 +1,6 @@
 # include <iostream>
+# include <fstream>
+# include <string>
 # include <vector>
 # include <math.h>
 
@@ -14,6 +16,14 @@ struct Node {
 struct Edge {
     Node &sourceNode;
     Node &destinationNode;  
+};
+
+
+struct Edge2 {
+    double sourceLatitude;
+    double sourceLongitude;
+    double targetLatitude;
+    double targetLongitude;
 };
 
 struct Vec3D {
@@ -106,12 +116,37 @@ bool isNodeLeftOfEdge(Node n, Edge e){
 
     return w < 0;
 }
+bool isNodeLeftOfEdge(double n_lat, double n_long, Edge2 e){
+    Vec3D c = sphericalToRectangular(n_long,                   n_lat);
+    Vec3D a = sphericalToRectangular(e.sourceLongitude,        e.sourceLatitude);
+    Vec3D b = sphericalToRectangular(e.targetLongitude,   e.targetLatitude);
+    Vec3D o = Vec3D{0,0,0};
+    
+    Vec3D ao = sub(o,a);
+    Vec3D ab = sub(b,a);
+    Vec3D ac = sub(c,a);
+    Vec3D aoxab = crossProduct(ao,ab);
+    double w = dotProduct(aoxab,ac);
+    
+    std::cout << w << std::endl;
+
+    return w < 0;
+}
 
 bool isArcIntersecting(Edge e1, Edge e2){
     bool e1node1L = isNodeLeftOfEdge(e1.sourceNode, e2);
     bool e1node2L = isNodeLeftOfEdge(e1.destinationNode, e2);
     bool e2node1L = isNodeLeftOfEdge(e2.sourceNode, e1);
     bool e2node2L = isNodeLeftOfEdge(e2.destinationNode, e1);
+    
+    return (e1node1L != e1node2L) && (e2node1L != e2node2L);
+}
+
+bool isArcIntersecting(Edge2 e1, Edge2 e2){
+    bool e1node1L = isNodeLeftOfEdge(e1.sourceLatitude, e1.sourceLongitude, e2);
+    bool e1node2L = isNodeLeftOfEdge(e1.targetLatitude, e1.targetLongitude, e2);
+    bool e2node1L = isNodeLeftOfEdge(e2.sourceLatitude, e2.sourceLongitude, e1);
+    bool e2node2L = isNodeLeftOfEdge(e2.targetLatitude, e2.targetLongitude, e1);
     
     return (e1node1L != e1node2L) && (e2node1L != e2node2L);
 }
@@ -152,7 +187,71 @@ bool isPointInPolygon(Node n, std::vector<Edge> edges){
     return nLeftOfEdge != even;
 }
 
+// new isPointInPolygon less pointers
+bool isPointInPolygon(Node n, std::vector<Edge2> edges){
+    Edge2 firstEdge = edges.at(0);
+    bool nLeftOfEdge = isNodeLeftOfEdge(n.latitude, n.longitude, firstEdge);
+
+    // calculate halfway vector beetween edge nodes, then normalize and convert to node with lat-long
+    Vec3D centerRect = normalize(
+        add(
+            sphericalToRectangular(
+                firstEdge.sourceLongitude, firstEdge.sourceLatitude
+            ),
+            sphericalToRectangular(
+                firstEdge.targetLongitude, firstEdge.targetLatitude)
+        ));
+    Vec3D centerSpherical = rectangularToSpherical(centerRect);
+    Node centerNode = Node{0, centerSpherical.y, centerSpherical.z};
+    
+    // edge representing arc from centerNode of edge to query point
+    Edge2 intersectionEdge {n.latitude, n.longitude, centerNode.latitude, centerNode.longitude};
+    
+    // check for all edges (except the first one) if they intersect the intersection edge and count intersections
+    uint64_t intersectionCount = 0;
+    for(auto edgeIter = edges.begin()+1; edgeIter!=edges.end(); ++edgeIter){
+        intersectionCount += isArcIntersecting(*edgeIter, intersectionEdge);
+    }
+
+    std::cout << intersectionCount << "\n";
+    bool even = (intersectionCount%2) == 0;
+
+    // (left and !even) OR (!left and even) means the node is outside, otherwise it is inside
+    // equivalent to left XOR even
+    return nLeftOfEdge != even;
+}
+
+void load_ploygon_edges(std::string load_string, std::vector<Edge2> &edges){
+
+    std::ifstream textfile;
+    textfile.open(load_string, std::ios::in);
+    //textfile.exceptions(textfile.exceptions() | std::ios::failbit | std::ifstream::badbit);
+
+    double sourceLatitude;
+    double sourceLongitude;
+    double targetLatitude;
+    double targetLongitude;
+
+    while(!textfile.eof()){
+        textfile.read(reinterpret_cast<char *>(&sourceLatitude), sizeof(sourceLatitude));
+        textfile.read(reinterpret_cast<char *>(&sourceLongitude), sizeof(sourceLongitude));
+        textfile.read(reinterpret_cast<char *>(&targetLatitude), sizeof(targetLatitude));
+        textfile.read(reinterpret_cast<char *>(&targetLongitude), sizeof(targetLongitude));
+
+        edges.push_back(Edge2 {sourceLatitude, sourceLongitude, targetLatitude, targetLongitude});
+    }
+}
+
+
 int main(int argc, char** argv) {
+
+    if(argc != 2){
+        std::cout << "Usage: " << argv[0] << " file_to_read.save" << std::endl;
+        return 1;
+    }
+
+
+
 
     // check rectangular to spherical
     double lo = 0;
@@ -182,6 +281,10 @@ int main(int argc, char** argv) {
     std::vector<Node> nodes {Node{0,-1,0},Node{1,1,0},Node{2,0,-1},Node{2,0,1}};
     std::vector<Edge> edges {Edge{nodes.at(0),nodes.at(1)},Edge{nodes.at(2),nodes.at(3)}};
     
+    // read data from binary file
+    std::vector<Edge2> edges2;
+    load_ploygon_edges(argv[1], edges2);
+
     // check on which side of the edge arc node 2 is
     bool bres = isNodeLeftOfEdge(nodes.at(2), edges.at(0));
     std::cout << "is Left? " << bres << std::endl;
@@ -202,8 +305,8 @@ int main(int argc, char** argv) {
     };
 
     // check if point is in polygon
-    Node toCheck = Node{0,2,0};
-    bool inPoly = isPointInPolygon(toCheck, polygon);
+    Node toCheck = Node{0,0,0};
+    bool inPoly = isPointInPolygon(toCheck, edges2);
     std::cout << "in Polygon? " << inPoly << std::endl;
     std::cout << "is left of first? " << isNodeLeftOfEdge(toCheck, edges.at(0)) << std::endl;
 } 
