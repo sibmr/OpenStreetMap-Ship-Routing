@@ -61,12 +61,10 @@ Vec3D sphericalToRectangular(double longitude, double latitude){
 
 Vec3D rectangularToSpherical(Vec3D coords){
     double r = sqrt(coords.x*coords.x + coords.y*coords.y + coords.z*coords.z);
-    double theta = acos(coords.z/r) - M_PI_2;
-    double phi = 0;
-    if(coords.x != 0){
-        double phi = atan(coords.y/coords.x);
-    }
-    return Vec3D{r, phi, theta};
+    double latitude = -atan2(coords.z,sqrt(coords.x*coords.x + coords.y*coords.y))*(180/M_PI);
+    double longitude = 0;
+    longitude = atan2(coords.y,coords.x)*(180/M_PI);
+    return Vec3D{r, longitude, latitude};
 }
 
 Vec3D crossProduct(Vec3D v1, Vec3D v2){
@@ -170,6 +168,7 @@ bool isPointInPolygon(Node n, std::vector<Edge> edges){
     bool nLeftOfEdge = isNodeLeftOfEdge(n, firstEdge);
 
     // calculate halfway vector beetween edge nodes, then normalize and convert to node with lat-long
+    // there seems to be an error with center point calculation or more likely with rect to spherical conversion
     Vec3D centerRect = normalize(
         add(
             sphericalToRectangular(
@@ -253,6 +252,25 @@ void load_ploygon_edges(std::string load_string, std::vector<Edge2> &edges){
     }
 }
 
+/**
+ * This method shows that conversion does not work for the edge case latitude=-90
+ * */
+void test_conversion(){
+    for(double lo=-180; lo<=180; lo+=0.5){
+        for(double la=-89.999; la<=90; la+=0.5){
+            Vec3D rect = sphericalToRectangular(lo, la);
+            Vec3D sph = rectangularToSpherical(rect);
+            double lodiff = sph.y-lo;
+            double ladiff = sph.z-la;
+            if (lodiff > 0.01 || ladiff > 0.01){
+                std::cout << "for lo=" << lo << " and la=" << la << " there are higher diffs\n";
+                printVec(sph);
+            }
+        }
+    }
+
+}
+
 
 int main(int argc, char** argv) {
 
@@ -316,13 +334,16 @@ int main(int argc, char** argv) {
     };
 
     // check if point is in polygon
-    Node toCheck = Node{0,-3.5,-5.0};
+    Node toCheck = Node{0,-2.0,-4.2};
     Node midPointApprox = Node{0, -2, -4.75};
     bool inPoly1 = isPointInPolygon(toCheck, polygon);
     std::cout << "in Polygon? " << inPoly1 << std::endl;
     std::cout << "is left of first? " << isNodeLeftOfEdge(toCheck, polygon.at(0)) << std::endl;
+    std::cout << "is left of second? " << isNodeLeftOfEdge(toCheck, polygon.at(1)) << std::endl;
     std::cout << "ist arc intersecting? " << isArcIntersecting(Edge{toCheck, midPointApprox},polygon.at(1)) << std::endl;
     printEdge(polygon.at(0));
+
+    test_conversion();
 
     printEdge(edges2.at(0));
     bool inPoly2 = isPointInPolygon(toCheck, edges2);
