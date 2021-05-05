@@ -124,6 +124,7 @@ bool isNodeLeftOfEdge(Node n, Edge e){
 
     return w > 0;
 }
+
 bool isNodeLeftOfEdge(double n_long, double n_lat, Edge2 e){
     Vec3D c = sphericalToRectangular(n_long,                   n_lat);
     Vec3D a = sphericalToRectangular(e.sourceLongitude,        e.sourceLatitude);
@@ -231,6 +232,7 @@ bool isPointInPolygon(Node n, std::vector<Edge2> edges){
     return nLeftOfEdge == even;
 }
 
+
 void load_ploygon_edges(std::string load_string, std::vector<Edge2> &edges){
 
     std::ifstream textfile;
@@ -268,7 +270,17 @@ void test_conversion(){
             }
         }
     }
+}
 
+/**
+ * Check if param Edge intersects window defined by bounds on longitude and latitude (should also detect edges whose end points are not in the cell)
+ **/
+bool isEdgeInWindow(double longLow, double longHigh, double latLow, double latHigh, Edge2 edge){
+    return 
+        isArcIntersecting(edge, Edge2{longLow,  latLow,     longLow,    latHigh})
+    &&                        isArcIntersecting(edge, Edge2{longLow,    latHigh,    longHigh,   latHigh})
+    &&                                                isArcIntersecting(edge, Edge2{longHigh,   latHigh, longHigh,  latLow})
+    &&                                                                     isArcIntersecting(edge, Edge2{longHigh,  latLow, longLow, latLow});
 }
 
 
