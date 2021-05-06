@@ -3,6 +3,7 @@
 # include <string>
 # include <vector>
 # include <math.h>
+# include <algorithm>
 
 struct Node {
     uint64_t id;
@@ -334,13 +335,13 @@ void fillPartitionCenters(std::vector<Edge2*> **partitions, bool **partitionCent
         uint64_t intersectionCount = 0;
         for(Edge2 *edge : partitions[p_i][p_j]){
             processedEdges.push_back(edge);
-            intersectionCount += isArcIntersecting(&edge, centerEdge)
+            intersectionCount += isArcIntersecting(*edge, centerEdge);
         }
-        std::sort(processedEdges);
+        std::sort(processedEdges.begin(), processedEdges.end());
         for(Edge2 *edge : partitions[c_i][c_j]){
             auto result = std::lower_bound(processedEdges.begin(), processedEdges.end(), edge);
             // only increment if edge was not yet processed
-            intersectionCount += ((result == processedEdges.end()) && isArcIntersecting(&edge, centerEdge));
+            intersectionCount += ((result == processedEdges.end()) && isArcIntersecting(*edge, centerEdge));
         }
 
         // Equivalence operator for intersection count even and previous in polygon
