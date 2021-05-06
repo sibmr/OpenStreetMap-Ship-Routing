@@ -266,6 +266,46 @@ bool isEdgeInWindow(double longLow, double longHigh, double latLow, double latHi
 }
 
 /**
+ * TODO: lots of room for optimization
+ * TODO: only check relevant cells/windows, not all, based on node coordinates
+ **/
+template<std::size_t width, std::size_t height>
+void fillPartitions(std::vector<Edge2> &edges, std::vector<Edge2*> (&partitions)[width][height]){
+    const double longLow = -180;
+    const double longHigh = 180;
+    const double latLow = -89.999;
+    const double latHigh = 90;
+    const double longStep = (longHigh-longLow)/width;
+    const double latStep = (latHigh-latLow)/height;
+    
+    uint64_t count = 0;
+    for(Edge2 candidate : edges)
+    {
+        for(int i=0; i<width; ++i)
+        for(int j=0; j<height; ++j)
+        {
+            std::vector<Edge2*> partitionEdges;
+
+            if(isEdgeInWindow(longLow+i*longStep, latLow+j*latStep, longLow+(i+1)*longStep, latHigh+(j+1)*latStep, candidate)){
+                partitionEdges.push_back(&candidate);
+            }
+
+            partitions[i][j] = partitionEdges;
+        }
+        count += 1;
+        if(count % 10000 == 0)
+            std::cout << (count*100)/edges.size() << "\n";
+    }
+}
+
+/**
+ * Have to watch out not to count replicated edges of two neighboring cells double (look if Edge2* points to same address)
+ **/
+void fillPartitionCenters(std::vector<Edge2*> **partitions, bool **partitionCenters){
+
+}
+
+/**
  * This method shows that conversion does not work for the edge case latitude=-90
  * */
 void test_conversion(){
@@ -352,6 +392,8 @@ void test_antarctica_data(){
     bool inPoly2 = isPointInPolygon(toCheck, edges2);
     std::cout << "in Polygon? " << inPoly2 << std::endl;
     std::cout << "is left of first? " << isNodeLeftOfEdge(toCheck.longitude, toCheck.latitude, edges2.at(0)) << std::endl;
+    std::vector<Edge2*> partitions[18][9];
+    fillPartitions(edges2, partitions);
 }   
 
 int main(int argc, char** argv) {
