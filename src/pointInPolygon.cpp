@@ -255,6 +255,17 @@ void load_ploygon_edges(std::string load_string, std::vector<Edge2> &edges){
 }
 
 /**
+ * Check if param Edge intersects window defined by bounds on longitude and latitude (should also detect edges whose end points are not in the cell)
+ **/
+bool isEdgeInWindow(double longLow, double longHigh, double latLow, double latHigh, Edge2 edge){
+    return 
+        isArcIntersecting(edge, Edge2{longLow,  latLow,     longLow,    latHigh})
+    &&                        isArcIntersecting(edge, Edge2{longLow,    latHigh,    longHigh,   latHigh})
+    &&                                                isArcIntersecting(edge, Edge2{longHigh,   latHigh, longHigh,  latLow})
+    &&                                                                     isArcIntersecting(edge, Edge2{longHigh,  latLow, longLow, latLow});
+}
+
+/**
  * This method shows that conversion does not work for the edge case latitude=-90
  * */
 void test_conversion(){
@@ -272,28 +283,7 @@ void test_conversion(){
     }
 }
 
-/**
- * Check if param Edge intersects window defined by bounds on longitude and latitude (should also detect edges whose end points are not in the cell)
- **/
-bool isEdgeInWindow(double longLow, double longHigh, double latLow, double latHigh, Edge2 edge){
-    return 
-        isArcIntersecting(edge, Edge2{longLow,  latLow,     longLow,    latHigh})
-    &&                        isArcIntersecting(edge, Edge2{longLow,    latHigh,    longHigh,   latHigh})
-    &&                                                isArcIntersecting(edge, Edge2{longHigh,   latHigh, longHigh,  latLow})
-    &&                                                                     isArcIntersecting(edge, Edge2{longHigh,  latLow, longLow, latLow});
-}
-
-
-int main(int argc, char** argv) {
-
-    // if(argc != 2){
-    //     std::cout << "Usage: " << argv[0] << " file_to_read.save" << std::endl;
-    //     return 1;
-    // }
-
-
-
-
+void test_synthetic(){
     // check rectangular to spherical
     double lo = 0;
     double la = 0;
@@ -321,10 +311,6 @@ int main(int argc, char** argv) {
     
     std::vector<Node> nodes {Node{0,-1,0},Node{1,1,0},Node{2,0,-1},Node{2,0,1}};
     std::vector<Edge> edges {Edge{nodes.at(0),nodes.at(1)},Edge{nodes.at(2),nodes.at(3)}};
-    
-    // read data from binary file
-    std::vector<Edge2> edges2;
-    load_ploygon_edges("data/antarctica-edges.save", edges2);
 
     // check on which side of the edge arc node 2 is
     bool bres = isNodeLeftOfEdge(nodes.at(3), edges.at(0));
@@ -352,13 +338,34 @@ int main(int argc, char** argv) {
     std::cout << "in Polygon? " << inPoly1 << std::endl;
     std::cout << "is left of first? " << isNodeLeftOfEdge(toCheck, polygon.at(0)) << std::endl;
     std::cout << "is left of second? " << isNodeLeftOfEdge(toCheck, polygon.at(1)) << std::endl;
-    std::cout << "ist arc intersecting? " << isArcIntersecting(Edge{toCheck, midPointApprox},polygon.at(1)) << std::endl;
+    std::cout << "is arc intersecting? " << isArcIntersecting(Edge{toCheck, midPointApprox},polygon.at(1)) << std::endl;
     printEdge(polygon.at(0));
+}
 
-    test_conversion();
-
+void test_antarctica_data(){
+    // read data from binary file
+    std::vector<Edge2> edges2;
+    load_ploygon_edges("data/antarctica-edges.save", edges2);
+    std::cout << "loading done\n";
     printEdge(edges2.at(0));
+    Node toCheck = Node{0,-2.0,-4.2};
     bool inPoly2 = isPointInPolygon(toCheck, edges2);
     std::cout << "in Polygon? " << inPoly2 << std::endl;
     std::cout << "is left of first? " << isNodeLeftOfEdge(toCheck.longitude, toCheck.latitude, edges2.at(0)) << std::endl;
+}   
+
+int main(int argc, char** argv) {
+
+    if(argc != 2)
+    {
+        std::cout << "Usage: " << argv[0] << " file_to_read.save" << std::endl;
+        test_conversion();
+        test_synthetic();
+        test_antarctica_data();
+    }
+    else
+    {
+        std::vector<Edge2> edges2;
+        load_ploygon_edges(argv[1], edges2);
+    }
 } 
