@@ -300,9 +300,58 @@ void fillPartitions(std::vector<Edge2> &edges, std::vector<Edge2*> (&partitions)
 
 /**
  * Have to watch out not to count replicated edges of two neighboring cells double (look if Edge2* points to same address)
+ * TODO: test this
  **/
+template<std::size_t width, std::size_t height>
 void fillPartitionCenters(std::vector<Edge2*> **partitions, bool **partitionCenters){
+    const double longLow = -180;
+    const double longHigh = 180;
+    const double latLow = -89.999;
+    const double latHigh = 90;
+    const double longStep = (longHigh-longLow)/width;
+    const double latStep = (latHigh-latLow)/height;
+    
+    // assumption: first partition center is on land (antarctica)
+    partitionCenters[0][0] = true;
 
+    int c_i, c_j, p_i, p_j;
+    Edge2 centerEdge;
+    // go over all partitions except first one
+    for(int x=1; x<width*height; ++x)
+    {
+        c_i = x/height;
+        c_j = x%height;
+        p_i = (x-1)/height;
+        p_j = (x-1)%height;
+
+        // edge goes from previous cell center to next cell center
+        centerEdge.sourceLongitude  = longLow + p_i*longStep + longStep/2;
+        centerEdge.sourceLatitude   = latLow  + p_j*latStep  + latStep/2;
+        centerEdge.targetLongitude  = longLow + c_i*longStep + longStep/2;
+        centerEdge.targetLatitude   = latLow  + c_j*latStep  + latStep/2;
+        
+        std::vector<Edge2*> processedEdges;
+        uint64_t intersectionCount = 0;
+        for(Edge2 *edge : partitions[p_i][p_j]){
+            processedEdges.push_back(edge);
+            intersectionCount += isArcIntersecting(&edge, centerEdge)
+        }
+        std::sort(processedEdges);
+        for(Edge2 *edge : partitions[c_i][c_j]){
+            auto result = std::lower_bound(processedEdges.begin(), processedEdges.end(), edge);
+            // only increment if edge was not yet processed
+            intersectionCount += ((result == processedEdges.end()) && isArcIntersecting(&edge, centerEdge));
+        }
+
+        // Equivalence operator for intersection count even and previous in polygon
+        //  even    p_in    c_in
+        //  0       0       1
+        //  0       1       0
+        //  1       0       0
+        //  1       1       1
+
+        partitionCenters[c_i][c_j] = (intersectionCount%2==0) == partitionCenters[p_i][p_j];
+    }
 }
 
 /**
