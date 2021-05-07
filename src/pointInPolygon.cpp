@@ -262,10 +262,10 @@ bool isEdgeInWindow(double longLow, double longHigh, double latLow, double latHi
     return 
         (edge.sourceLongitude > longLow) && (edge.sourceLongitude < longHigh) && (edge.sourceLatitude > latLow) && (edge.sourceLatitude < latHigh)
     ||  (edge.targetLongitude > longLow) && (edge.targetLongitude < longHigh) && (edge.targetLatitude > latLow) && (edge.targetLatitude < latHigh)
-    ||  isArcIntersecting(edge, Edge2{longLow,  latLow,     longLow,    latHigh})
+    || (isArcIntersecting(edge, Edge2{longLow,  latLow,     longLow,    latHigh})
     &&                        isArcIntersecting(edge, Edge2{longLow,    latHigh,    longHigh,   latHigh})
     &&                                                isArcIntersecting(edge, Edge2{longHigh,   latHigh, longHigh,  latLow})
-    &&                                                                     isArcIntersecting(edge, Edge2{longHigh,  latLow, longLow, latLow});
+    &&                                                                     isArcIntersecting(edge, Edge2{longHigh,  latLow, longLow, latLow}));
 }
 
 /**
