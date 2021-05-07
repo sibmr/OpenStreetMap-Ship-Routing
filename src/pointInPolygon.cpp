@@ -269,6 +269,7 @@ bool isEdgeInWindow(double longLow, double longHigh, double latLow, double latHi
 /**
  * TODO: lots of room for optimization
  * TODO: only check relevant cells/windows, not all, based on node coordinates
+ * TODO: test this
  **/
 template<std::size_t width, std::size_t height>
 void fillPartitions(std::vector<Edge2> &edges, std::vector<Edge2*> (&partitions)[width][height]){
@@ -282,6 +283,7 @@ void fillPartitions(std::vector<Edge2> &edges, std::vector<Edge2*> (&partitions)
     uint64_t count = 0;
     for(Edge2 candidate : edges)
     {
+        // TODO: optimize this
         for(int i=0; i<width; ++i)
         for(int j=0; j<height; ++j)
         {
@@ -304,7 +306,7 @@ void fillPartitions(std::vector<Edge2> &edges, std::vector<Edge2*> (&partitions)
  * TODO: test this
  **/
 template<std::size_t width, std::size_t height>
-void fillPartitionCenters(std::vector<Edge2*> **partitions, bool **partitionCenters){
+void fillPartitionCenters(std::vector<Edge2*> (&partitions)[width][height], bool (&partitionCenters)[width][height]){
     const double longLow = -180;
     const double longHigh = 180;
     const double latLow = -89.999;
@@ -324,6 +326,11 @@ void fillPartitionCenters(std::vector<Edge2*> **partitions, bool **partitionCent
         c_j = x%height;
         p_i = (x-1)/height;
         p_j = (x-1)%height;
+        
+        // if we jump one latitude step up, then set p_i=c_i to make sure that p_i is beneath c_i
+        if(c_j != p_j){
+            p_i = c_i;
+        }
 
         // edge goes from previous cell center to next cell center
         centerEdge.sourceLongitude  = longLow + p_i*longStep + longStep/2;
@@ -353,6 +360,30 @@ void fillPartitionCenters(std::vector<Edge2*> **partitions, bool **partitionCent
 
         partitionCenters[c_i][c_j] = (intersectionCount%2==0) == partitionCenters[p_i][p_j];
     }
+}
+
+/**
+ * TODO: test this
+ **/
+template<std::size_t width, std::size_t height>
+bool queryPartitions(std::vector<Edge2*>(&partitions)[width][height], bool (&partitionCenters)[width][height], double longitude, double latitude){
+    const double longLow = -180;
+    const double longHigh = 180;
+    const double latLow = -89.999;
+    const double latHigh = 90;
+    const double longStep = (longHigh-longLow)/width;
+    const double latStep = (latHigh-latLow)/height;
+    
+    int i = longitude/longStep;
+    int j = latitude/latStep;
+    
+
+    Edge2 queryCenterEdge{longitude, latitude, longLow + i*longStep + longStep/2, latLow + j*latStep + latStep/2};
+    uint64_t count = 0;
+    for(Edge2 *edge : partitions[i][j]){
+        count += isArcIntersecting(*edge, queryCenterEdge);
+    }
+    return (count%2==0) == partitionCenters[i][j];
 }
 
 /**
@@ -443,7 +474,9 @@ void test_antarctica_data(){
     std::cout << "in Polygon? " << inPoly2 << std::endl;
     std::cout << "is left of first? " << isNodeLeftOfEdge(toCheck.longitude, toCheck.latitude, edges2.at(0)) << std::endl;
     std::vector<Edge2*> partitions[18][9];
+    bool partitionCenters[18][9];
     fillPartitions(edges2, partitions);
+    fillPartitionCenters(partitions, partitionCenters);
 }   
 
 int main(int argc, char** argv) {
