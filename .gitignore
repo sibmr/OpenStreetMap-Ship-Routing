@@ -1062,6 +1062,7 @@ osmrouting.cbp
 include/osmpbfreader.cbp
 
 *.json
+*.save
 
 data/export.save
 lib/osmpbfreader/cmake/osmpbfreaderConfig.cmake
