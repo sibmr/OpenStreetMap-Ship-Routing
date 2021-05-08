@@ -291,6 +291,7 @@ void fillPartitions(std::vector<Edge2> &edges, std::vector<Edge2*> (&partitions)
 
             if(isEdgeInWindow(longLow+i*longStep, latLow+j*latStep, longLow+(i+1)*longStep, latHigh+(j+1)*latStep, candidate)){
                 partitionEdges.push_back(&candidate);
+                std::cout << i << " " << j << " " << partitionEdges.size() << std::endl;
             }
 
             partitions[i][j] = partitionEdges;
@@ -299,6 +300,7 @@ void fillPartitions(std::vector<Edge2> &edges, std::vector<Edge2*> (&partitions)
         if(count % 10000 == 0)
             std::cout << (count*100)/edges.size() << "\n";
     }
+
 }
 
 /**
@@ -387,6 +389,33 @@ bool queryPartitions(std::vector<Edge2*>(&partitions)[width][height], bool (&par
     }
     return (count%2==0) == partitionCenters[i][j];
 }
+
+template<std::size_t width, std::size_t height>
+bool print_partition_centers(bool (&partitionCenters)[width][height]){
+    std::cout << "Printing partition centers" << std::endl;
+    for(int i = 0; i < height; i++){
+        for (int j = 0; j < width; j++){
+            std::cout << partitionCenters[j][i] << " ";
+        }
+        std::cout << std::endl;
+    }
+    return true;
+}
+
+
+template<std::size_t width, std::size_t height>
+bool print_partitions(std::vector<Edge2*>(&partitions)[width][height]){
+    std::cout << "Printing partitions" << std::endl;
+    for(int i = 0; i < height; i++){
+        for (int j = 0; j < width; j++){
+            std::cout << partitions[j][i].size() << " ";
+        }
+        std::cout << std::endl;
+    }
+    return true;
+}
+
+
 
 /**
  * This method shows that conversion does not work for the edge case latitude=-90
@@ -479,22 +508,8 @@ void test_antarctica_data(){
     bool partitionCenters[18][9];
     fillPartitions(edges2, partitions);
     fillPartitionCenters(partitions, partitionCenters);
-    for (int i = 0; i < 9; i++)
-    {
-        for (int j = 0; j < 18; j++)
-        {
-            std::cout << partitionCenters[j][i] << " ";
-        }
-        std::cout << std::endl;
-    }
-
-    std::cout << "result" << std::endl;
-    if(queryPartitions(partitions, partitionCenters, -123, -80)){
-        std::cout << "true" << std::endl;
-    }else{
-        std::cout << "false" << std::endl;
-    }
-    std::cout << queryPartitions(partitions, partitionCenters, -128, -64) << std::endl;
+    print_partitions(partitions);
+    print_partition_centers(partitionCenters);
 
 }   
 
