@@ -258,12 +258,14 @@ void load_ploygon_edges(std::string load_string, std::vector<Edge2> &edges){
 /**
  * Check if param Edge intersects window defined by bounds on longitude and latitude (should also detect edges whose end points are not in the cell)
  **/
-bool isEdgeInWindow(double longLow, double longHigh, double latLow, double latHigh, Edge2 edge){
+bool isEdgeInWindow(double longLow, double longHigh, double latLow, double latHigh, Edge2 &edge){
     return 
-        isArcIntersecting(edge, Edge2{longLow,  latLow,     longLow,    latHigh})
+        (edge.sourceLongitude > longLow) && (edge.sourceLongitude < longHigh) && (edge.sourceLatitude > latLow) && (edge.sourceLatitude < latHigh)
+    ||  (edge.targetLongitude > longLow) && (edge.targetLongitude < longHigh) && (edge.targetLatitude > latLow) && (edge.targetLatitude < latHigh)
+    || (isArcIntersecting(edge, Edge2{longLow,  latLow,     longLow,    latHigh})
     &&                        isArcIntersecting(edge, Edge2{longLow,    latHigh,    longHigh,   latHigh})
     &&                                                isArcIntersecting(edge, Edge2{longHigh,   latHigh, longHigh,  latLow})
-    &&                                                                     isArcIntersecting(edge, Edge2{longHigh,  latLow, longLow, latLow});
+    &&                                                                     isArcIntersecting(edge, Edge2{longHigh,  latLow, longLow, latLow}));
 }
 
 /**
