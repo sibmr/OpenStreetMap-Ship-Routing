@@ -293,7 +293,7 @@ void fillPartitions(std::vector<Edge2> &edges, std::vector<Edge2*> (&partitions)
 
             if(isEdgeInWindow(longLow+i*longStep, latLow+j*latStep, longLow+(i+1)*longStep, latHigh+(j+1)*latStep, candidate)){
                 partitionEdges.push_back(&candidate);
-                std::cout << i << " " << j << " " << partitionEdges.size() << std::endl;
+                //std::cout << i << " " << j << " " << partitionEdges.size() << std::endl;
             }
 
             partitions[i][j] = partitionEdges;
