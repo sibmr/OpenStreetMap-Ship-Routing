@@ -374,8 +374,10 @@ bool queryPartitions(std::vector<Edge2*>(&partitions)[width][height], bool (&par
     const double longStep = (longHigh-longLow)/width;
     const double latStep = (latHigh-latLow)/height;
     
-    int i = longitude/longStep;
-    int j = latitude/latStep;
+    int i = ((longitude - longLow ) /longStep);
+    int j = ((latitude  - latLow ) /latStep);
+
+    std::cout << i << " " << j << " _ " << width << " " << height << std::endl;
     
 
     Edge2 queryCenterEdge{longitude, latitude, longLow + i*longStep + longStep/2, latLow + j*latStep + latStep/2};
@@ -477,11 +479,28 @@ void test_antarctica_data(){
     bool partitionCenters[18][9];
     fillPartitions(edges2, partitions);
     fillPartitionCenters(partitions, partitionCenters);
+    for (int i = 0; i < 9; i++)
+    {
+        for (int j = 0; j < 18; j++)
+        {
+            std::cout << partitionCenters[j][i] << " ";
+        }
+        std::cout << std::endl;
+    }
+
+    std::cout << "result" << std::endl;
+    if(queryPartitions(partitions, partitionCenters, -123, -80)){
+        std::cout << "true" << std::endl;
+    }else{
+        std::cout << "false" << std::endl;
+    }
+    std::cout << queryPartitions(partitions, partitionCenters, -128, -64) << std::endl;
+
 }   
 
 int main(int argc, char** argv) {
 
-    if(argc != 2)
+    if(argc != 2 || true)
     {
         std::cout << "Usage: " << argv[0] << " file_to_read.save" << std::endl;
         test_conversion();
