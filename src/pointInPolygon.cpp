@@ -275,6 +275,10 @@ bool isEdgeInWindow(double longLow, double longHigh, double latLow, double latHi
  **/
 template<std::size_t width, std::size_t height>
 void fillPartitions(std::vector<Edge2> &edges, std::vector<Edge2*> (&partitions)[width][height]){
+    std::vector<int> tmp_vec;
+    std::vector<std::vector<int>> tmp_parts;
+    tmp_vec.resize(height, 0);
+    tmp_parts.resize(width, tmp_vec);
     const double longLow = -180;
     const double longHigh = 180;
     const double latLow = -89.999;
@@ -293,6 +297,7 @@ void fillPartitions(std::vector<Edge2> &edges, std::vector<Edge2*> (&partitions)
 
             if(isEdgeInWindow(longLow+i*longStep, latLow+j*latStep, longLow+(i+1)*longStep, latHigh+(j+1)*latStep, candidate)){
                 partitionEdges.push_back(&candidate);
+                tmp_parts.at(i).at(j) += 1;
                 //std::cout << i << " " << j << " " << partitionEdges.size() << std::endl;
             }
 
@@ -301,6 +306,16 @@ void fillPartitions(std::vector<Edge2> &edges, std::vector<Edge2*> (&partitions)
         count += 1;
         if(count % 10000 == 0)
             std::cout << (count*100)/edges.size() << "\n";
+    }
+
+    std::cout << "tmp_parts" << std::endl;
+    for(int j = 0; j < height; j++)
+    {
+        for(int i = 0; i < width; i++)
+        {
+            std::cout << tmp_parts.at(i).at(j) << " ";
+        }
+        std::cout << std::endl;
     }
 
 }
