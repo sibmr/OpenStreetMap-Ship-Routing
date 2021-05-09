@@ -347,9 +347,12 @@ void fillPartitionCenters(std::vector<Edge2*> (&partitions)[width][height], bool
         p_j = (x-1)%height;
         
         // if we jump one latitude step up, then set p_i=c_i to make sure that p_i is beneath c_i
-        if(c_j != p_j){
-            p_i = c_i;
+        if(c_j < p_j){
+            p_i = c_i -1;
+            p_j = c_j;
         }
+        std::cout << "(" << p_i << " " << p_j << ") \t (" << c_i << " " << c_j << ")" << std::endl;
+
 
         // edge goes from previous cell center to next cell center
         centerEdge.sourceLongitude  = longLow + p_i*longStep + longStep/2;
