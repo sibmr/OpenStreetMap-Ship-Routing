@@ -258,14 +258,14 @@ void load_ploygon_edges(std::string load_string, std::vector<Edge2> &edges){
 /**
  * Check if param Edge intersects window defined by bounds on longitude and latitude (should also detect edges whose end points are not in the cell)
  **/
-bool isEdgeInWindow(double longLow, double longHigh, double latLow, double latHigh, Edge2 &edge){
+bool isEdgeInWindow(double longLow, double latLow, double longHigh, double latHigh, Edge2 &edge){
     return 
         (edge.sourceLongitude > longLow) && (edge.sourceLongitude < longHigh) && (edge.sourceLatitude > latLow) && (edge.sourceLatitude < latHigh)
-    ||  (edge.targetLongitude > longLow) && (edge.targetLongitude < longHigh) && (edge.targetLatitude > latLow) && (edge.targetLatitude < latHigh)
-    || (isArcIntersecting(edge, Edge2{longLow,  latLow,     longLow,    latHigh})
-    &&                        isArcIntersecting(edge, Edge2{longLow,    latHigh,    longHigh,   latHigh})
-    &&                                                isArcIntersecting(edge, Edge2{longHigh,   latHigh, longHigh,  latLow})
-    &&                                                                     isArcIntersecting(edge, Edge2{longHigh,  latLow, longLow, latLow}));
+    ||  (edge.targetLongitude > longLow) && (edge.targetLongitude < longHigh) && (edge.targetLatitude > latLow) && (edge.targetLatitude < latHigh) ;
+    //|| (    isArcIntersecting(edge, Edge2{longLow,  latLow,  longLow,   latHigh} )
+    //    &&  isArcIntersecting(edge, Edge2{longLow,  latHigh, longHigh,  latHigh} )
+    //    &&  isArcIntersecting(edge, Edge2{longHigh, latHigh, longHigh,  latLow}  )
+    //    &&  isArcIntersecting(edge, Edge2{longHigh, latLow,  longLow,   latLow}  ));
 }
 
 /**
@@ -295,11 +295,14 @@ void fillPartitions(std::vector<Edge2> &edges, std::vector<Edge2*> (&partitions)
         {
             std::vector<Edge2*> partitionEdges;
 
-            if(isEdgeInWindow(longLow+i*longStep, latLow+j*latStep, longLow+(i+1)*longStep, latHigh+(j+1)*latStep, candidate)){
+            if(isEdgeInWindow(longLow+i*longStep, latLow+j*latStep, longLow+(i+1)*longStep, latLow+(j+1)*latStep, candidate)){
                 partitionEdges.push_back(&candidate);
                 tmp_parts.at(i).at(j) += 1;
-                //std::cout << i << " " << j << " " << partitionEdges.size() << std::endl;
             }
+            //std::cout << longLow+i*longStep << " " << latLow+j*latStep << " " << longLow+(i+1)*longStep << " " << latLow+(j+1)*latStep << std::endl;
+            //std::cout << candidate.sourceLongitude << " " << candidate.sourceLatitude << " " << candidate.targetLongitude << " " << candidate.targetLatitude << std::endl;
+            //std::cout << isEdgeInWindow(longLow+i*longStep, latLow+j*latStep, longLow+(i+1)*longStep, latLow+(j+1)*latStep, candidate) << std::endl;
+            //std::cout << std::endl;
 
             partitions[i][j] = partitionEdges;
         }
