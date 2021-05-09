@@ -286,37 +286,34 @@ void fillPartitions(std::vector<Edge2> &edges, std::vector<Edge2*> (&partitions)
     const double longStep = (longHigh-longLow)/width;
     const double latStep = (latHigh-latLow)/height;
     
+    std::vector<Edge2*> partitionEdges;
+
     uint64_t count = 0;
     for(Edge2 candidate : edges)
     {
         // TODO: optimize this
-        for(int i=0; i<width; ++i)
-        for(int j=0; j<height; ++j)
-        {
-            std::vector<Edge2*> partitionEdges;
-
-            if(isEdgeInWindow(longLow+i*longStep, latLow+j*latStep, longLow+(i+1)*longStep, latLow+(j+1)*latStep, candidate)){
-                partitionEdges.push_back(&candidate);
-                tmp_parts.at(i).at(j) += 1;
+        for(int i=0; i<width; i++){
+            for(int j=0; j<height; j++)
+            {
+                partitionEdges.resize(0);
+                if(isEdgeInWindow(longLow+i*longStep, latLow+j*latStep, longLow+(i+1)*longStep, latLow+(j+1)*latStep, candidate)){
+                    partitionEdges.push_back(&candidate);
+                    tmp_parts.at(i).at(j) += 1;
+                }
+                partitions[i][j] = partitionEdges;
             }
-            //std::cout << longLow+i*longStep << " " << latLow+j*latStep << " " << longLow+(i+1)*longStep << " " << latLow+(j+1)*latStep << std::endl;
-            //std::cout << candidate.sourceLongitude << " " << candidate.sourceLatitude << " " << candidate.targetLongitude << " " << candidate.targetLatitude << std::endl;
-            //std::cout << isEdgeInWindow(longLow+i*longStep, latLow+j*latStep, longLow+(i+1)*longStep, latLow+(j+1)*latStep, candidate) << std::endl;
-            //std::cout << std::endl;
-
-            partitions[i][j] = partitionEdges;
         }
         count += 1;
-        if(count % 10000 == 0)
+        if(count % 10000 == -1)
             std::cout << (count*100)/edges.size() << "\n";
     }
 
     std::cout << "tmp_parts" << std::endl;
-    for(int j = 0; j < height; j++)
+    for(int j = height -1; j >= 0; j--)
     {
         for(int i = 0; i < width; i++)
         {
-            std::cout << tmp_parts.at(i).at(j) << " ";
+            std::cout << (tmp_parts.at(i).at(j) > 0) << " ";
         }
         std::cout << std::endl;
     }
@@ -399,8 +396,6 @@ bool queryPartitions(std::vector<Edge2*>(&partitions)[width][height], bool (&par
     int i = ((longitude - longLow ) /longStep);
     int j = ((latitude  - latLow ) /latStep);
 
-    std::cout << i << " " << j << " _ " << width << " " << height << std::endl;
-    
 
     Edge2 queryCenterEdge{longitude, latitude, longLow + i*longStep + longStep/2, latLow + j*latStep + latStep/2};
     uint64_t count = 0;
@@ -514,6 +509,44 @@ void test_synthetic(){
     printEdge(polygon.at(0));
 }
 
+
+void saveEdgesGeoJson(std::vector<Edge2> edges){
+
+    std::ofstream file;
+
+    file.open("data/readEdges.json", std::ios::out | std::ios::trunc);
+    file.exceptions(file.exceptions() | std::ios::failbit | std::ifstream::badbit);
+
+    file <<     "{ \"type\": \"FeatureCollection\",\n";
+    file <<     "  \"features\": [\n";
+
+    uint64_t count = 0;
+    bool first_way = true;
+    //for(Way way : ways){
+    for(Edge2 edge : edges){
+        if(!first_way){file << ",";}
+        file << "   {\"type\": \"Feature\",\n"
+                "    \"geometry\": {\n"
+                "       \"type\": \"LineString\",\n"
+                "       \"coordinates\": [\n";
+
+        //bool first_node = true;
+        file << "[" << edge.sourceLongitude << "," << edge.sourceLatitude << "],\n";
+        file << "[" << edge.targetLongitude << "," << edge.targetLatitude << "]\n";
+
+        file << "   ]\n"
+                "   },\n"
+                "   \"properties\": {}\n"
+                "   }";
+        
+        if(count%1 == 0){file.flush();}
+        first_way = false;
+        //if(count%100 == 0){break;}
+    }
+    file <<     "]}\n" << std::endl;
+
+}
+
 void test_antarctica_data(){
     // read data from binary file
     std::vector<Edge2> edges2;
@@ -524,6 +557,7 @@ void test_antarctica_data(){
     bool inPoly2 = isPointInPolygon(toCheck, edges2);
     std::cout << "in Polygon? " << inPoly2 << std::endl;
     std::cout << "is left of first? " << isNodeLeftOfEdge(toCheck.longitude, toCheck.latitude, edges2.at(0)) << std::endl;
+    //saveEdgesGeoJson(edges2);
     std::vector<Edge2*> partitions[18][9];
     bool partitionCenters[18][9];
     fillPartitions(edges2, partitions);
