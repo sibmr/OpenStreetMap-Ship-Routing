@@ -149,7 +149,13 @@ bool isArcIntersecting(Edge e1, Edge e2){
     bool e1node2L = isNodeLeftOfEdge(e1.destinationNode, e2);
     bool e2node1L = isNodeLeftOfEdge(e2.sourceNode, e1);
     bool e2node2L = isNodeLeftOfEdge(e2.destinationNode, e1);
-    
+
+    // need to make sure that arc segments are not on opposite sides of the sphere
+    double angle = dotProduct(
+        sphericalToRectangular(e1.sourceNode.longitude, e1.sourceNode.latitude),
+        sphericalToRectangular(e2.sourceNode.longitude, e2.sourceNode.latitude)
+    );
+
     return (e1node1L != e1node2L) && (e2node1L != e2node2L);
 }
 
@@ -159,7 +165,13 @@ bool isArcIntersecting(Edge2 e1, Edge2 e2){
     bool e2node1L = isNodeLeftOfEdge(e2.sourceLongitude, e2.sourceLatitude,  e1);
     bool e2node2L = isNodeLeftOfEdge(e2.targetLongitude, e2.targetLatitude,  e1);
     
-    return (e1node1L != e1node2L) && (e2node1L != e2node2L);
+    // need to make sure that arc segments are not on opposite sides of the sphere
+    double angle = dotProduct(
+        sphericalToRectangular(e1.sourceLongitude, e1.sourceLatitude),
+        sphericalToRectangular(e2.sourceLongitude, e2.sourceLatitude)
+    );
+
+    return (e1node1L != e1node2L) && (e2node1L != e2node2L) && angle > 0;
 }
 
 /**
@@ -262,10 +274,10 @@ bool isEdgeInWindow(double longLow, double latLow, double longHigh, double latHi
     return 
         (edge.sourceLongitude > longLow) && (edge.sourceLongitude < longHigh) && (edge.sourceLatitude > latLow) && (edge.sourceLatitude < latHigh)
     ||  (edge.targetLongitude > longLow) && (edge.targetLongitude < longHigh) && (edge.targetLatitude > latLow) && (edge.targetLatitude < latHigh) //;
-    || (    isArcIntersecting(edge, Edge2{longLow,  latLow,  longLow,   latHigh} )
-        &&  isArcIntersecting(edge, Edge2{longLow,  latHigh, longHigh,  latHigh} )
-        &&  isArcIntersecting(edge, Edge2{longHigh, latHigh, longHigh,  latLow}  )
-        &&  isArcIntersecting(edge, Edge2{longHigh, latLow,  longLow,   latLow}  ));
+    ||      isArcIntersecting(edge, Edge2{longLow,  latLow,  longLow,   latHigh} )
+    ||      isArcIntersecting(edge, Edge2{longLow,  latHigh, longHigh,  latHigh} )
+    ||      isArcIntersecting(edge, Edge2{longHigh, latHigh, longHigh,  latLow}  )
+    ||      isArcIntersecting(edge, Edge2{longHigh, latLow,  longLow,   latLow}  );
 }
 
 /**
@@ -325,7 +337,7 @@ void fillPartitionCenters(std::vector<Edge2*> (&partitions)[width][height], bool
     const double latStep = (latHigh-latLow)/height;
     
     // assumption: first partition center is on land (antarctica)
-    partitionCenters[0][0] = true;
+    partitionCenters[0][0] = false;
 
     int c_i, c_j, p_i, p_j;
     Edge2 centerEdge;
@@ -351,6 +363,11 @@ void fillPartitionCenters(std::vector<Edge2*> (&partitions)[width][height], bool
         centerEdge.targetLongitude  = longLow + c_i*longStep + longStep/2;
         centerEdge.targetLatitude   = latLow  + c_j*latStep  + latStep/2;
         
+        std::cout << "----- step " << x << " -----\n";
+        //std::cout << "c=(" << c_i << ", " << c_j << " )\n";
+        //std::cout << "p=(" << p_i << ", " << p_j << " )\n";
+        printEdge(centerEdge);
+
         std::vector<Edge2*> processedEdges;
         uint64_t intersectionCount = 0;
         for(Edge2 *edge : partitions[p_i][p_j]){
@@ -359,9 +376,10 @@ void fillPartitionCenters(std::vector<Edge2*> (&partitions)[width][height], bool
         }
         std::sort(processedEdges.begin(), processedEdges.end());
         for(Edge2 *edge : partitions[c_i][c_j]){
-            auto result = std::lower_bound(processedEdges.begin(), processedEdges.end(), edge);
+            auto lowerEdgeIt = std::lower_bound(processedEdges.begin(), processedEdges.end(), edge);
             // only increment if edge was not yet processed
-            intersectionCount += ((result == processedEdges.end()) && isArcIntersecting(*edge, centerEdge));
+            Edge2 *lowerEdge = (lowerEdgeIt == processedEdges.end()) ? nullptr : *lowerEdgeIt;
+            intersectionCount += ((lowerEdge != edge) && isArcIntersecting(*edge, centerEdge));
         }
 
         // Equivalence operator for intersection count even and previous in polygon
@@ -502,6 +520,22 @@ void test_synthetic(){
     std::cout << "is left of second? " << isNodeLeftOfEdge(toCheck, polygon.at(1)) << std::endl;
     std::cout << "is arc intersecting? " << isArcIntersecting(Edge{toCheck, midPointApprox},polygon.at(1)) << std::endl;
     printEdge(polygon.at(0));
+
+    std::vector<Edge2> edges2 {
+        Edge2{10,10,31,-25},
+        Edge2{25,25,10,10},
+        Edge2{50,5,25,25},
+        Edge2{31,-25,50,5},
+        //Edge2{5,5,6,6},
+    };
+    std::vector<Edge2*> partitions[18][9];
+    bool partitionCenters[18][9];
+    fillPartitions(edges2, partitions);
+    fillPartitionCenters(partitions, partitionCenters);
+    print_partitions(partitions);
+    print_partition_centers(partitionCenters);
+
+
 }
 
 
