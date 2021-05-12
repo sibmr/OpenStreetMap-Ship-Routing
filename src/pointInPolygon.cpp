@@ -5,6 +5,7 @@
 # include <array>
 # include <math.h>
 # include <algorithm>
+# include <chrono>
 
 const double globalLongLow = -180;
 const double globalLongHigh = 180;
@@ -132,7 +133,7 @@ bool isNodeLeftOfEdge(Node n, Edge e){
     return w > 0;
 }
 
-bool isNodeLeftOfEdge(double n_long, double n_lat, Edge2 e){
+bool isNodeLeftOfEdge(double n_long, double n_lat, const Edge2 &e){
     Vec3D c = sphericalToRectangular(n_long,                   n_lat);
     Vec3D a = sphericalToRectangular(e.sourceLongitude,        e.sourceLatitude);
     Vec3D b = sphericalToRectangular(e.targetLongitude,   e.targetLatitude);
@@ -360,7 +361,7 @@ void fillPartitionCenters(std::vector<Edge2*> (&partitions)[width][height], bool
     const double latStep = (latHigh-latLow)/height;
     
     // assumption: first partition center is on land (antarctica)
-    partitionCenters[0][0] = false;
+    partitionCenters[0][0] = true;
 
     int c_i, c_j, p_i, p_j;
     Edge2 centerEdge;
@@ -444,6 +445,41 @@ bool queryPartitions(std::vector<Edge2*>(&partitions)[width][height], bool (&par
 }
 
 template<std::size_t width, std::size_t height>
+void determineGridPoints(std::vector<Edge2*>(&partitions)[width][height], bool (&partitionCenters)[width][height]){
+    const double longLow = -180;
+    const double longHigh = 180;
+    const double latLow = -89.999;
+    const double latHigh = 90;
+
+    const double longStep = 1;
+    const double latStep = 1;
+
+    const uint64_t numLongSteps = (uint64_t)(longHigh-longLow-longStep)/longStep;
+    const uint64_t numLatSteps = (uint64_t) (latHigh-latLow-latStep)/latStep;
+
+    std::cout << "Number of queries: " << numLongSteps*numLatSteps << "\n";
+
+    std::chrono::duration<double> query_timing;
+    auto startQuery = std::chrono::high_resolution_clock::now();
+
+    for(uint64_t i = 0; i<numLongSteps; ++i)
+    for(uint64_t j = 0; j<numLatSteps; ++j)
+    {
+        bool result = queryPartitions(partitions, partitionCenters, longLow + longStep/2 + i*longStep, latLow + latStep/2 + j*latStep);
+        if(((i*numLatSteps + j)%1000)==0){
+            std::cout << "Progess: " << (i*numLatSteps + j)/((double)numLongSteps*numLatSteps) << "\n";
+            std::cout << "Coordinate: " << longLow + longStep/2 + i*longStep << " " << latLow + latStep/2 + j*latStep << "\n";
+            std::cout << "Result: " << result << "\n";
+        }
+    }
+
+    auto endQuery = std::chrono::high_resolution_clock::now();
+    query_timing = endQuery - startQuery;
+    std::cout << "Total query time: " << query_timing.count() << "seconds" << std::endl;
+
+}
+
+template<std::size_t width, std::size_t height>
 bool print_partition_centers(bool (&partitionCenters)[width][height]){
     std::cout << "Printing partition centers" << std::endl;
     for(int i = height-1; i >= 0; i--){
@@ -514,11 +550,13 @@ void test_synthetic(){
     std::cout << "should be 36, is " << cres << std::endl; 
 
     
-    std::vector<Node> nodes {Node{0,-1,0},Node{1,1,0},Node{2,0,-1},Node{2,0,1}};
-    std::vector<Edge> edges {Edge{nodes.at(0),nodes.at(1)},Edge{nodes.at(2),nodes.at(3)}};
+    //std::vector<Node> nodes {Node{0,-1,0},Node{1,1,0},Node{2,0,-1},Node{2,0,1}};
+    //std::vector<Edge> edges {Edge{nodes.at(0),nodes.at(1)},Edge{nodes.at(2),nodes.at(3)}};
+    std::vector<Edge2> edges {Edge2{-1,0,1,0},Edge2{0,-1,0,1}};
+
 
     // check on which side of the edge arc node 2 is
-    bool bres = isNodeLeftOfEdge(nodes.at(3), edges.at(0));
+    bool bres = isNodeLeftOfEdge(edges.at(1).targetLongitude, edges.at(1).targetLatitude, edges.at(0));
     std::cout << "is Left? " << bres << std::endl;
 
     // check if arcs are intersecting
@@ -610,8 +648,8 @@ void saveEdgesGeoJson(std::vector<Edge2> edges){
 void test_antarctica_data(){
     // read data from binary file
     std::vector<Edge2> edges2;
-    load_ploygon_edges("data/antarctica-edges.save", edges2);
-    //load_ploygon_edges("data/planet-coastlines.save", edges2);
+    //load_ploygon_edges("data/antarctica-edges.save", edges2);
+    load_ploygon_edges("data/planet-coastlines.save", edges2);
     std::cout << "loading done\n";
     printEdge(edges2.at(0));
     Node toCheck = Node{0,-2.0,-4.2};
@@ -619,14 +657,14 @@ void test_antarctica_data(){
     std::cout << "in Polygon? " << inPoly2 << std::endl;
     std::cout << "is left of first? " << isNodeLeftOfEdge(toCheck.longitude, toCheck.latitude, edges2.at(0)) << std::endl;
     //saveEdgesGeoJson(edges2);
-    std::vector<Edge2*> partitions[18][9];
-    bool partitionCenters[18][9];
+    std::vector<Edge2*> partitions[97][47];
+    bool partitionCenters[97][47];
     fillPartitions(edges2, partitions);
     fillPartitionCenters(partitions, partitionCenters);
     print_partitions(partitions);
     print_partition_centers(partitionCenters);
-
-}   
+    determineGridPoints(partitions, partitionCenters);
+}
 
 int main(int argc, char** argv) {
 
