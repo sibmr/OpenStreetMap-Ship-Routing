@@ -295,14 +295,15 @@ void fillPartitions(std::vector<Edge2> &edges, std::vector<Edge2*> (&partitions)
     const double latStep = (latHigh-latLow)/height;
     
     uint64_t count = 0;
-    for(Edge2 candidate : edges)
+    for(uint64_t c=0; c<edges.size(); ++c)
     {
+        Edge2 *candidate = &edges.at(c);
         // TODO: optimize this
         for(int i=0; i<width; i++){
             for(int j=0; j<height; j++)
             {
-                if(isEdgeInWindow(longLow+i*longStep, latLow+j*latStep, longLow+(i+1)*longStep, latLow+(j+1)*latStep, candidate)){
-                    partitions[i][j].push_back(&candidate);
+                if(isEdgeInWindow(longLow+i*longStep, latLow+j*latStep, longLow+(i+1)*longStep, latLow+(j+1)*latStep, *candidate)){
+                    partitions[i][j].push_back(candidate);
                 }
             }
         }
@@ -317,6 +318,9 @@ void fillPartitions(std::vector<Edge2> &edges, std::vector<Edge2*> (&partitions)
         for(int i = 0; i < width; i++)
         {
             std::cout << (partitions[i][j].size()>0)  << " ";
+            for(Edge2 *edge : partitions[i][j]){
+                printEdge(*edge);
+            }
         }
         std::cout << std::endl;
     }
