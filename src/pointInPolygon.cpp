@@ -438,13 +438,17 @@ void determineGridPoints(
     bool (&partitionCenters)[partition_width][partition_height], 
     bool (&gridPoints)[grid_width][grid_height]
     )
-{
-    const double longStep = (globalLongHigh-globalLongLow)/grid_width;
-    const double latStep = (globalLatHigh-globalLatLow)/grid_height;
-
+{   
     // add half step offset to borders to get full step width when connecting accross map edge
-    const uint64_t numLongSteps = (uint64_t)(globalLongHigh-globalLongLow-longStep)/longStep;
-    const uint64_t numLatSteps = (uint64_t) (globalLatHigh-globalLatLow-latStep)/latStep;
+    // 1 spare step to divide at both map borders
+    const double longStep = (globalLongHigh-globalLongLow)/(grid_width+1);
+    const double latStep = (globalLatHigh-globalLatLow)/(grid_height+1);
+
+    
+    //const uint64_t numLongSteps = (uint64_t)(globalLongHigh-globalLongLow-longStep)/longStep;
+    //const uint64_t numLatSteps = (uint64_t) (globalLatHigh-globalLatLow-latStep)/latStep;
+    const uint64_t numLongSteps = (uint64_t) grid_width;
+    const uint64_t numLatSteps = (uint64_t) grid_height;
 
     std::cout << "Number of queries: " << numLongSteps*numLatSteps << "\n";
     std::cout << "Step size: " << longStep << " " << latStep << "\n";
