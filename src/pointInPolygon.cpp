@@ -396,15 +396,7 @@ void fillPartitionCenters(std::vector<Edge2*> (&partitions)[width][height], bool
         uint64_t intersectionCount = 0;
         for(Edge2 *edge : partitions[p_i][p_j]){
             processedEdges.push_back(edge);
-<<<<<<< HEAD
             intersectionCount += isArcIntersecting(*edge, centerEdge);
-=======
-            if(isArcIntersecting(*edge, centerEdge))
-            {
-                intersectionCount += 1;
-                //printEdge(*edge);
-            }
->>>>>>> master
         }
         std::sort(processedEdges.begin(), processedEdges.end());
         //std::cout << "loop2" << "\n";
@@ -412,15 +404,7 @@ void fillPartitionCenters(std::vector<Edge2*> (&partitions)[width][height], bool
             auto lowerEdgeIt = std::lower_bound(processedEdges.begin(), processedEdges.end(), edge);
             // only increment if edge was not yet processed
             Edge2 *lowerEdge = (lowerEdgeIt == processedEdges.end()) ? nullptr : *lowerEdgeIt;
-<<<<<<< HEAD
             intersectionCount += ((lowerEdge != edge) && isArcIntersecting(*edge, centerEdge));
-=======
-            if(((lowerEdge != edge) && isArcIntersecting(*edge, centerEdge)))
-            {
-                intersectionCount += 1;
-                //printEdge(*edge);
-            }
->>>>>>> master
         }
 
         // Equivalence operator for intersection count even and previous in polygon
