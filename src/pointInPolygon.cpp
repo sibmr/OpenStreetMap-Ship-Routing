@@ -327,8 +327,8 @@ void fillPartitions(std::vector<Edge2> &edges, std::vector<Edge2*> (&partitions)
             }
         }
         count += 1;
-        //if(count % 10000 == 0)
-        //    std::cout << (count*100)/edges.size() << "\n";
+        if(count % 10000 == 0)
+            std::cout << (count*100)/edges.size() << "\n";
     }
 
     //std::cout << "partitions" << std::endl;
@@ -613,6 +613,7 @@ void test_antarctica_data(){
     // read data from binary file
     std::vector<Edge2> edges2;
     load_ploygon_edges("data/antarctica-edges.save", edges2);
+    //load_ploygon_edges("data/planet-coastlines.save", edges2);
     std::cout << "loading done\n";
     printEdge(edges2.at(0));
     Node toCheck = Node{0,-2.0,-4.2};
