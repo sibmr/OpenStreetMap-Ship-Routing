@@ -368,18 +368,28 @@ void fillPartitionCenters(std::vector<Edge2*> (&partitions)[width][height], bool
         //std::cout << "p=(" << p_i << ", " << p_j << " )\n";
         printEdge(centerEdge);
 
+        std::cout << "loop1" << "\n";
         std::vector<Edge2*> processedEdges;
         uint64_t intersectionCount = 0;
         for(Edge2 *edge : partitions[p_i][p_j]){
             processedEdges.push_back(edge);
-            intersectionCount += isArcIntersecting(*edge, centerEdge);
+            if(isArcIntersecting(*edge, centerEdge))
+            {
+                intersectionCount += 1;
+                printEdge(*edge);
+            }
         }
         std::sort(processedEdges.begin(), processedEdges.end());
+        std::cout << "loop2" << "\n";
         for(Edge2 *edge : partitions[c_i][c_j]){
             auto lowerEdgeIt = std::lower_bound(processedEdges.begin(), processedEdges.end(), edge);
             // only increment if edge was not yet processed
             Edge2 *lowerEdge = (lowerEdgeIt == processedEdges.end()) ? nullptr : *lowerEdgeIt;
-            intersectionCount += ((lowerEdge != edge) && isArcIntersecting(*edge, centerEdge));
+            if(((lowerEdge != edge) && isArcIntersecting(*edge, centerEdge)))
+            {
+                intersectionCount += 1;
+                printEdge(*edge);
+            }
         }
 
         // Equivalence operator for intersection count even and previous in polygon
@@ -453,8 +463,8 @@ void test_conversion(){
         for(double la=-89.999; la<=90; la+=0.5){
             Vec3D rect = sphericalToRectangular(lo, la);
             Vec3D sph = rectangularToSpherical(rect);
-            double lodiff = sph.y-lo;
-            double ladiff = sph.z-la;
+            double lodiff = abs(sph.y-lo);
+            double ladiff = abs(sph.z-la);
             if (lodiff > 0.01 || ladiff > 0.01){
                 std::cout << "for lo=" << lo << " and la=" << la << " there are higher diffs\n";
                 printVec(sph);
@@ -603,7 +613,7 @@ int main(int argc, char** argv) {
         std::cout << "Usage: " << argv[0] << " file_to_read.save" << std::endl;
         test_conversion();
         test_synthetic();
-        test_antarctica_data();
+        //test_antarctica_data();
     }
     else
     {
