@@ -9,7 +9,7 @@
 
 const double globalLongLow = -180;
 const double globalLongHigh = 180;
-const double globalLatLow = -89.999;
+const double globalLatLow = -84;
 const double globalLatHigh = 90;
 
 struct Node {
@@ -302,12 +302,8 @@ void getBounds(std::array<int, 4> &array, Edge2 edge, size_t width, size_t heigh
  **/
 template<std::size_t width, std::size_t height>
 void fillPartitions(std::vector<Edge2> &edges, std::vector<Edge2*> (&partitions)[width][height]){
-    const double longLow = -180;
-    const double longHigh = 180;
-    const double latLow = -89.999;
-    const double latHigh = 90;
-    const double longStep = (longHigh-longLow)/width;
-    const double latStep = (latHigh-latLow)/height;
+    const double longStep = (globalLongHigh-globalLongLow)/width;
+    const double latStep = (globalLatHigh-globalLatLow)/height;
     
     uint64_t count = 0;
     Edge2 *candidate;
@@ -322,7 +318,7 @@ void fillPartitions(std::vector<Edge2> &edges, std::vector<Edge2*> (&partitions)
         for(int i = boundsArray[0]; i <= boundsArray[1]; i++){
             for(int j = boundsArray[2]; j <= boundsArray[3]; j++)
             {
-                if(isEdgeInWindow(longLow+i*longStep, latLow+j*latStep, longLow+(i+1)*longStep, latLow+(j+1)*latStep, *candidate)){
+                if(isEdgeInWindow(globalLongLow+i*longStep, globalLatLow+j*latStep, globalLongLow+(i+1)*longStep, globalLatLow+(j+1)*latStep, *candidate)){
                     partitions[i][j].push_back(candidate);
                 }
             }
@@ -353,12 +349,8 @@ void fillPartitions(std::vector<Edge2> &edges, std::vector<Edge2*> (&partitions)
  **/
 template<std::size_t width, std::size_t height>
 void fillPartitionCenters(std::vector<Edge2*> (&partitions)[width][height], bool (&partitionCenters)[width][height]){
-    const double longLow = -180;
-    const double longHigh = 180;
-    const double latLow = -89.999;
-    const double latHigh = 90;
-    const double longStep = (longHigh-longLow)/width;
-    const double latStep = (latHigh-latLow)/height;
+    const double longStep = (globalLongHigh-globalLongLow)/width;
+    const double latStep = (globalLatHigh-globalLatLow)/height;
     
     // assumption: first partition center is on land (antarctica)
     partitionCenters[0][0] = true;
@@ -382,10 +374,10 @@ void fillPartitionCenters(std::vector<Edge2*> (&partitions)[width][height], bool
 
 
         // edge goes from previous cell center to next cell center
-        centerEdge.sourceLongitude  = longLow + p_i*longStep + longStep/2;
-        centerEdge.sourceLatitude   = latLow  + p_j*latStep  + latStep/2;
-        centerEdge.targetLongitude  = longLow + c_i*longStep + longStep/2;
-        centerEdge.targetLatitude   = latLow  + c_j*latStep  + latStep/2;
+        centerEdge.sourceLongitude  = globalLongLow + p_i*longStep + longStep/2;
+        centerEdge.sourceLatitude   = globalLatLow  + p_j*latStep  + latStep/2;
+        centerEdge.targetLongitude  = globalLongLow + c_i*longStep + longStep/2;
+        centerEdge.targetLatitude   = globalLatLow  + c_j*latStep  + latStep/2;
         
         //std::cout << "----- step " << x << " -----\n";
         //std::cout << "c=(" << c_i << ", " << c_j << " )\n";
@@ -425,18 +417,14 @@ void fillPartitionCenters(std::vector<Edge2*> (&partitions)[width][height], bool
  **/
 template<std::size_t width, std::size_t height>
 bool queryPartitions(std::vector<Edge2*>(&partitions)[width][height], bool (&partitionCenters)[width][height], double longitude, double latitude){
-    const double longLow = -180;
-    const double longHigh = 180;
-    const double latLow = -89.999;
-    const double latHigh = 90;
-    const double longStep = (longHigh-longLow)/width;
-    const double latStep = (latHigh-latLow)/height;
+    const double longStep = (globalLongHigh-globalLongLow)/width;
+    const double latStep = (globalLatHigh-globalLatLow)/height;
     
-    int i = ((longitude - longLow ) /longStep);
-    int j = ((latitude  - latLow ) /latStep);
+    int i = ((longitude - globalLongLow ) /longStep);
+    int j = ((latitude  - globalLatLow ) /latStep);
 
 
-    Edge2 queryCenterEdge{longitude, latitude, longLow + i*longStep + longStep/2, latLow + j*latStep + latStep/2};
+    Edge2 queryCenterEdge{longitude, latitude, globalLongLow + i*longStep + longStep/2, globalLatLow + j*latStep + latStep/2};
     uint64_t count = 0;
     for(Edge2 *edge : partitions[i][j]){
         count += isArcIntersecting(*edge, queryCenterEdge);
@@ -446,16 +434,11 @@ bool queryPartitions(std::vector<Edge2*>(&partitions)[width][height], bool (&par
 
 template<std::size_t width, std::size_t height>
 void determineGridPoints(std::vector<Edge2*>(&partitions)[width][height], bool (&partitionCenters)[width][height]){
-    const double longLow = -180;
-    const double longHigh = 180;
-    const double latLow = -89.999;
-    const double latHigh = 90;
-
     const double longStep = 1;
     const double latStep = 1;
 
-    const uint64_t numLongSteps = (uint64_t)(longHigh-longLow-longStep)/longStep;
-    const uint64_t numLatSteps = (uint64_t) (latHigh-latLow-latStep)/latStep;
+    const uint64_t numLongSteps = (uint64_t)(globalLongHigh-globalLongLow-longStep)/longStep;
+    const uint64_t numLatSteps = (uint64_t) (globalLatHigh-globalLatLow-latStep)/latStep;
 
     std::cout << "Number of queries: " << numLongSteps*numLatSteps << "\n";
 
@@ -465,10 +448,10 @@ void determineGridPoints(std::vector<Edge2*>(&partitions)[width][height], bool (
     for(uint64_t i = 0; i<numLongSteps; ++i)
     for(uint64_t j = 0; j<numLatSteps; ++j)
     {
-        bool result = queryPartitions(partitions, partitionCenters, longLow + longStep/2 + i*longStep, latLow + latStep/2 + j*latStep);
+        bool result = queryPartitions(partitions, partitionCenters, globalLongLow + longStep/2 + i*longStep, globalLatLow + latStep/2 + j*latStep);
         if(((i*numLatSteps + j)%1000)==0){
             std::cout << "Progess: " << (i*numLatSteps + j)/((double)numLongSteps*numLatSteps) << "\n";
-            std::cout << "Coordinate: " << longLow + longStep/2 + i*longStep << " " << latLow + latStep/2 + j*latStep << "\n";
+            std::cout << "Coordinate: " << globalLongLow + longStep/2 + i*longStep << " " << globalLatLow + latStep/2 + j*latStep << "\n";
             std::cout << "Result: " << result << "\n";
         }
     }
