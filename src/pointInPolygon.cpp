@@ -68,7 +68,7 @@ Vec3D rectangularToSpherical(Vec3D coords){
     return Vec3D{r, longitude, latitude};
 }
 
-Vec3D crossProduct(Vec3D v1, Vec3D v2){
+Vec3D crossProduct(const Vec3D &v1, const Vec3D &v2){
     return Vec3D{
         v1.y*v2.z - v1.z*v2.y,
         v1.z*v2.x - v1.x*v2.z,
@@ -76,7 +76,7 @@ Vec3D crossProduct(Vec3D v1, Vec3D v2){
     };
 }
 
-Vec3D add(Vec3D v1, Vec3D v2){
+Vec3D add(const Vec3D &v1, const Vec3D &v2){
     return Vec3D{
         v1.x+v2.x,
         v1.y+v2.y,
@@ -84,7 +84,7 @@ Vec3D add(Vec3D v1, Vec3D v2){
     };
 }
 
-Vec3D sub(Vec3D v1, Vec3D v2){
+Vec3D sub(const Vec3D &v1, const Vec3D &v2){
     return Vec3D{
         v1.x-v2.x,
         v1.y-v2.y,
@@ -92,7 +92,7 @@ Vec3D sub(Vec3D v1, Vec3D v2){
     };
 }
 
-Vec3D div(Vec3D v, double divisor){
+Vec3D div(const Vec3D &v, double divisor){
     return Vec3D{
         v.x/divisor,
         v.y/divisor,
@@ -377,11 +377,7 @@ void fillPartitionCenters(std::vector<Edge2*> (&partitions)[width][height], bool
         uint64_t intersectionCount = 0;
         for(Edge2 *edge : partitions[p_i][p_j]){
             processedEdges.push_back(edge);
-            if(isArcIntersecting(*edge, centerEdge))
-            {
-                intersectionCount += 1;
-                printEdge(*edge);
-            }
+            intersectionCount += isArcIntersecting(*edge, centerEdge);
         }
         std::sort(processedEdges.begin(), processedEdges.end());
         std::cout << "loop2" << "\n";
@@ -389,11 +385,7 @@ void fillPartitionCenters(std::vector<Edge2*> (&partitions)[width][height], bool
             auto lowerEdgeIt = std::lower_bound(processedEdges.begin(), processedEdges.end(), edge);
             // only increment if edge was not yet processed
             Edge2 *lowerEdge = (lowerEdgeIt == processedEdges.end()) ? nullptr : *lowerEdgeIt;
-            if(((lowerEdge != edge) && isArcIntersecting(*edge, centerEdge)))
-            {
-                intersectionCount += 1;
-                printEdge(*edge);
-            }
+            intersectionCount += ((lowerEdge != edge) && isArcIntersecting(*edge, centerEdge));
         }
 
         // Equivalence operator for intersection count even and previous in polygon
@@ -549,7 +541,13 @@ void test_synthetic(){
     print_partitions(partitions);
     print_partition_centers(partitionCenters);
 
-
+    std::cout << "Test query \n";
+    std::cout << "Query ( 31 ,-25.1 ) = " << queryPartitions(partitions, partitionCenters, 31,-25.1) << " =!= 0\n";
+    std::cout << "Query ( 50 , 7    ) = " << queryPartitions(partitions, partitionCenters, 50, 7) << " =!= 0\n";
+    std::cout << "Query ( 16 , 6    ) = " << queryPartitions(partitions, partitionCenters, 16, 6) << " =!= 1\n";
+    std::cout << "Query ( 35 , 8    ) = " << queryPartitions(partitions, partitionCenters, 35, 8) << " =!= 1\n";
+    std::cout << "Query ( 36 ,-17   ) = " << queryPartitions(partitions, partitionCenters, 35,-17) << " =!= 1\n";
+    std::cout << "Query ( 31 ,-24.9 ) = " << queryPartitions(partitions, partitionCenters, 31,-24.9) << " =!= 1\n";
 }
 
 
