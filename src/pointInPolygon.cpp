@@ -432,15 +432,22 @@ bool queryPartitions(std::vector<Edge2*>(&partitions)[width][height], bool (&par
     return (count%2==0) == partitionCenters[i][j];
 }
 
-template<std::size_t width, std::size_t height>
-void determineGridPoints(std::vector<Edge2*>(&partitions)[width][height], bool (&partitionCenters)[width][height]){
-    const double longStep = 1;
-    const double latStep = 1;
+template<std::size_t partition_width, std::size_t partition_height, std::size_t grid_width, std::size_t grid_height>
+void determineGridPoints(
+    std::vector<Edge2*>(&partitions)[partition_width][partition_height], 
+    bool (&partitionCenters)[partition_width][partition_height], 
+    bool (&gridPoints)[grid_width][grid_height]
+    )
+{
+    const double longStep = (globalLongHigh-globalLongLow)/grid_width;
+    const double latStep = (globalLatHigh-globalLatLow)/grid_height;
 
+    // add half step offset to borders to get full step width when connecting accross map edge
     const uint64_t numLongSteps = (uint64_t)(globalLongHigh-globalLongLow-longStep)/longStep;
     const uint64_t numLatSteps = (uint64_t) (globalLatHigh-globalLatLow-latStep)/latStep;
 
     std::cout << "Number of queries: " << numLongSteps*numLatSteps << "\n";
+    std::cout << "Step size: " << longStep << " " << latStep << "\n";
 
     std::chrono::duration<double> query_timing;
     auto startQuery = std::chrono::high_resolution_clock::now();
@@ -448,11 +455,11 @@ void determineGridPoints(std::vector<Edge2*>(&partitions)[width][height], bool (
     for(uint64_t i = 0; i<numLongSteps; ++i)
     for(uint64_t j = 0; j<numLatSteps; ++j)
     {
-        bool result = queryPartitions(partitions, partitionCenters, globalLongLow + longStep/2 + i*longStep, globalLatLow + latStep/2 + j*latStep);
+        gridPoints[i][j] = queryPartitions(partitions, partitionCenters, globalLongLow + longStep/2 + i*longStep, globalLatLow + latStep/2 + j*latStep);
         if(((i*numLatSteps + j)%1000)==0){
             std::cout << "Progess: " << (i*numLatSteps + j)/((double)numLongSteps*numLatSteps) << "\n";
             std::cout << "Coordinate: " << globalLongLow + longStep/2 + i*longStep << " " << globalLatLow + latStep/2 + j*latStep << "\n";
-            std::cout << "Result: " << result << "\n";
+            std::cout << "Result: " << gridPoints[i][j] << "\n";
         }
     }
 
@@ -640,13 +647,15 @@ void test_antarctica_data(){
     std::cout << "in Polygon? " << inPoly2 << std::endl;
     std::cout << "is left of first? " << isNodeLeftOfEdge(toCheck.longitude, toCheck.latitude, edges2.at(0)) << std::endl;
     //saveEdgesGeoJson(edges2);
-    std::vector<Edge2*> partitions[97][47];
-    bool partitionCenters[97][47];
+    std::vector<Edge2*> partitions[201][107];
+    bool partitionCenters[201][107];
+    bool gridPoints[1415][707];
+    //bool gridPoints[400][200];
     fillPartitions(edges2, partitions);
     fillPartitionCenters(partitions, partitionCenters);
     print_partitions(partitions);
     print_partition_centers(partitionCenters);
-    determineGridPoints(partitions, partitionCenters);
+    determineGridPoints(partitions, partitionCenters, gridPoints);
 }
 
 int main(int argc, char** argv) {
