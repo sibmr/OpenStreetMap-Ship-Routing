@@ -2,8 +2,14 @@
 # include <fstream>
 # include <string>
 # include <vector>
+# include <array>
 # include <math.h>
 # include <algorithm>
+
+const double globalLongLow = -180;
+const double globalLongHigh = 180;
+const double globalLatLow = -89.999;
+const double globalLatHigh = 90;
 
 struct Node {
     uint64_t id;
@@ -279,6 +285,14 @@ bool isEdgeInWindow(double longLow, double latLow, double longHigh, double latHi
     ||      isArcIntersecting(edge, Edge2{longHigh, latHigh, longHigh,  latLow}  )
     ||      isArcIntersecting(edge, Edge2{longHigh, latLow,  longLow,   latLow}  );
 }
+// returns (minI, maxI, minJ, maxJ) 
+void getBounds(std::array<int, 4> &array, Edge2 edge, size_t width, size_t height){
+    array[0] = std::max(int ((std::min(edge.sourceLongitude,edge.targetLongitude) - globalLongLow) * width/ (globalLongHigh - globalLongLow)), 0);
+    array[1] = std::min(int ((std::max(edge.sourceLongitude,edge.targetLongitude) - globalLongLow) * width/ (globalLongHigh - globalLongLow)), int (width-1));
+    array[2] = std::max(int ((std::min(edge.sourceLatitude,edge.targetLatitude) - globalLatLow) * height/ (globalLatHigh - globalLatLow)) , 0);
+    array[3] = std::min(int ((std::max(edge.sourceLatitude,edge.targetLatitude) - globalLatLow) * height/ (globalLatHigh - globalLatLow)) , int (height-1));
+    return;
+};
 
 /**
  * TODO: lots of room for optimization
@@ -295,12 +309,17 @@ void fillPartitions(std::vector<Edge2> &edges, std::vector<Edge2*> (&partitions)
     const double latStep = (latHigh-latLow)/height;
     
     uint64_t count = 0;
+    Edge2 *candidate;
+    std::array<int,4> boundsArray = {0,0,0,0}; // (minI, maxI, minJ, maxJ) 
     for(uint64_t c=0; c<edges.size(); ++c)
     {
-        Edge2 *candidate = &edges.at(c);
+        candidate = &edges.at(c);
+        getBounds(boundsArray, *candidate, width, height);
+
+
         // TODO: optimize this
-        for(int i=0; i<width; i++){
-            for(int j=0; j<height; j++)
+        for(int i = boundsArray[0]; i <= boundsArray[1]; i++){
+            for(int j = boundsArray[2]; j <= boundsArray[3]; j++)
             {
                 if(isEdgeInWindow(longLow+i*longStep, latLow+j*latStep, longLow+(i+1)*longStep, latLow+(j+1)*latStep, *candidate)){
                     partitions[i][j].push_back(candidate);
@@ -308,22 +327,22 @@ void fillPartitions(std::vector<Edge2> &edges, std::vector<Edge2*> (&partitions)
             }
         }
         count += 1;
-        if(count % 10000 == -1)
-            std::cout << (count*100)/edges.size() << "\n";
+        //if(count % 10000 == 0)
+        //    std::cout << (count*100)/edges.size() << "\n";
     }
 
-    std::cout << "partitions" << std::endl;
-    for(int j = height -1; j >= 0; j--)
-    {
-        for(int i = 0; i < width; i++)
-        {
-            std::cout << (partitions[i][j].size()>0)  << " ";
-            for(Edge2 *edge : partitions[i][j]){
-                printEdge(*edge);
-            }
-        }
-        std::cout << std::endl;
-    }
+    //std::cout << "partitions" << std::endl;
+    //for(int j = height -1; j >= 0; j--)
+    //{
+    //    for(int i = 0; i < width; i++)
+    //    {
+    //        std::cout << (partitions[i][j].size()>0)  << " ";
+    //        for(Edge2 *edge : partitions[i][j]){
+    //            printEdge(*edge);
+    //        }
+    //    }
+    //    std::cout << std::endl;
+    //}
 
 }
 
@@ -367,12 +386,12 @@ void fillPartitionCenters(std::vector<Edge2*> (&partitions)[width][height], bool
         centerEdge.targetLongitude  = longLow + c_i*longStep + longStep/2;
         centerEdge.targetLatitude   = latLow  + c_j*latStep  + latStep/2;
         
-        std::cout << "----- step " << x << " -----\n";
+        //std::cout << "----- step " << x << " -----\n";
         //std::cout << "c=(" << c_i << ", " << c_j << " )\n";
         //std::cout << "p=(" << p_i << ", " << p_j << " )\n";
-        printEdge(centerEdge);
+        //printEdge(centerEdge);
 
-        std::cout << "loop1" << "\n";
+        //std::cout << "loop1" << "\n";
         std::vector<Edge2*> processedEdges;
         uint64_t intersectionCount = 0;
         for(Edge2 *edge : partitions[p_i][p_j]){
@@ -380,11 +399,11 @@ void fillPartitionCenters(std::vector<Edge2*> (&partitions)[width][height], bool
             if(isArcIntersecting(*edge, centerEdge))
             {
                 intersectionCount += 1;
-                printEdge(*edge);
+                //printEdge(*edge);
             }
         }
         std::sort(processedEdges.begin(), processedEdges.end());
-        std::cout << "loop2" << "\n";
+        //std::cout << "loop2" << "\n";
         for(Edge2 *edge : partitions[c_i][c_j]){
             auto lowerEdgeIt = std::lower_bound(processedEdges.begin(), processedEdges.end(), edge);
             // only increment if edge was not yet processed
@@ -392,7 +411,7 @@ void fillPartitionCenters(std::vector<Edge2*> (&partitions)[width][height], bool
             if(((lowerEdge != edge) && isArcIntersecting(*edge, centerEdge)))
             {
                 intersectionCount += 1;
-                printEdge(*edge);
+                //printEdge(*edge);
             }
         }
 
@@ -403,7 +422,7 @@ void fillPartitionCenters(std::vector<Edge2*> (&partitions)[width][height], bool
         //  1       0       0
         //  1       1       1
 
-        std::cout << "(" << p_i << " " << p_j << ") " <<  partitionCenters[p_i][p_j]  << "\t(" << c_i << " " << c_j << ") " << intersectionCount << std::endl;
+        //std::cout << "(" << p_i << " " << p_j << ") " <<  partitionCenters[p_i][p_j]  << "\t(" << c_i << " " << c_j << ") " << intersectionCount << std::endl;
         partitionCenters[c_i][c_j] = (intersectionCount%2==0) == partitionCenters[p_i][p_j];
     }
 }
@@ -617,7 +636,7 @@ int main(int argc, char** argv) {
         std::cout << "Usage: " << argv[0] << " file_to_read.save" << std::endl;
         test_conversion();
         test_synthetic();
-        //test_antarctica_data();
+        test_antarctica_data();
     }
     else
     {
