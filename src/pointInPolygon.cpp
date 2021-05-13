@@ -700,7 +700,14 @@ void test_antarctica_data(){
     std::vector<bool> vectorGrid = std::vector<bool>(numberOfGridpoints); // entry is false if node is passable by ships
 
     std::cout << "Build graph" << std::endl;
+    std::chrono::duration<double> generateGridTiming;
+    auto startGridTiming = std::chrono::high_resolution_clock::now();
+
     generateGrid(vectorGrid, partitions, partitionCenters, iNodes, jNodes);
+
+    auto stopGridTiming = std::chrono::high_resolution_clock::now();
+    generateGridTiming = stopGridTiming - startGridTiming;
+    std::cout << "Total query time: " << generateGridTiming.count() << " seconds for " << numberOfGridpoints << " nodes" << std::endl;
 
     saveGrid(vectorGrid, iNodes, jNodes);
 
