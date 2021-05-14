@@ -432,15 +432,26 @@ bool queryPartitions(std::vector<Edge2*>(&partitions)[width][height], bool (&par
     return (count%2==0) == partitionCenters[i][j];
 }
 
-template<std::size_t width, std::size_t height>
-void determineGridPoints(std::vector<Edge2*>(&partitions)[width][height], bool (&partitionCenters)[width][height]){
-    const double longStep = 1;
-    const double latStep = 1;
+template<std::size_t partition_width, std::size_t partition_height, std::size_t grid_width, std::size_t grid_height>
+void determineGridPoints(
+    std::vector<Edge2*>(&partitions)[partition_width][partition_height], 
+    bool (&partitionCenters)[partition_width][partition_height], 
+    bool (&gridPoints)[grid_width][grid_height]
+    )
+{   
+    // add half step offset to borders to get full step width when connecting accross map edge
+    // 1 spare step to divide at both map borders
+    const double longStep = (globalLongHigh-globalLongLow)/(grid_width+1);
+    const double latStep = (globalLatHigh-globalLatLow)/(grid_height+1);
 
-    const uint64_t numLongSteps = (uint64_t)(globalLongHigh-globalLongLow-longStep)/longStep;
-    const uint64_t numLatSteps = (uint64_t) (globalLatHigh-globalLatLow-latStep)/latStep;
+    
+    //const uint64_t numLongSteps = (uint64_t)(globalLongHigh-globalLongLow-longStep)/longStep;
+    //const uint64_t numLatSteps = (uint64_t) (globalLatHigh-globalLatLow-latStep)/latStep;
+    const uint64_t numLongSteps = (uint64_t) grid_width;
+    const uint64_t numLatSteps = (uint64_t) grid_height;
 
     std::cout << "Number of queries: " << numLongSteps*numLatSteps << "\n";
+    std::cout << "Step size: " << longStep << " " << latStep << "\n";
 
     std::chrono::duration<double> query_timing;
     auto startQuery = std::chrono::high_resolution_clock::now();
@@ -448,11 +459,11 @@ void determineGridPoints(std::vector<Edge2*>(&partitions)[width][height], bool (
     for(uint64_t i = 0; i<numLongSteps; ++i)
     for(uint64_t j = 0; j<numLatSteps; ++j)
     {
-        bool result = queryPartitions(partitions, partitionCenters, globalLongLow + longStep/2 + i*longStep, globalLatLow + latStep/2 + j*latStep);
+        gridPoints[i][j] = queryPartitions(partitions, partitionCenters, globalLongLow + longStep/2 + i*longStep, globalLatLow + latStep/2 + j*latStep);
         if(((i*numLatSteps + j)%1000)==0){
             std::cout << "Progess: " << (i*numLatSteps + j)/((double)numLongSteps*numLatSteps) << "\n";
             std::cout << "Coordinate: " << globalLongLow + longStep/2 + i*longStep << " " << globalLatLow + latStep/2 + j*latStep << "\n";
-            std::cout << "Result: " << result << "\n";
+            std::cout << "Result: " << gridPoints[i][j] << "\n";
         }
     }
 
@@ -631,6 +642,7 @@ void test_synthetic(){
     std::cout << "Query ( 35 , 8    ) = " << queryPartitions(partitions, partitionCenters, 35, 8) << " =!= 1\n";
     std::cout << "Query ( 36 ,-17   ) = " << queryPartitions(partitions, partitionCenters, 35,-17) << " =!= 1\n";
     std::cout << "Query ( 31 ,-24.9 ) = " << queryPartitions(partitions, partitionCenters, 31,-24.9) << " =!= 1\n";
+
 }
 
 
@@ -671,6 +683,50 @@ void saveEdgesGeoJson(std::vector<Edge2> edges){
 
 }
 
+template<std::size_t grid_width, std::size_t grid_height>
+void saveGridPointsGeoJson(int idxLongLow, int idxLatLow, int idxLongHigh, int idxLatHigh, bool (&gridPoints)[grid_width][grid_height]){
+    const double longStep = (globalLongHigh-globalLongLow)/(grid_width+1);
+    const double latStep = (globalLatHigh-globalLatLow)/(grid_height+1);
+
+    //int idxLongLow = (longLow-globalLongLow)/longStep;
+    //int idxLatLow = (longLow-globalLongLow)/longStep;
+
+    std::ofstream file;
+
+    file.open("data/readNodes.json", std::ios::out | std::ios::trunc);
+    file.exceptions(file.exceptions() | std::ios::failbit | std::ifstream::badbit);
+
+    file <<     "{ \"type\": \"FeatureCollection\",\n";
+    file <<     "  \"features\": [\n";
+
+    uint64_t count = 0;
+    bool first_way = true;
+    for(int i = idxLongLow; i<idxLongHigh; ++i)
+    for(int j = idxLatLow; j<idxLatHigh; ++j)
+    {
+        if(!first_way){file << ",";}
+        file << "   {\"type\": \"Feature\",\n"
+                "    \"geometry\": {\n"
+                "       \"type\": \"MultiPoint\",\n"
+                "       \"coordinates\": [\n";
+
+        if(gridPoints[i][j]){
+           file << "[" << globalLongLow + longStep/2 + longStep*i  << "," << globalLatLow + latStep/2 + latStep*j << "]\n";
+           first_way = false; 
+        }
+        
+
+        file << "   ]\n"
+                "   },\n"
+                "   \"properties\": {}\n"
+                "   }";
+        
+        if(count%1 == 0){file.flush();}
+    }
+    file <<     "]}\n" << std::endl;
+
+}
+
 void test_antarctica_data(){
     // read data from binary file
     std::vector<Edge2> edges2;
@@ -683,36 +739,71 @@ void test_antarctica_data(){
     //std::cout << "in Polygon? " << inPoly2 << std::endl;
     std::cout << "is left of first? " << isNodeLeftOfEdge(toCheck.longitude, toCheck.latitude, edges2.at(0)) << std::endl;
     //saveEdgesGeoJson(edges2);
-    std::vector<Edge2*> partitions[201][101];
-    bool partitionCenters[201][101];
-    std::cout << "fill partitions..." << std::endl;
+    std::vector<Edge2*> partitions[201][107];
+    bool partitionCenters[201][107];
+    //bool gridPoints[1415][707];
+    bool gridPoints[400][200];
     fillPartitions(edges2, partitions);
     std::cout << "fill partition centers .." << std::endl;
     fillPartitionCenters(partitions, partitionCenters);
     print_partitions(partitions);
     print_partition_centers(partitionCenters);
-    //determineGridPoints(partitions, partitionCenters);
+    determineGridPoints(partitions, partitionCenters, gridPoints);
+    saveGridPointsGeoJson(250, 150, 300, 200, gridPoints);
+}
 
-    uint64_t numberOfGridpoints = 200000;
-    uint64_t iNodes = 200;
-    uint64_t jNodes = (int) numberOfGridpoints / iNodes;
+/**
+ * reads a .save file containing coastlines generated by the pbf-extractor and determines 
+ * for the grid nodes wether they are on land or in the ocean
+ **/
+template<std::size_t grid_width, std::size_t grid_height>
+void prepareGridNodes(std::string path, bool (&gridPoints)[grid_width][grid_height]){
+    std::vector<Edge2> edges;
+    load_ploygon_edges(path, edges);
+    std::cout << "loading done\n";
+    std::vector<Edge2*> partitions[201][107];
+    bool partitionCenters[201][107];
+    fillPartitions(edges, partitions);
+    fillPartitionCenters(partitions, partitionCenters);
+    print_partitions(partitions);
+    print_partition_centers(partitionCenters);
+    determineGridPoints(partitions, partitionCenters, gridPoints);
+    saveGridPointsGeoJson(250, 150, 300, 200, gridPoints);
+}
 
-    std::vector<bool> vectorGrid = std::vector<bool>(numberOfGridpoints); // entry is false if node is passable by ships
+/**
+ * saves the given grid points 2D array, along with its width and height
+ **/
+template<std::size_t grid_width, std::size_t grid_height>
+void saveGridPoints(std::string path,  bool (&gridPoints)[grid_width][grid_height]){
+    std::ofstream textfile;
+    size_t lastindex = path.find_last_of(".");
+    std::string text_file_name = path.substr(0, lastindex);
+    text_file_name += ".save";
+    textfile.open(text_file_name, std::ios::out | std::ios::trunc);
+    textfile.exceptions(textfile.exceptions() | std::ios::failbit | std::ifstream::badbit);
 
-    std::cout << "Build graph" << std::endl;
-    std::chrono::duration<double> generateGridTiming;
-    auto startGridTiming = std::chrono::high_resolution_clock::now();
+    uint64_t width = grid_width;
+    uint64_t height = grid_height;
+    textfile.write(reinterpret_cast<const char*>(&globalLongLow), sizeof(globalLongLow));
+    textfile.write(reinterpret_cast<const char*>(&globalLatLow), sizeof(globalLatLow));
+    textfile.write(reinterpret_cast<const char*>(&globalLongHigh), sizeof(globalLongHigh));
+    textfile.write(reinterpret_cast<const char*>(&globalLatHigh), sizeof(globalLatHigh));
+    textfile.write(reinterpret_cast<const char*>(&width), sizeof(width));
+    textfile.write(reinterpret_cast<const char*>(&height), sizeof(height));
+    for(uint64_t i = 0; i<grid_width; ++i)
+    for(uint64_t j = 0; j<grid_height; ++j)
+    {
+        textfile.write(reinterpret_cast<const char*>(&gridPoints[i][j]), sizeof(gridPoints[i][j]));
+        if(((i*grid_height + j)%2000)==0)
+            textfile.flush();
+    }
+}
 
-    generateGrid(vectorGrid, partitions, partitionCenters, iNodes, jNodes);
-
-    auto stopGridTiming = std::chrono::high_resolution_clock::now();
-    generateGridTiming = stopGridTiming - startGridTiming;
-    std::cout << "Total query time: " << generateGridTiming.count() << " seconds for " << numberOfGridpoints << " nodes" << std::endl;
-
-    saveGrid(vectorGrid, iNodes, jNodes);
-
-    
-
+void saveWorldGridPoints(){
+    bool gridPoints[400][200];
+    prepareGridNodes("data/planet-coastlines.save", gridPoints);
+    saveGridPoints("data/worldGrid_1415_707.save", gridPoints);
 }
 
 int main(int argc, char** argv) {
@@ -720,9 +811,10 @@ int main(int argc, char** argv) {
     if(argc != 2 || true)
     {
         std::cout << "Usage: " << argv[0] << " file_to_read.save" << std::endl;
-        test_conversion();
-        test_synthetic();
-        test_antarctica_data();
+        //test_conversion();
+        //test_synthetic();
+        //test_antarctica_data();
+        saveWorldGridPoints();
     }
     else
     {
