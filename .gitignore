@@ -1074,6 +1074,7 @@ src/pointInPolygon
 out1.txt
 out2.txt
 make_debug.sh
+make_release.sh
 .gitignore
 make_grpof.sh
 data/export_graph.txt
