@@ -324,7 +324,7 @@ void fillPartitions(std::vector<Edge2> &edges, std::vector<Edge2*> (&partitions)
             }
         }
         count += 1;
-        if(count % 10000 == 0)
+        if(count % 10000 == -1)
             std::cout << (count*100)/edges.size() << "\n";
     }
 
@@ -470,6 +470,49 @@ void determineGridPoints(
     auto endQuery = std::chrono::high_resolution_clock::now();
     query_timing = endQuery - startQuery;
     std::cout << "Total query time: " << query_timing.count() << "seconds" << std::endl;
+
+}
+
+
+
+template<std::size_t width, std::size_t height>
+void generateGrid(std::vector<bool> &vectorGrid, std::vector<Edge2*>(&partitions)[width][height], bool (&partitionCenters)[width][height], uint64_t iNodes, uint64_t jNodes){
+    const double longStep = ((globalLongHigh - globalLongLow) / iNodes);
+    const double latStep = ((globalLatHigh - globalLatLow) / jNodes);
+
+    double curr_long;
+    double curr_lat;
+
+    uint64_t maxSize = std::min(vectorGrid.size(), iNodes * jNodes);
+
+    const int size = vectorGrid.size(); 
+    for (uint64_t i = 0; i < vectorGrid.size(); i++){
+        curr_long = globalLongHigh - ((i % iNodes) * longStep) - longStep/2;
+        curr_lat = globalLatHigh - ((i / iNodes) * latStep) - latStep/2;
+        vectorGrid.at(i) = queryPartitions(partitions, partitionCenters, curr_long, curr_lat);
+
+        if(i % (size/1000) == 0){
+            std::cout << i  << "\t" << size << std::endl;
+        }
+    }
+}
+
+void saveGrid(std::vector<bool> &vectorGrid, uint64_t iNodes, uint64_t jNodes){
+    std::ofstream myfile;
+
+    myfile.open("data/export_graph.txt", std::ios::out | std::ios::trunc);
+    myfile.exceptions(myfile.exceptions() | std::ios::failbit | std::ifstream::badbit);
+
+    for(uint64_t i = 0; i < vectorGrid.size(); i++){
+        myfile << vectorGrid.at(i) << " ";
+        if((i+1)%iNodes == 0){                
+            myfile << std::endl;
+            myfile.flush();
+        }
+    }
+    myfile <<  "\n" << std::endl;
+    myfile.flush();
+    myfile.close();
 
 }
 
@@ -690,10 +733,10 @@ void test_antarctica_data(){
     //load_ploygon_edges("data/antarctica-edges.save", edges2);
     load_ploygon_edges("data/planet-coastlines.save", edges2);
     std::cout << "loading done\n";
-    printEdge(edges2.at(0));
+    //printEdge(edges2.at(0));
     Node toCheck = Node{0,-2.0,-4.2};
-    bool inPoly2 = isPointInPolygon(toCheck, edges2);
-    std::cout << "in Polygon? " << inPoly2 << std::endl;
+    //bool inPoly2 = isPointInPolygon(toCheck, edges2);
+    //std::cout << "in Polygon? " << inPoly2 << std::endl;
     std::cout << "is left of first? " << isNodeLeftOfEdge(toCheck.longitude, toCheck.latitude, edges2.at(0)) << std::endl;
     //saveEdgesGeoJson(edges2);
     std::vector<Edge2*> partitions[201][107];
@@ -701,6 +744,7 @@ void test_antarctica_data(){
     //bool gridPoints[1415][707];
     bool gridPoints[400][200];
     fillPartitions(edges2, partitions);
+    std::cout << "fill partition centers .." << std::endl;
     fillPartitionCenters(partitions, partitionCenters);
     print_partitions(partitions);
     print_partition_centers(partitionCenters);
