@@ -84,10 +84,10 @@ void fillAdjacencyArray(GridData &data, AdjacencyArray &array){
         uint64_t x      = i*data.height + j;
         
         if(data.gridDataList.at(x)){
-            uint64_t left   = i*data.height + ((j-1) % data.height);
-            uint64_t right  = i*data.height + ((j+1) % data.height);
-            uint64_t down   = (i-1)*data.height + j;
-            uint64_t up     = (i+1)*data.height + j;
+            uint64_t down   = i*data.height + (j-1);
+            uint64_t up     = i*data.height + (j+1);
+            uint64_t left   = ((data.width+i-1)%data.width)*data.height + j;
+            uint64_t right  = ((i+1) % data.width)*data.height + j;
 
             if(data.gridDataList.at(left)){
                 offset_step += 1;
@@ -97,11 +97,11 @@ void fillAdjacencyArray(GridData &data, AdjacencyArray &array){
                 offset_step += 1;
                 array.edges.push_back(right);
             }
-            if(i>0              && data.gridDataList.at(down)){
+            if(j>0              && data.gridDataList.at(down)){
                 offset_step += 1;
                 array.edges.push_back(down);
             }
-            if(i<data.width-1   && data.gridDataList.at(up)){
+            if(j<data.height-1   && data.gridDataList.at(up)){
                 offset_step += 1;
                 array.edges.push_back(up);
             }
