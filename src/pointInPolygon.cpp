@@ -741,6 +741,10 @@ void saveGridPoints(std::string path,  bool (&gridPoints)[grid_width][grid_heigh
 
     uint64_t width = grid_width;
     uint64_t height = grid_height;
+    textfile.write(reinterpret_cast<const char*>(&globalLongLow), sizeof(globalLongLow));
+    textfile.write(reinterpret_cast<const char*>(&globalLatLow), sizeof(globalLatLow));
+    textfile.write(reinterpret_cast<const char*>(&globalLongHigh), sizeof(globalLongHigh));
+    textfile.write(reinterpret_cast<const char*>(&globalLatHigh), sizeof(globalLatHigh));
     textfile.write(reinterpret_cast<const char*>(&width), sizeof(width));
     textfile.write(reinterpret_cast<const char*>(&height), sizeof(height));
     for(uint64_t i = 0; i<grid_width; ++i)
