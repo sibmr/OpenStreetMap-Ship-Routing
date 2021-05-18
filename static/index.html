@@ -10,6 +10,9 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A==" crossorigin=""/>
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js" integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA==" crossorigin=""></script>
 
+	<head>
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+	</head> 
 
 	
 </head>
@@ -23,7 +26,11 @@
 
 <script>
 
-	var mymap = L.map('mapid').setView([51.505, -0.09], 13);
+	var clickIndex = 0;
+	var startLocation = [0,0];
+	var goalLocation = [0,0];
+	var mymap = L.map('mapid').setView([0, 0], 2);
+	var polyline = L.polyline([], {color: 'red'}).addTo(mymap);
 
 	L.tileLayer('https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}?access_token=pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4NXVycTA2emYycXBndHRqcmZ3N3gifQ.rJcFIG214AriISLbB6B5aw', {
 		maxZoom: 18,
@@ -49,6 +56,38 @@
 		[51.51, -0.047]
 	]).addTo(mymap).bindPopup("I am a polygon.");
 
+	function requestAndDisplayRoute()
+	{
+		$.post('/getRoute', {
+			longStart: startLocation[0],
+			latStart: startLocation[1],
+			longGoal: goalLocation[0],
+			latGoal: goalLocation[1]
+		}).done(function(response) {
+			console.log(response["path"]);
+			polyline.setLatLngs(response["path"]);
+		}).fail(function() {
+			console.log("could not reach server");
+		});
+	}
+
+	var geoJsonObj = {
+		"type": "FeatureCollection",
+		"features": [
+			{
+			"type": "Feature",
+			"properties": {},
+			"geometry": {
+				"type": "Point",
+				"coordinates": [
+				60.8203125,
+				56.36525013685606
+				]
+			}
+			}
+		]
+		}
+	L.geoJSON(geoJsonObj).addTo(mymap)
 
 	var popup = L.popup();
 
@@ -57,6 +96,16 @@
 			.setLatLng(e.latlng)
 			.setContent("You clicked the map at " + e.latlng.toString())
 			.openOn(mymap);
+		if(clickIndex % 2 == 0){
+			startLocation = [e.latlng.lng, e.latlng.lat];
+		}
+		else
+		{
+			goalLocation = [e.latlng.lng, e.latlng.lat];
+			console.log(goalLocation)
+			requestAndDisplayRoute()
+		}
+		clickIndex += 1;
 	}
 
 	mymap.on('click', onMapClick);
