@@ -1,1 +1,2 @@
 add_subdirectory(osmpbfreader)
+add_subdirectory(cpp-httplib)

@@ -1065,9 +1065,7 @@ include/osmpbfreader.cbp
 *.save
 
 data/export.save
-lib/osmpbfreader/cmake/osmpbfreaderConfig.cmake
-lib/osmpbfreader/cmake/osmpbfreaderTargets.cmake
-lib/osmpbfreader/cmake/modules/Findosmpbf.cmake
+lib/
 osmpbfreader.h
 data/planet-coastlines.save
 src/pointInPolygon
@@ -1079,3 +1077,4 @@ make_release.sh
 make_grpof.sh
 data/export_graph.txt
 include/osmpbfreader/osmpbfreader.cbp
+include/httplib.h
