@@ -3,7 +3,7 @@
 # include <fstream>
 # include <string>
 # include <vector>
-
+# include <math.h>
 
 struct AdjacencyArray {
     double longLow, latLow, longHigh, latHigh;
@@ -87,6 +87,32 @@ void loadAdjacencyArray(AdjacencyArray &array, std::string path){
     adjacency_input_file.close();
 }
 
+double latLongDistance(double p1lng, double p1lat, double p2lng, double p2lat){
+    /**
+     * Input:   Two LongLat Points in Degrees
+     * Output:  Distance between the Points in Metres
+     **/
+    
+    // Haversine formula:
+    const double R = 6.371e6;
+    const double phi1 = p1lat           * M_PI/180.0;
+    const double phi2 = p2lat           * M_PI/180.0;
+    const double dphi = (p2lat-p1lat)   * M_PI/180.0;
+    const double dlam = (p2lng-p1lng)   * M_PI/180.0; 
+
+    const double a = sin(dphi/2) * sin(dphi/2) + cos(phi1) * cos(phi2) * sin(dlam/2) * sin(dlam/2);
+    const double c = 2 * atan2(sqrt(a), sqrt(1-a));
+
+    const double d = R * c;
+
+    return d;
+}
+
+void testLatLongDistance(){
+    std::cout << "Test distance:\n";
+    // should result in approx 5929000 and 572500 metres
+    std::cout << latLongDistance(40,40,20,-10) << " " << latLongDistance(20, -80, 30, -85) << std::endl;
+}
 
 int main(int argc, char** argv) {
     AdjacencyArray adjArray;
@@ -103,4 +129,5 @@ int main(int argc, char** argv) {
         }
     }
     std::cout << counter_zero << " " << counter_one << " " << counter_one + counter_zero << std::endl;
+    testLatLongDistance();
 }
