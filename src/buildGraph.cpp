@@ -151,12 +151,6 @@ void testLoadFill(GridData &dat, AdjacencyArray &adjArray){
     std::cout << "\n";
 }
 
-/*
-
-* */
-
-
-
 /**
  * @brief save adjacency array to disk
  * 
