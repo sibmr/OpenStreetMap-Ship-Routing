@@ -6,6 +6,7 @@
 # include <math.h>
 # include <algorithm>
 # include <chrono>
+# include <omp.h>
 
 const double globalLongLow = -180;
 const double globalLongHigh = 180;
@@ -17,15 +18,6 @@ struct Node {
     double longitude;
     double latitude;
 };
-
-/**
- * to the left there is land, to the right there is ocean
- **/
-struct Edge {
-    Node &sourceNode;
-    Node &destinationNode;  
-};
-
 
 struct Edge2 {
     double sourceLongitude;
@@ -47,11 +39,6 @@ void printVec(Vec3D vec){
 void printEdge(Edge2 edge){
     std::cout << "source longitude=" << edge.sourceLongitude << " ,latitude=" << edge.sourceLatitude 
     << " ,destination longitude=" << edge.targetLongitude << " ,latitude=" << edge.targetLatitude << "\n";
-}
-
-void printEdge(Edge edge){
-    std::cout << "source longitude=" << edge.sourceNode.longitude << " ,latitude=" << edge.sourceNode.latitude 
-    << " ,destination longitude=" << edge.destinationNode.longitude << " ,latitude=" << edge.destinationNode.latitude << "\n";
 }
 
 /**
@@ -116,23 +103,6 @@ Vec3D normalize(Vec3D v){
     return div(v, norm); 
 }
 
-bool isNodeLeftOfEdge(Node n, Edge e){
-    Vec3D c = sphericalToRectangular(n.longitude,                   n.latitude);
-    Vec3D a = sphericalToRectangular(e.sourceNode.longitude,        e.sourceNode.latitude);
-    Vec3D b = sphericalToRectangular(e.destinationNode.longitude,   e.destinationNode.latitude);
-    Vec3D o = Vec3D{0,0,0};
-    
-    Vec3D ao = sub(o,a);
-    Vec3D ab = sub(b,a);
-    Vec3D ac = sub(c,a);
-    Vec3D aoxab = crossProduct(ao,ab);
-    double w = dotProduct(aoxab,ac);
-    
-    //std::cout << w << std::endl;
-
-    return w > 0;
-}
-
 bool isNodeLeftOfEdge(double n_long, double n_lat, const Edge2 &e){
     Vec3D c = sphericalToRectangular(n_long,                   n_lat);
     Vec3D a = sphericalToRectangular(e.sourceLongitude,        e.sourceLatitude);
@@ -151,21 +121,6 @@ bool isNodeLeftOfEdge(double n_long, double n_lat, const Edge2 &e){
     return w > 0;
 }
 
-bool isArcIntersecting(Edge e1, Edge e2){
-    bool e1node1L = isNodeLeftOfEdge(e1.sourceNode, e2);
-    bool e1node2L = isNodeLeftOfEdge(e1.destinationNode, e2);
-    bool e2node1L = isNodeLeftOfEdge(e2.sourceNode, e1);
-    bool e2node2L = isNodeLeftOfEdge(e2.destinationNode, e1);
-
-    // need to make sure that arc segments are not on opposite sides of the sphere
-    double angle = dotProduct(
-        sphericalToRectangular(e1.sourceNode.longitude, e1.sourceNode.latitude),
-        sphericalToRectangular(e2.sourceNode.longitude, e2.sourceNode.latitude)
-    );
-
-    return (e1node1L != e1node2L) && (e2node1L != e2node2L);
-}
-
 bool isArcIntersecting(Edge2 e1, Edge2 e2){
     bool e1node1L = isNodeLeftOfEdge(e1.sourceLongitude, e1.sourceLatitude,  e2);
     bool e1node2L = isNodeLeftOfEdge(e1.targetLongitude, e1.targetLatitude,  e2);
@@ -179,43 +134,6 @@ bool isArcIntersecting(Edge2 e1, Edge2 e2){
     );
 
     return (e1node1L != e1node2L) && (e2node1L != e2node2L) && angle > 0;
-}
-
-/**
- * TODO: test this method better
- **/
-bool isPointInPolygon(Node n, std::vector<Edge> edges){
-    Edge firstEdge = edges.at(0);
-    bool nLeftOfEdge = isNodeLeftOfEdge(n, firstEdge);
-
-    // calculate halfway vector beetween edge nodes, then normalize and convert to node with lat-long
-    // there seems to be an error with center point calculation or more likely with rect to spherical conversion
-    Vec3D centerRect = normalize(
-        add(
-            sphericalToRectangular(
-                firstEdge.sourceNode.longitude, firstEdge.sourceNode.latitude
-            ),
-            sphericalToRectangular(
-                firstEdge.destinationNode.longitude, firstEdge.destinationNode.latitude)
-        ));
-    Vec3D centerSpherical = rectangularToSpherical(centerRect);
-    Node centerNode = Node{0, centerSpherical.y, centerSpherical.z};
-    
-    // edge representing arc from centerNode of edge to query point
-    Edge intersectionEdge {n, centerNode};
-    
-    // check for all edges (except the first one) if they intersect the intersection edge and count intersections
-    uint64_t intersectionCount = 0;
-    for(auto edgeIter = edges.begin()+1; edgeIter!=edges.end(); ++edgeIter){
-        intersectionCount += isArcIntersecting(*edgeIter, intersectionEdge);
-    }
-
-    std::cout << intersectionCount << "\n";
-    bool even = (intersectionCount%2) == 0;
-
-    // (left and !even) OR (!left and even) means the node is outside, otherwise it is inside
-    // equivalent to left XOR even
-    return nLeftOfEdge == even;
 }
 
 // new isPointInPolygon less pointers
@@ -455,15 +373,26 @@ void determineGridPoints(
 
     std::chrono::duration<double> query_timing;
     auto startQuery = std::chrono::high_resolution_clock::now();
+    uint64_t progress_count = 0;
 
-    for(uint64_t i = 0; i<numLongSteps; ++i)
-    for(uint64_t j = 0; j<numLatSteps; ++j)
+    #pragma omp parallel num_threads(8)
     {
-        gridPoints[i][j] = queryPartitions(partitions, partitionCenters, globalLongLow + longStep/2 + i*longStep, globalLatLow + latStep/2 + j*latStep);
-        if(((i*numLatSteps + j)%1000)==0){
-            std::cout << "Progess: " << (i*numLatSteps + j)/((double)numLongSteps*numLatSteps) << "\n";
-            std::cout << "Coordinate: " << globalLongLow + longStep/2 + i*longStep << " " << globalLatLow + latStep/2 + j*latStep << "\n";
-            std::cout << "Result: " << gridPoints[i][j] << "\n";
+        #pragma omp for
+        for(uint64_t i = 0; i<numLongSteps; ++i)
+        for(uint64_t j = 0; j<numLatSteps; ++j)
+        {
+            gridPoints[i][j] = queryPartitions(partitions, partitionCenters, globalLongLow + longStep/2 + i*longStep, globalLatLow + latStep/2 + j*latStep);
+            
+            // comment this out when no progress tracking is necessary - critical section slows things down just for the sake of incrementing the progress counter
+            #pragma omp critical
+            {
+            if((progress_count%10000)==0){
+                std::cout << "Progess: " << (progress_count)/((double)numLongSteps*numLatSteps) << "\n";
+                std::cout << "Coordinate: " << globalLongLow + longStep/2 + i*longStep << " " << globalLatLow + latStep/2 + j*latStep << "\n";
+                std::cout << "Result: " << gridPoints[i][j] << "\n";
+            }
+            progress_count++;
+            }
         }
     }
 
@@ -604,11 +533,9 @@ void test_synthetic(){
     std::vector<Node> pNodes{
         Node{0,-5.0,-6.5},Node{1, 1.0,-3.0},Node{2,-5.5,-6.0},Node{3,1,-1}
     };
-    std::vector<Edge> polygon{
-        Edge{pNodes.at(0),pNodes.at(1)},
-        Edge{pNodes.at(1),pNodes.at(2)},
-        //Edge{pNodes.at(3),pNodes.at(2)},
-        //Edge{pNodes.at(0),pNodes.at(3)},
+    std::vector<Edge2> polygon{
+        Edge2{pNodes.at(0).longitude, pNodes.at(0).latitude,    pNodes.at(1).longitude, pNodes.at(1).latitude},
+        Edge2{pNodes.at(1).longitude, pNodes.at(1).latitude,    pNodes.at(2).longitude, pNodes.at(2).latitude},
     };
 
     // check if point is in polygon
@@ -616,9 +543,11 @@ void test_synthetic(){
     Node midPointApprox = Node{0, -2, -4.75};
     bool inPoly1 = isPointInPolygon(toCheck, polygon);
     std::cout << "in Polygon? " << inPoly1 << std::endl;
-    std::cout << "is left of first? " << isNodeLeftOfEdge(toCheck, polygon.at(0)) << std::endl;
-    std::cout << "is left of second? " << isNodeLeftOfEdge(toCheck, polygon.at(1)) << std::endl;
-    std::cout << "is arc intersecting? " << isArcIntersecting(Edge{toCheck, midPointApprox},polygon.at(1)) << std::endl;
+    std::cout << "is left of first? " << isNodeLeftOfEdge(toCheck.longitude, toCheck.latitude, polygon.at(0)) << std::endl;
+    std::cout << "is left of second? " << isNodeLeftOfEdge(toCheck.longitude, toCheck.latitude, polygon.at(1)) << std::endl;
+    std::cout << "is arc intersecting? " << isArcIntersecting(
+        Edge2{toCheck.longitude, toCheck.latitude, midPointApprox.longitude, midPointApprox.latitude},polygon.at(1)
+        ) << std::endl;
     printEdge(polygon.at(0));
 
     std::vector<Edge2> edges2 {
@@ -801,7 +730,7 @@ void saveGridPoints(std::string path,  bool (&gridPoints)[grid_width][grid_heigh
 }
 
 void saveWorldGridPoints(){
-    bool gridPoints[400][200];
+    bool gridPoints[1415][707];
     prepareGridNodes("data/planet-coastlines.save", gridPoints);
     saveGridPoints("data/worldGrid_1415_707.save", gridPoints);
 }
@@ -812,7 +741,7 @@ int main(int argc, char** argv) {
     {
         std::cout << "Usage: " << argv[0] << " file_to_read.save" << std::endl;
         //test_conversion();
-        //test_synthetic();
+        test_synthetic();
         //test_antarctica_data();
         saveWorldGridPoints();
     }

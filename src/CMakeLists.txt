@@ -16,6 +16,8 @@ add_executable(coastlineExtraction costlineExtraction.cpp)
 target_link_libraries(coastlineExtraction PRIVATE osmpbfreader)
 set_target_properties(coastlineExtraction PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 
+find_package(OpenMP REQUIRED)
 add_executable(pointInPolygon pointInPolygon.cpp)
 target_link_libraries(pointInPolygon PRIVATE osmpbfreader)
+target_link_libraries(pointInPolygon PRIVATE OpenMP::OpenMP_CXX)
 set_target_properties(pointInPolygon PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
