@@ -7,11 +7,6 @@
 # include <chrono>
 # include <iomanip>
 
-//# include <ios>
-
-
-
-
 # include "osmpbfreader.h"
 
 using namespace CanalTP;
@@ -28,19 +23,20 @@ struct Node {
     uint64_t osmid;
     double longitude;
     double latitude;
-    const Tags tags;
 };
 
-struct SimpleNode {
-    uint64_t osmid;
-    double longitude;
-    double latitude;
-};
-
+/**
+ * @brief comparison operator for instances of Node based on their id
+ * 
+ */
 struct {
-    bool operator()(SimpleNode a, SimpleNode b) const { return a.osmid < b.osmid; }
+    bool operator()(Node a, Node b) const { return a.osmid < b.osmid; }
 } compareSimpleNode;
 
+/**
+ * @brief callback for osmpbfreader library: extracts ways that have the {"natural" : "coastline"} tag
+ * 
+ */
 struct CoastlineWaysExtractor {
     
     std::vector<Way> &ways;
@@ -66,16 +62,25 @@ struct CoastlineWaysExtractor {
     void node_callback(uint64_t /*osmid*/, double /*longitude*/, double latitude, const Tags &/*tags*/){}
 };
 
+/**
+ * @brief callback for osmpbfreader library: after coastline ways are extracted, nodes referenced by those ways are extracted
+ * 
+ */
 struct CoastlineNodesExtractor {
     
     static const uint64_t MAX_NODES = 57000000;
-    std::vector<SimpleNode> &nodes;
+    std::vector<Node> &nodes;
 
-    CoastlineNodesExtractor(std::vector<SimpleNode> &coastlineNodes): nodes(coastlineNodes){}
+    /**
+     * @brief Construct a new Coastline Nodes Extractor object: updates node longitude and latitude based on node-id
+     * 
+     * @param coastlineNodes this vector needs to be pre-initialized with with empty nodes (containing only node-id) and pre-sorted 
+     */
+    CoastlineNodesExtractor(std::vector<Node> &coastlineNodes): nodes(coastlineNodes){}
 
     void node_callback(uint64_t osmid, double longitude, double latitude, const Tags &tags){
         // binary-search the node with osmid
-        std::vector<SimpleNode>::iterator it = std::lower_bound(nodes.begin(), nodes.end(), SimpleNode{osmid}, compareSimpleNode);
+        std::vector<Node>::iterator it = std::lower_bound(nodes.begin(), nodes.end(), Node{osmid}, compareSimpleNode);
         if(it->osmid == osmid){
             it->longitude = longitude;
             it->latitude = latitude;
@@ -100,12 +105,17 @@ uint64_t add_element_map(std::map<uint64_t, std::vector<uint64_t>> mymap, uint64
     return value;
 }
 
-
-
 /**
- * Adds around 2.5GB of data to the nodes and ways vector combined 
- **/
-void load_coastline_data(std::string pbfPath, std::vector<SimpleNode> &nodes, std::vector<Way> &ways, std::vector<uint64_t> &export_ways){
+ * @brief Load coastline data from disk, extract coastlines and prepare coastlines data for saving
+ * 
+ * @param pbfPath       path where pbf file is located
+ * @param nodes         vector of nodes that will be filled with nodes that are part of coastline ways
+ * @param ways          vector of ways that will be filled with coastline ways
+ * @param export_ways   vector containing indices of ways in the ways vector, specifying the order of export
+ * 
+ * Adds around 2.5GB of data to the nodes and ways vector combined (on planet_coaslines.pbf)
+ */
+void load_coastline_data(std::string pbfPath, std::vector<Node> &nodes, std::vector<Way> &ways, std::vector<uint64_t> &export_ways){
     CoastlineWaysExtractor wayExtractor(ways);
     read_osm_pbf(pbfPath, wayExtractor);
 
@@ -115,7 +125,7 @@ void load_coastline_data(std::string pbfPath, std::vector<SimpleNode> &nodes, st
     {
         node_vectid.insert({ways.at(i).refs.front(), i});
         for(uint64_t ref : ways.at(i).refs){
-            nodes.push_back(SimpleNode{ref});
+            nodes.push_back(Node{ref});
         }
 
     }
@@ -169,7 +179,15 @@ void load_coastline_data(std::string pbfPath, std::vector<SimpleNode> &nodes, st
     read_osm_pbf(pbfPath, nodeExtractor);
 }
 
-void save_coastline_to_geojson(std::string geoJsonPath, std::vector<SimpleNode> &nodes, std::vector<Way> &ways, std::vector<uint64_t> &export_ways){
+/**
+ * @brief Save geojson representation of data extracted from pbf file
+ * 
+ * @param geoJsonPath   path where pbf file is located
+ * @param nodes         vector of coastline nodes
+ * @param ways          vector of coastline ways
+ * @param export_ways   vector specifying ordering of coastline ways
+ */
+void save_coastline_to_geojson(std::string geoJsonPath, std::vector<Node> &nodes, std::vector<Way> &ways, std::vector<uint64_t> &export_ways){
     std::ofstream file;
 
     file.open(geoJsonPath, std::ios::out | std::ios::trunc);
@@ -180,7 +198,6 @@ void save_coastline_to_geojson(std::string geoJsonPath, std::vector<SimpleNode> 
 
     uint64_t count = 0;
     bool first_way = true;
-    //for(Way way : ways){
     for(uint64_t i : export_ways){
         if(!first_way){file << ",";}
         file << "   {\"type\": \"Feature\",\n"
@@ -190,7 +207,7 @@ void save_coastline_to_geojson(std::string geoJsonPath, std::vector<SimpleNode> 
 
         bool first_node = true;
         for(uint64_t osmid : ways.at(i).refs){
-            std::vector<SimpleNode>::iterator it = std::lower_bound(nodes.begin(), nodes.end(), SimpleNode{osmid}, compareSimpleNode);
+            std::vector<Node>::iterator it = std::lower_bound(nodes.begin(), nodes.end(), Node{osmid}, compareSimpleNode);
             if(!first_node){file << ",";};
             file << "[" << it->longitude << "," << it->latitude << "]\n";
             first_node=false;
@@ -203,14 +220,21 @@ void save_coastline_to_geojson(std::string geoJsonPath, std::vector<SimpleNode> 
         
         count++;
         if(count%1 == 0){file.flush();}
-        //if(count%100 == 0){break;}
         first_way = false;
     }
     file <<     "]}\n" << std::endl;
     
 }
 
-void save_coastline_edges_to_file(std::string save_string, std::vector<SimpleNode> &nodes, std::vector<Way> &ways, std::vector<uint64_t> &export_ways){
+/**
+ * @brief save extracted coastline data to disk
+ * 
+ * @param save_string   path to location where data.save file will be created
+ * @param nodes         vector of coastline nodes
+ * @param ways          vector of coastline ways
+ * @param export_ways   vector specifying index-ordering in which ways are exported
+ */
+void save_coastline_edges_to_file(std::string save_string, std::vector<Node> &nodes, std::vector<Way> &ways, std::vector<uint64_t> &export_ways){
     std::ofstream textfile;
     size_t lastindex = save_string.find_last_of(".");
     std::string text_file_name = save_string.substr(0, lastindex);
@@ -219,8 +243,8 @@ void save_coastline_edges_to_file(std::string save_string, std::vector<SimpleNod
     textfile.exceptions(textfile.exceptions() | std::ios::failbit | std::ifstream::badbit);
 
 
-    SimpleNode SourceNode;
-    SimpleNode TargetNode;
+    Node SourceNode;
+    Node TargetNode;
 
     uint64_t tmp_osmid_source;
     uint64_t tmp_osmid_target;
@@ -236,8 +260,8 @@ void save_coastline_edges_to_file(std::string save_string, std::vector<SimpleNod
             tmp_osmid_source = ways.at(way_id).refs.at(ref_iterator);
             tmp_osmid_target = ways.at(way_id).refs.at(ref_iterator+1);
             
-            std::vector<SimpleNode>::iterator it_source = std::lower_bound(nodes.begin(), nodes.end(), SimpleNode{tmp_osmid_source}, compareSimpleNode);
-            std::vector<SimpleNode>::iterator it_target = std::lower_bound(nodes.begin(), nodes.end(), SimpleNode{tmp_osmid_target}, compareSimpleNode);
+            std::vector<Node>::iterator it_source = std::lower_bound(nodes.begin(), nodes.end(), Node{tmp_osmid_source}, compareSimpleNode);
+            std::vector<Node>::iterator it_target = std::lower_bound(nodes.begin(), nodes.end(), Node{tmp_osmid_target}, compareSimpleNode);
 
             source_latitude = it_source->latitude;
             source_longitude = it_source->longitude;
@@ -292,10 +316,8 @@ void save_coastline_edges_to_file(std::string save_string, std::vector<SimpleNod
         textfile.flush();
     }
 
-
-
-
 }
+
 
 int main(int argc, char** argv) {
     std::cout << "Hello World\n";
@@ -304,11 +326,12 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-
+    // start tracking time
     std::chrono::duration<double> main_program_timing;
     auto startMain = std::chrono::high_resolution_clock::now();
 
-    std::vector<SimpleNode> nodes;
+
+    std::vector<Node> nodes;
     std::vector<Way> ways;
     std::vector<uint64_t> export_ways;
     load_coastline_data(argv[1], nodes, ways, export_ways);
@@ -318,18 +341,11 @@ int main(int argc, char** argv) {
     save_coastline_edges_to_file(argv[2], nodes, ways, export_ways);
     
     
+    // stop tracking time
     auto endMain = std::chrono::high_resolution_clock::now();
     main_program_timing = endMain - startMain;
     std::cout << "Total .save export time: " << main_program_timing.count() << "seconds" << std::endl;
 
-
-    //CoastlineWaysExtractor wayExtractor;
-    //read_osm_pbf(argv[1], wayExtractor);
-
-    //std::cout << "We read " << counter.nodes << " nodes, " << counter.ways << " ways and " << counter.relations << " relations" << std::endl;
-    //std::cout << "Coastline size: " << wayExtractor.coastline_ways.size() << std::endl;
-    //const std::vector<uint64_t> &refs = wayExtractor.coastline_ways.at(0).refs;
-    //std::cout << refs.at(0) << std::endl;
     return 0;
 
 }
