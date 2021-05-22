@@ -262,32 +262,32 @@ void generateReponse(std::vector<double> &path, std::string& response){
     response += "]}";
 }
     
-int main(int argc, char** argv) {
-    AdjacencyArray adjArray;
-    // load
-    loadAdjacencyArray(adjArray, "data/worldGrid_1415_707.save");
-
-    std::vector<uint64_t> path;
-    generatePath(path, 1001, 10001, adjArray);
-    std::vector<double> nodePath;
-    generateNodePath(nodePath, path, adjArray);
-
-
-    std::string response;
-    generateReponse(nodePath, response);
-    std::cout << response << std::endl;
-
-    //int counter_one = 0;
-    //int counter_zero = 0;
-    //for (int i = 0; i < adjArray.nodes.size(); i++){
-    //    if(adjArray.nodes.at(i) == 0){
-    //        counter_zero++;
-    //    }else
-    //    {
-    //        counter_one++;
-    //    }
-    //}
-    //std::cout << counter_zero << " " << counter_one << " " << counter_one + counter_zero << std::endl;
-    //std::cout << adjArray.edges.size() << std::endl;
-    //testLatLongDistance();
-}
+//int main(int argc, char** argv) {
+//    AdjacencyArray adjArray;
+//    // load
+//    loadAdjacencyArray(adjArray, "data/worldGrid_1415_707.save");
+//
+//    std::vector<uint64_t> path;
+//    generatePath(path, 1001, 16001, adjArray);
+//    std::vector<double> nodePath;
+//    generateNodePath(nodePath, path, adjArray);
+//
+//
+//    std::string response;
+//    generateReponse(nodePath, response);
+//    std::cout << response << std::endl;
+//
+//    //int counter_one = 0;
+//    //int counter_zero = 0;
+//    //for (int i = 0; i < adjArray.nodes.size(); i++){
+//    //    if(adjArray.nodes.at(i) == 0){
+//    //        counter_zero++;
+//    //    }else
+//    //    {
+//    //        counter_one++;
+//    //    }
+//    //}
+//    //std::cout << counter_zero << " " << counter_one << " " << counter_one + counter_zero << std::endl;
+//    //std::cout << adjArray.edges.size() << std::endl;
+//    //testLatLongDistance();
+//}
