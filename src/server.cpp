@@ -42,8 +42,6 @@ static std::string page;
 
 int main(void)
 {
-
-    //std::cout << response << std::endl;
     using namespace httplib;
 
     Server svr;
@@ -67,14 +65,15 @@ int main(void)
         //std::cout << response << std::endl;
 
         AdjacencyArray adjArray;
-        // load
+        //// load
         loadAdjacencyArray(adjArray, "data/worldGrid_1415_707.save");
+        uint64_t sNode = longLatToNodeId(adjArray, longStart, latStart);
+        uint64_t tNode = longLatToNodeId(adjArray, longGoal, latGoal);
 
         std::vector<uint64_t> idPath;
-        generatePath(idPath, 1001, 16001, adjArray);
+        generatePath(idPath, sNode, tNode, adjArray);
         std::vector<double> nodePath;
         generateNodePath(nodePath, idPath, adjArray);
-
 
         std::string response;
         generateReponse(nodePath, response);

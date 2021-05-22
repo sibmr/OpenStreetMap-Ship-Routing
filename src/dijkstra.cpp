@@ -122,16 +122,10 @@ void nodeIdToLongLat(std::array<double,2> &result, AdjacencyArray &array, uint64
 }
 
 uint64_t longLatToNodeId(AdjacencyArray &array, double n1long, double n1lat){
-    const double longStep = (array.longHigh-array.longLow)/(array.width+1);
-    const double latStep = (array.latHigh-array.latLow)/(array.height+1);
-
-    uint64_t first  = uint64_t((n1long - array.longLow- (longStep/2))/longStep) % array.width;
-    uint64_t second = (n1lat - array.latLow - (latStep/2)/ latStep) / array.height;
-    std::cout << first << " " << second << std::endl; 
-
-    //result[0] =  array.longLow + std::floor(id/array.height) * longStep + longStep/2;
-    //result[1] =  array.latLow + (id%array.height) * latStep + latStep/2;
-    return first + 0;
+    uint64_t fastIndex =  uint64_t (std::round(std::fmod((n1lat  - array.latLow) / (array.latHigh - array.latLow), 1.0) * array.height));
+    uint64_t slowIndex =  uint64_t (std::round(std::fmod((n1long - array.longLow) / (array.longHigh - array.longLow), 1.0) * array.width));
+    //std::cout << fastIndex + slowIndex * array.height << std::endl;
+    return fastIndex + slowIndex * array.height;
 }
 
 uint64_t nodeDistance(AdjacencyArray &array, uint64_t node1, uint64_t node2){
@@ -253,8 +247,8 @@ void generatePath(std::vector<uint64_t> &path,  uint64_t startPoint, uint64_t en
         std::cout << "dist: " << distance.at(endPoint)/1000 << "km" << std::endl;
     }else{
         std::cout << "no path found" << std::endl;
-        path.push_back(startPoint);
-        path.push_back(endPoint);
+        //path.push_back(startPoint);
+        //path.push_back(endPoint);
     }
 }
 
