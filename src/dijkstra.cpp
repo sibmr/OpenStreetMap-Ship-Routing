@@ -110,6 +110,7 @@ double latLongDistance(double p1lng, double p1lat, double p2lng, double p2lat){
     return d;
 }
 
+// return (long, lat) from node id
 void nodeIdToLongLat(std::array<double,2> &result, AdjacencyArray &array, uint64_t id){
     const double longStep = (array.longHigh-array.longLow)/(array.width+1);
     const double latStep = (array.latHigh-array.latLow)/(array.height+1);
@@ -241,15 +242,40 @@ void generatePath(std::vector<uint64_t> &path,  uint64_t startPoint, uint64_t en
     }
 }
 
+void generateNodePath(std::vector<double> &nodePath, std::vector<uint64_t> &path,  AdjacencyArray &array){
+    std::array<double,2> tmp_longLat;
+    for (std::vector<uint64_t>::iterator it = path.begin(); it != path.end(); ++it) {
+        nodeIdToLongLat(tmp_longLat,array,*it);
+        nodePath.push_back(tmp_longLat[0]);
+        nodePath.push_back(tmp_longLat[1]);
+    }
+}
 
-
+void generateReponse(std::vector<double> &path, std::string& response){
+    // response has to be in [[lat,long],...] format, so (long, lat) is swapped
+    response += "{\"path\":[";
+    response += "[" + std::to_string(path.at(1)) + "," + std::to_string(path.at(0)) + "]";
+    for(int i=1; i<path.size()/2; ++i){
+        response += ",[" + std::to_string(path.at(2*i+1)) + "," + std::to_string(path.at(2*i)) + "]";
+    
+    }
+    response += "]}";
+}
+    
 int main(int argc, char** argv) {
     AdjacencyArray adjArray;
     // load
     loadAdjacencyArray(adjArray, "data/worldGrid_1415_707.save");
 
-    std::vector<uint64_t> result;
-    generatePath(result, 1001, 10001, adjArray);
+    std::vector<uint64_t> path;
+    generatePath(path, 1001, 10001, adjArray);
+    std::vector<double> nodePath;
+    generateNodePath(nodePath, path, adjArray);
+
+
+    std::string response;
+    generateReponse(nodePath, response);
+    std::cout << response << std::endl;
 
     //int counter_one = 0;
     //int counter_zero = 0;
