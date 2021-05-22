@@ -741,8 +741,8 @@ void test_antarctica_data(){
     //saveEdgesGeoJson(edges2);
     std::vector<Edge2*> partitions[201][107];
     bool partitionCenters[201][107];
-    //bool gridPoints[1415][707];
-    bool gridPoints[400][200];
+    bool gridPoints[1415][707];
+    //bool gridPoints[400][200];
     fillPartitions(edges2, partitions);
     std::cout << "fill partition centers .." << std::endl;
     fillPartitionCenters(partitions, partitionCenters);
@@ -801,7 +801,8 @@ void saveGridPoints(std::string path,  bool (&gridPoints)[grid_width][grid_heigh
 }
 
 void saveWorldGridPoints(){
-    bool gridPoints[400][200];
+    //bool gridPoints[400][200];
+    bool gridPoints[1415][707];
     prepareGridNodes("data/planet-coastlines.save", gridPoints);
     saveGridPoints("data/worldGrid_1415_707.save", gridPoints);
 }
