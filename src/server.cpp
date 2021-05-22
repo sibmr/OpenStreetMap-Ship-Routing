@@ -40,6 +40,8 @@ void generateReponse(double longStart, double latStart, double longGoal, double 
 
 static std::string page;
 
+static AdjacencyArray adjArray;
+
 int main(void)
 {
     using namespace httplib;
@@ -48,6 +50,9 @@ int main(void)
 
     std::string path = "static/index.html";
     loadStatic(path, page);
+
+    loadAdjacencyArray(adjArray, "data/worldGrid_1415_707.save");
+
 
     svr.Get("/", [](const Request& req, Response& res) {
         res.set_content(page, "text/html");
@@ -60,13 +65,11 @@ int main(void)
         double latGoal =    std::stod((*req.params.find("latGoal")).second);
         std::cout << "Route from (" << longStart << ", " << latStart << ") to (" << longGoal << ", " << latGoal << ")\n";
         
+
         //std::string response;
         //generateReponse(longStart, latStart, longGoal, latGoal, response);
         //std::cout << response << std::endl;
 
-        AdjacencyArray adjArray;
-        //// load
-        loadAdjacencyArray(adjArray, "data/worldGrid_1415_707.save");
         uint64_t sNode = longLatToNodeId(adjArray, longStart, latStart);
         uint64_t tNode = longLatToNodeId(adjArray, longGoal, latGoal);
 
