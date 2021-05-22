@@ -42,17 +42,9 @@ void loadGridPoints(GridData &gridData){
     gridData.width = width;
     gridData.height = height;
 
-    uint64_t count = 0;
-    uint64_t i = 0;
-    uint64_t j = 0;
     while(!textfile.eof()){
         textfile.read(reinterpret_cast<char *>(&gridPoint), sizeof(gridPoint));
-        i = count/height;
-        j = count%height;
-        count += 1;
-
         gridData.gridDataList.push_back(gridPoint);
-        
     }
 
 
