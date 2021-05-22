@@ -121,6 +121,19 @@ void nodeIdToLongLat(std::array<double,2> &result, AdjacencyArray &array, uint64
 
 }
 
+uint64_t longLatToNodeId(AdjacencyArray &array, double n1long, double n1lat){
+    const double longStep = (array.longHigh-array.longLow)/(array.width+1);
+    const double latStep = (array.latHigh-array.latLow)/(array.height+1);
+
+    uint64_t first  = uint64_t((n1long - array.longLow- (longStep/2))/longStep) % array.width;
+    uint64_t second = (n1lat - array.latLow - (latStep/2)/ latStep) / array.height;
+    std::cout << first << " " << second << std::endl; 
+
+    //result[0] =  array.longLow + std::floor(id/array.height) * longStep + longStep/2;
+    //result[1] =  array.latLow + (id%array.height) * latStep + latStep/2;
+    return first + 0;
+}
+
 uint64_t nodeDistance(AdjacencyArray &array, uint64_t node1, uint64_t node2){
 
     std::array<double,2> longLat_1;
@@ -134,6 +147,7 @@ uint64_t nodeDistance(AdjacencyArray &array, uint64_t node1, uint64_t node2){
     return result; //result;
 }
 
+
 void testLatLongDistance(){
     std::cout << "Test distance:\n";
     // should result in approx 5929000 and 572500 metres
@@ -145,9 +159,6 @@ void fillMaps(
     std::map<uint64_t,uint64_t> &distance, std::map<uint64_t,uint64_t> &previous,
     uint64_t startPoint, uint64_t endPoint, AdjacencyArray &array){
 
-
-
-    //auto cmp = [](uint64_t left, uint64_t right, std::map<uint64_t, uint64_t> &dis){return &dis.at(left) < &dis.at(right);};
     typedef std::pair<uint64_t, uint64_t> pqPair;
 
     std::priority_queue<pqPair, std::vector<pqPair>, std::greater<pqPair>> pq;
@@ -166,6 +177,7 @@ void fillMaps(
         }
         currTop = pq.top(); // first element is dist, second in node id
         pq.pop();
+        std::cout << pq.size() << std::endl;
         currSourceNode = currTop.second;
         //std::cout << pq.size() << std::endl;
 
@@ -212,6 +224,7 @@ void generatePath(std::vector<uint64_t> &path,  uint64_t startPoint, uint64_t en
     }    
 
 
+
     // reset map
     for (int i = 0; i < array.nodes.size(); i++){
         distance.insert({i, UINT64_MAX});
@@ -219,7 +232,8 @@ void generatePath(std::vector<uint64_t> &path,  uint64_t startPoint, uint64_t en
     }
     distance.at(startPoint) = 0;
 
-    fillMaps(distance, previous, 1001, 10001, array);
+    std::cout << "start maps fill" << std::endl;
+    fillMaps(distance, previous, startPoint, endPoint, array);
 
 
     if(distance.at(endPoint) < INT64_MAX){
@@ -239,6 +253,8 @@ void generatePath(std::vector<uint64_t> &path,  uint64_t startPoint, uint64_t en
         std::cout << "dist: " << distance.at(endPoint)/1000 << "km" << std::endl;
     }else{
         std::cout << "no path found" << std::endl;
+        path.push_back(startPoint);
+        path.push_back(endPoint);
     }
 }
 
@@ -262,7 +278,7 @@ void generateReponse(std::vector<double> &path, std::string& response){
     response += "]}";
 }
     
-//int main(int argc, char** argv) {
+//int main() {
 //    AdjacencyArray adjArray;
 //    // load
 //    loadAdjacencyArray(adjArray, "data/worldGrid_1415_707.save");
