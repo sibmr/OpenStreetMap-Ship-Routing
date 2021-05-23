@@ -18,6 +18,11 @@ struct AdjacencyArray {
     std::vector<bool> nodes;
 };
 
+/**
+ * @brief read grid data from disk and store it in struct
+ * 
+ * @param gridData  out: struct containg the grid data (implicit 2D bool array indicating land/ocean for each point)
+ */
 void loadGridPoints(GridData &gridData){
     std::ifstream textfile;
     textfile.open("data/worldGrid_1415_707.save", std::ios::in);
@@ -56,6 +61,12 @@ void loadGridPoints(GridData &gridData){
     std::cout << latLow << std::endl;
 }
 
+/**
+ * @brief generates adjacency array from grid data (nodes: grid points, edges: between neighboring nodes with land==false)
+ * 
+ * @param data  grid data as basis for the adjacency array
+ * @param array out: adjacency array corresponding to input grid data
+ */
 void fillAdjacencyArray(GridData &data, AdjacencyArray &array){
     
     array.longLow   = data.longLow;
@@ -132,26 +143,26 @@ void testLoadFill(GridData &dat, AdjacencyArray &adjArray){
     std::cout << "\n";
 }
 
-    // double longLow, latLow, longHigh, latHigh;
-    // uint64_t width, height;
-    // std::vector<uint64_t> offsets;
-    // std::vector<uint64_t> edges;
-    // std::vector<bool> nodes;
-/*
-* output file
-* longLow       - double
-* latLow        - double
-* longHigh      - double
-* latHigh       - double
-* width         - uint64_t
-* height        - uint64_t
-* offset_size   - uint64_t
-* offsets       - uint64_t
-* edges_size    - uint64_t
-* edges         - uint64_t
-* nodes_size    - uint64_t
-* nodes          - bool
-* */
+/**
+ * @brief save adjacency array to disk
+ * 
+ * @param array AdjacencyArray struct that is stored
+ * @param path  path to storage location
+ * 
+ * output file format
+ * longLow       - double
+ * latLow        - double
+ * longHigh      - double
+ * latHigh       - double
+ * width         - uint64_t
+ * height        - uint64_t
+ * offset_size   - uint64_t
+ * offsets       - uint64_t     (offset_size many)
+ * edges_size    - uint64_t
+ * edges         - uint64_t     (edges_size many)
+ * nodes_size    - uint64_t
+ * nodes          - bool        (nodes_size many)
+ */
 void saveAdjacencyArray(AdjacencyArray &array, std::string path){
     std::ofstream adjacency_output_file;
 

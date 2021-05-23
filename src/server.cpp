@@ -6,6 +6,12 @@
 
 # include "dijkstra.cpp"
 
+/**
+ * @brief load static file (html,js,css) from disk
+ * 
+ * @param path      in: path to file
+ * @param loaded    out: string with file contents 
+ */
 void loadStatic(std::string& path, std::string& loaded){
     std::ifstream staticFile (path);
     std::string line;
@@ -18,6 +24,15 @@ void loadStatic(std::string& path, std::string& loaded){
     }
 }
 
+/**
+ * @brief start calculation of path and create result json file
+ * 
+ * @param longStart route starting point longitude
+ * @param latStart  route starting point latitude
+ * @param longGoal  route goal longitude
+ * @param latGoal   route goal latitude
+ * @param response  out: json response containing calculated route
+ */
 void generateReponse(double longStart, double latStart, double longGoal, double latGoal, std::string& response){
     
     // TODO: fill with real routing response
@@ -37,7 +52,7 @@ void generateReponse(double longStart, double latStart, double longGoal, double 
 
 }
     
-
+// global main html file contents, served to every client
 static std::string page;
 
 static AdjacencyArray adjArray;
@@ -48,6 +63,7 @@ int main(void)
 
     Server svr;
 
+    // initialize main page from disk
     std::string path = "static/index.html";
     loadStatic(path, page);
 
@@ -58,6 +74,8 @@ int main(void)
         res.set_content(page, "text/html");
     });
 
+    // handle client requests of form {longStart: double, latStart:double, longGoal:double, latGoal:double}
+    // calculate path, return result path {failure: true/false, path:[[long,lat],[long,lat],...]}
     svr.Post("/getRoute", [](const Request& req, Response& res) {
         double longStart =  std::stod((*req.params.find("longStart")).second);
         double latStart =   std::stod((*req.params.find("latStart")).second);
@@ -82,27 +100,11 @@ int main(void)
         generateReponse(nodePath, response);
 
         // return geojson with of results path
+        std::cout << response << std::endl;
+        
+        // return json with of results path
         res.set_content(response, "application/json");
     });
-
-    // svr.Get(R"(/numbers/(\d+))", [&](const Request& req, Response& res) {
-    //     auto numbers = req.matches[1];
-    //     res.set_content(numbers, "text/plain");
-    // });
-
-    // svr.Get("/body-header-param", [](const Request& req, Response& res) {
-    //     if (req.has_header("Content-Length")) {
-    //     auto val = req.get_header_value("Content-Length");
-    //     }
-    //     if (req.has_param("key")) {
-    //     auto val = req.get_param_value("key");
-    //     }
-    //     res.set_content(req.body, "text/plain");
-    // });
-
-    // svr.Get("/stop", [&](const Request& req, Response& res) {
-    //     svr.stop();
-    // });
 
     svr.listen("localhost", 8080);
 }
