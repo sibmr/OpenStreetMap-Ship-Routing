@@ -174,7 +174,7 @@ void fillMaps(
         }
         currTop = pq.top(); // first element is dist, second in node id
         pq.pop();
-        std::cout << pq.size() << std::endl;
+        //std::cout << pq.size() << std::endl;
         currSourceNode = currTop.second;
         //std::cout << pq.size() << std::endl;
 
