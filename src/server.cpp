@@ -56,6 +56,8 @@ void generateReponse(double longStart, double latStart, double longGoal, double 
 static std::string page;
 
 static AdjacencyArray adjArray;
+static FirstDijkstra firstDijkstra(adjArray);
+static PathAlgorithm &pathAlgorithm = firstDijkstra;
 
 int main(void)
 {
@@ -68,7 +70,6 @@ int main(void)
     loadStatic(path, page);
 
     loadAdjacencyArray(adjArray, "data/worldGrid_1415_707.save");
-
 
     svr.Get("/", [](const Request& req, Response& res) {
         res.set_content(page, "text/html");
@@ -92,7 +93,7 @@ int main(void)
         uint64_t tNode = longLatToNodeId(adjArray, longGoal, latGoal);
 
         std::vector<uint64_t> idPath;
-        generatePath(idPath, sNode, tNode, adjArray);
+        pathAlgorithm.findPath(sNode, tNode, idPath);
         std::vector<double> nodePath;
         generateNodePath(nodePath, idPath, adjArray);
 

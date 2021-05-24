@@ -5,20 +5,24 @@
 
 #include "dijkstra.cpp"
 
-void runDijkstra(AdjacencyArray &adjArray, double longStart, double latStart, double longGoal, double latGoal){
+void runDijkstra(PathAlgorithm &pathAlg, AdjacencyArray &adjArray,
+double longStart, double latStart, double longGoal, double latGoal)
+{
     uint64_t sNode = longLatToNodeId(adjArray, longStart, latStart);
     uint64_t tNode = longLatToNodeId(adjArray, longGoal, latGoal);
     std::vector<uint64_t> idPath;
-    generatePath(idPath, sNode, tNode, adjArray);
+    pathAlg.findPath(sNode, tNode, idPath);
 }
 
-void benchmarkDijkstra(AdjacencyArray &adjArray, double longStart, double latStart, double longGoal, double latGoal, int numAvg){
-    std::vector<double> timings;
-    double queryTiming;
+void benchmarkDijkstra(PathAlgorithm &pathAlg, AdjacencyArray &adjArray,
+    double longStart, double latStart, double longGoal, double latGoal, int numAvg)
+{
+    std::vector<uint64_t> timings;
+    uint64_t queryTiming;
     for(int i = 0; i<numAvg; ++i){
         auto startQuery = std::chrono::high_resolution_clock::now();
 
-        runDijkstra(adjArray, longStart, latStart, longGoal, latGoal);
+        runDijkstra(pathAlg, adjArray, longStart, latStart, longGoal, latGoal);
         
         auto endQuery = std::chrono::high_resolution_clock::now();
         queryTiming = std::chrono::duration_cast<std::chrono::microseconds>(endQuery - startQuery).count();
@@ -26,23 +30,26 @@ void benchmarkDijkstra(AdjacencyArray &adjArray, double longStart, double latSta
         timings.push_back(queryTiming);
     }
 
-    double stddev = 0; 
-    double avg = std::accumulate(timings.begin(), timings.end(), 0) / numAvg;
+    uint64_t stddev = 0; 
+    uint64_t avg = std::accumulate(timings.begin(), timings.end(), 0) / numAvg;
     
-    std::transform(
-        timings.begin(), timings.end(), timings.begin(), 
-        [avg](double dval) -> double {return std::pow(dval-avg, 2);}
-        );
-    stddev = sqrt(
-        std::accumulate(timings.begin(), timings.end(), 0)/numAvg
-        );
+    ;
+
+    stddev = 0;
+    for(uint64_t duration : timings){
+        uint64_t diff = duration-avg;
+        stddev += diff*diff;
+    }
+    stddev = sqrt(stddev)/numAvg;
 
     std::cout << "Duration: " << avg << " +/- " << stddev << "ms\n";
 }
 
 int main() {
     AdjacencyArray adjArray;
+    FirstDijkstra fd (adjArray);
+    PathAlgorithm &pa = fd;
     loadAdjacencyArray(adjArray, "data/worldGrid_1415_707.save");
     // across atlantic
-    benchmarkDijkstra(adjArray, -62, 40, -14, 53.5, 3);
+    benchmarkDijkstra(pa, adjArray, -62, 40, -14, 53.5, 3);
 }

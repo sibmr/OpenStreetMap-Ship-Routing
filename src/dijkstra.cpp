@@ -15,7 +15,9 @@ struct AdjacencyArray {
     std::vector<bool> nodes;
 };
 
-
+struct HeapElement {
+    uint64_t nodeIdx, prev, dist;
+};
 
 /*
 * input file
@@ -151,10 +153,114 @@ void testLatLongDistance(){
     std::cout << latLongDistance(40,40,20,-10) << " " << latLongDistance(20, -80, 30, -85) << std::endl;
 }
 
+void generateNodePath(std::vector<double> &nodePath, std::vector<uint64_t> &path,  AdjacencyArray &array){
+    std::array<double,2> tmp_longLat;
+    for (std::vector<uint64_t>::iterator it = path.begin(); it != path.end(); ++it) {
+        nodeIdToLongLat(tmp_longLat,array,*it);
+        nodePath.push_back(tmp_longLat[0]);
+        nodePath.push_back(tmp_longLat[1]);
+    }
+}
 
-void fillMaps(
-    std::map<uint64_t,uint64_t> &distance, std::map<uint64_t,uint64_t> &previous,
-    uint64_t startPoint, uint64_t endPoint, AdjacencyArray &array){
+void generateReponse(std::vector<double> &path, std::string& response){
+    // response has to be in [[lat,long],...] format, so (long, lat) is swapped
+    response += "{\"path\":[";
+    response += "[" + std::to_string(path.at(1)) + "," + std::to_string(path.at(0)) + "]";
+    for(int i=1; i<path.size()/2; ++i){
+        response += ",[" + std::to_string(path.at(2*i+1)) + "," + std::to_string(path.at(2*i)) + "]";
+    
+    }
+    response += "]}";
+}
+
+
+
+class PathAlgorithm {
+    public:
+        virtual void findPath(uint64_t startPoint, uint64_t endPoint, std::vector<uint64_t> &path) = 0;
+};
+
+class FirstDijkstra: public PathAlgorithm{
+    public:
+        FirstDijkstra(AdjacencyArray &array);
+        void findPath(uint64_t startPoint, uint64_t endPoint, std::vector<uint64_t> &path);
+    private:
+        void generatePath(uint64_t startPoint, uint64_t endPoint, std::vector<uint64_t> &path);
+        void fillMaps(uint64_t startPoint, uint64_t endPoint);
+        
+        AdjacencyArray &array;
+        
+        std::map<uint64_t,uint64_t> distance;
+        std::map<uint64_t,uint64_t> previous;
+};
+
+class SecondDijkstra: PathAlgorithm{
+    public:
+    private:
+        std::vector<uint64_t> distance;
+        std::vector<HeapElement> heap;
+        AdjacencyArray adjArray;
+};
+
+
+FirstDijkstra::FirstDijkstra(AdjacencyArray &array) : array(array){}
+
+void FirstDijkstra::findPath(uint64_t startPoint, uint64_t endPoint, std::vector<uint64_t> &path){
+    generatePath(startPoint, endPoint, path);
+}
+
+void FirstDijkstra::generatePath(uint64_t startPoint, uint64_t endPoint, std::vector<uint64_t> &path){
+    distance.clear();
+    previous.clear();
+
+    // check if one of the points is on land
+    if(array.nodes.at(startPoint) || array.nodes.at(endPoint)){
+        std::cout << "one point is on land" << std::endl;
+        if(array.nodes.at(startPoint)){
+            std::cout << startPoint << " on land" << std::endl;
+        }
+        if(array.nodes.at(endPoint)){
+            std::cout << endPoint << " on land" << std::endl;
+        }
+        return;
+    }    
+
+
+
+    // reset map
+    for (int i = 0; i < array.nodes.size(); i++){
+        distance.insert({i, UINT64_MAX});
+        previous.insert({i, UINT64_MAX});
+    }
+    distance.at(startPoint) = 0;
+
+    std::cout << "start maps fill" << std::endl;
+    fillMaps(startPoint, endPoint);
+
+
+    if(distance.at(endPoint) < INT64_MAX){
+        // build up path
+        uint64_t currNode = endPoint;
+        while(currNode != startPoint){
+            currNode = previous.at(currNode);
+            path.push_back(currNode);
+        }
+
+        // print path
+        std::cout << "Path:" << std::endl;
+        for (std::vector<uint64_t>::iterator it = path.begin(); it != path.end(); ++it) {
+            std::cout << *it << " ";
+        }
+        std::cout <<  std::endl;
+        std::cout << "dist: " << distance.at(endPoint)/1000 << "km" << std::endl;
+    }else{
+        std::cout << "no path found" << std::endl;
+        //path.push_back(startPoint);
+        //path.push_back(endPoint);
+    }
+}
+
+void FirstDijkstra::fillMaps(uint64_t startPoint, uint64_t endPoint){
 
     typedef std::pair<uint64_t, uint64_t> pqPair;
 
@@ -197,82 +303,6 @@ void fillMaps(
             }
         }
     }
-
-    
-
-
-}
-
-
-void generatePath(std::vector<uint64_t> &path,  uint64_t startPoint, uint64_t endPoint, AdjacencyArray &array){
-    std::map<uint64_t,uint64_t> distance;
-    std::map<uint64_t,uint64_t> previous;
-
-    // check if one of the points is on land
-    if(array.nodes.at(startPoint) || array.nodes.at(endPoint)){
-        std::cout << "one point is on land" << std::endl;
-        if(array.nodes.at(startPoint)){
-            std::cout << startPoint << " on land" << std::endl;
-        }
-        if(array.nodes.at(endPoint)){
-            std::cout << endPoint << " on land" << std::endl;
-        }
-        return;
-    }    
-
-
-
-    // reset map
-    for (int i = 0; i < array.nodes.size(); i++){
-        distance.insert({i, UINT64_MAX});
-        previous.insert({i, UINT64_MAX});
-    }
-    distance.at(startPoint) = 0;
-
-    std::cout << "start maps fill" << std::endl;
-    fillMaps(distance, previous, startPoint, endPoint, array);
-
-
-    if(distance.at(endPoint) < INT64_MAX){
-        // build up path
-        uint64_t currNode = endPoint;
-        while(currNode != startPoint){
-            currNode = previous.at(currNode);
-            path.push_back(currNode);
-        }
-
-        // print path
-        std::cout << "Path:" << std::endl;
-        for (std::vector<uint64_t>::iterator it = path.begin(); it != path.end(); ++it) {
-            std::cout << *it << " ";
-        }
-        std::cout <<  std::endl;
-        std::cout << "dist: " << distance.at(endPoint)/1000 << "km" << std::endl;
-    }else{
-        std::cout << "no path found" << std::endl;
-        //path.push_back(startPoint);
-        //path.push_back(endPoint);
-    }
-}
-
-void generateNodePath(std::vector<double> &nodePath, std::vector<uint64_t> &path,  AdjacencyArray &array){
-    std::array<double,2> tmp_longLat;
-    for (std::vector<uint64_t>::iterator it = path.begin(); it != path.end(); ++it) {
-        nodeIdToLongLat(tmp_longLat,array,*it);
-        nodePath.push_back(tmp_longLat[0]);
-        nodePath.push_back(tmp_longLat[1]);
-    }
-}
-
-void generateReponse(std::vector<double> &path, std::string& response){
-    // response has to be in [[lat,long],...] format, so (long, lat) is swapped
-    response += "{\"path\":[";
-    response += "[" + std::to_string(path.at(1)) + "," + std::to_string(path.at(0)) + "]";
-    for(int i=1; i<path.size()/2; ++i){
-        response += ",[" + std::to_string(path.at(2*i+1)) + "," + std::to_string(path.at(2*i)) + "]";
-    
-    }
-    response += "]}";
 }
     
 //int main() {
