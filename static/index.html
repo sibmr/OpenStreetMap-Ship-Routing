@@ -64,6 +64,42 @@
 		[51.51, -0.047]
 	]).addTo(mymap).bindPopup("I am a polygon.");
 
+	function correctLongJump(path){
+		// if right out of bounds was clicked, then move everything right
+		let rightOut = ((startLocation[0] > 180) || (goalLocation[0] > 180)) ? 360 : 0;
+		
+		// accumulated offset
+		let currOffset = 0;
+
+		// threshold for longitude-jump detection
+		let threshold = 20;
+
+	
+		let prev = path[0][1];
+		path[0][1] += rightOut;
+		
+		for(let i=1; i<path.length; i++){
+			let curr = path[i][1];
+
+			let diff = curr-prev;
+			
+			// curr >> prev : going across right border
+			if(diff > threshold){
+				currOffset -= 360;
+				console.log("over right");
+			}
+			// curr << prev : going across left border
+			else if(diff < -threshold){
+				currOffset += 360;
+				console.log("over left");
+			}
+			
+			path[i][1] += currOffset + rightOut;
+
+			prev = curr;
+		}
+	}
+
 	function requestAndDisplayRoute()
 	{
 		$.post('/getRoute', {
@@ -72,8 +108,11 @@
 			longGoal: goalLocation[0],
 			latGoal: goalLocation[1]
 		}).done(function(response) {
-			console.log(response["path"]);
-			polyline.setLatLngs(response["path"]);
+			path = response["path"]
+			console.log(path);
+			correctLongJump(path);
+			console.log(path);
+			polyline.setLatLngs(path);
 		}).fail(function() {
 			console.log("could not reach server");
 		});

@@ -122,6 +122,9 @@ void nodeIdToLongLat(std::array<double,2> &result, AdjacencyArray &array, uint64
 }
 
 uint64_t longLatToNodeId(AdjacencyArray &array, double n1long, double n1lat){
+    while(n1long < -180){
+        n1long += (array.longHigh - array.longLow);
+    }
     uint64_t fastIndex =  uint64_t (std::round(std::fmod((n1lat  - array.latLow) / (array.latHigh - array.latLow), 1.0) * array.height));
     uint64_t slowIndex =  uint64_t (std::round(std::fmod((n1long - array.longLow) / (array.longHigh - array.longLow), 1.0) * array.width));
     //std::cout << fastIndex + slowIndex * array.height << std::endl;
