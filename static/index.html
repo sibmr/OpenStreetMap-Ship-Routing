@@ -66,8 +66,10 @@
 
 	function correctLongJump(path){
 		// if right out of bounds was clicked, then move everything right
-		let rightOut = ((startLocation[0] > 180) || (goalLocation[0] > 180)) ? 360 : 0;
-		
+		let rightOut = ((goalLocation[0] > 180)) ? 360 : 0;
+		let leftOut = ((goalLocation[0] < -180)) ? -360 : 0;
+		let out = rightOut + leftOut;
+
 		// accumulated offset
 		let currOffset = 0;
 
@@ -76,7 +78,7 @@
 
 	
 		let prev = path[0][1];
-		path[0][1] += rightOut;
+		path[0][1] += out;
 		
 		for(let i=1; i<path.length; i++){
 			let curr = path[i][1];
@@ -94,7 +96,7 @@
 				console.log("over left");
 			}
 			
-			path[i][1] += currOffset + rightOut;
+			path[i][1] += currOffset + out;
 
 			prev = curr;
 		}
