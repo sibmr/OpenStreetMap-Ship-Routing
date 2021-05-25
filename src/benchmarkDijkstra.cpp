@@ -11,7 +11,7 @@ double longStart, double latStart, double longGoal, double latGoal)
     uint64_t sNode = longLatToNodeId(adjArray, longStart, latStart);
     uint64_t tNode = longLatToNodeId(adjArray, longGoal, latGoal);
     std::vector<uint64_t> idPath;
-    pathAlg.findPath(sNode, tNode, idPath);
+    pathAlg.getPath(sNode, tNode, idPath);
 }
 
 void benchmarkDijkstra(PathAlgorithm &pathAlg, AdjacencyArray &adjArray,
@@ -26,7 +26,7 @@ void benchmarkDijkstra(PathAlgorithm &pathAlg, AdjacencyArray &adjArray,
         
         auto endQuery = std::chrono::high_resolution_clock::now();
         queryTiming = std::chrono::duration_cast<std::chrono::microseconds>(endQuery - startQuery).count();
-        std::cout << "Run " << i+1 << ": " << queryTiming << " ms\n";
+        std::cout << "Run " << i+1 << ": " << queryTiming << " us\n";
         timings.push_back(queryTiming);
     }
 
@@ -42,14 +42,21 @@ void benchmarkDijkstra(PathAlgorithm &pathAlg, AdjacencyArray &adjArray,
     }
     stddev = sqrt(stddev)/numAvg;
 
-    std::cout << "Duration: " << avg << " +/- " << stddev << "ms\n";
+    std::cout << "Duration: " << avg << " +/- " << stddev << "us\n";
 }
 
 int main() {
-    AdjacencyArray adjArray;
-    FirstDijkstra fd (adjArray);
-    PathAlgorithm &pa = fd;
-    loadAdjacencyArray(adjArray, "data/worldGrid_1415_707.save");
-    // across atlantic
-    benchmarkDijkstra(pa, adjArray, -62, 40, -14, 53.5, 3);
+    AdjacencyArray adjArray("data/worldGrid_1415_707.save");
+    {
+        FirstDijkstra fd (adjArray);
+        PathAlgorithm &pa = fd;
+        // across atlantic
+        benchmarkDijkstra(pa, adjArray, -62, 40, -14, 53.5, 3);
+    }
+    {
+        SecondDijkstra sd (adjArray);
+        PathAlgorithm &pa = sd;
+        // across atlantic
+        benchmarkDijkstra(pa, adjArray, -62, 40, -14, 53.5, 3);
+    }
 }
