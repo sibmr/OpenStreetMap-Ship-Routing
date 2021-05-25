@@ -452,7 +452,7 @@ uint64_t SecondDijkstra::getDist(uint64_t startPoint, uint64_t endPoint){
             uint64_t idxDiff = neighborIdx<front.nodeIdx ? front.nodeIdx-neighborIdx : neighborIdx-front.nodeIdx;
 
             // choose length of edge from precalculated lengths
-            uint64_t edgeDist = (idxDiff > 1) ? constLngDist : constLatDist.at(neighborIdx%adjArray.height);
+            uint64_t edgeDist = (idxDiff < 2) ? constLngDist : constLatDist.at(neighborIdx%adjArray.height);
 
             uint64_t newNeighborDist = front.dist + edgeDist;
             uint64_t oldNeighborDist = distance.at(neighborIdx);
