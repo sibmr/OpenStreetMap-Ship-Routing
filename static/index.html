@@ -25,6 +25,11 @@
 <div id="outerdiv" class="container-fluid" >
     <div id="mapid" style="height: 800px;"></div>
 </div>
+<div>
+	<n>Last distance: </n>
+	<n id="pageDistance"> 0</n>
+	<n> km</n>
+</div>
 
 <script>
 
@@ -32,7 +37,8 @@
 	var startLocation = [0,0];
 	var goalLocation = [0,0];
 	var mymap = L.map('mapid').setView([0, 0], 2);
-	var polyline = L.polyline([], {color: 'red'}).addTo(mymap);
+	var polyline = L.polyline([], {color: 'red'}).bindPopup("...").addTo(mymap);
+	let dist = 0;
 
 	// from https://stackoverflow.com/questions/16543446/how-to-make-leaflet-map-height-variable
 	$(window).on("resize", function() {
@@ -49,20 +55,6 @@
 		zoomOffset: -1
 	}).addTo(mymap);
 
-	L.marker([51.5, -0.09]).addTo(mymap)
-		.bindPopup("<b>Hello world!</b><br />I am a popup.").openPopup();
-
-	L.circle([51.508, -0.11], 500, {
-		color: 'red',
-		fillColor: '#f03',
-		fillOpacity: 0.5
-	}).addTo(mymap).bindPopup("I am a circle.");
-
-	L.polygon([
-		[51.509, -0.08],
-		[51.503, -0.06],
-		[51.51, -0.047]
-	]).addTo(mymap).bindPopup("I am a polygon.");
 
 	function correctLongJump(path){
 		// if right out of bounds was clicked, then move everything right
@@ -110,48 +102,38 @@
 			longGoal: goalLocation[0],
 			latGoal: goalLocation[1]
 		}).done(function(response) {
-			path = response["path"]
-			console.log(path);
-			correctLongJump(path);
-			console.log(path);
+			path = response["path"];				
+			fulldist = response["dist"];
+			dist = Math.round(fulldist/1000);
+			document.getElementById("pageDistance").innerHTML = fulldist/1000;
 			polyline.setLatLngs(path);
+			popupTarget
+				.setLatLng(path[0])
+				.setContent(dist + " km")
+				.openOn(mymap);				
 		}).fail(function() {
 			console.log("could not reach server");
 		});
 	}
 
-	var geoJsonObj = {
-		"type": "FeatureCollection",
-		"features": [
-			{
-			"type": "Feature",
-			"properties": {},
-			"geometry": {
-				"type": "Point",
-				"coordinates": [
-				60.8203125,
-				56.36525013685606
-				]
-			}
-			}
-		]
-		}
-	L.geoJSON(geoJsonObj).addTo(mymap)
 
-	var popup = L.popup();
+	//var popup = L.popup();
+	var markerSource = L.marker();
+	var markerTarget = L.marker();
+	var popupTarget = L.popup();
 
 	function onMapClick(e) {
-		popup
-			.setLatLng(e.latlng)
-			.setContent("You clicked the map at " + e.latlng.toString())
-			.openOn(mymap);
 		if(clickIndex % 2 == 0){
+			markerSource.remove();
+			markerTarget.remove();
+			polyline.setLatLngs([[0,0]]);
+			markerSource = L.marker([e.latlng.lat, e.latlng.lng]).addTo(mymap);
 			startLocation = [e.latlng.lng, e.latlng.lat];
 		}
 		else
 		{
+			markerTarget = L.marker([e.latlng.lat, e.latlng.lng]).addTo(mymap);
 			goalLocation = [e.latlng.lng, e.latlng.lat];
-			console.log(goalLocation)
 			requestAndDisplayRoute()
 		}
 		clickIndex += 1;

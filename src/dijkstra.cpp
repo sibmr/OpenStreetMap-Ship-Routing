@@ -225,7 +225,7 @@ void generateNodePath(std::vector<double> &nodePath, std::vector<uint64_t> &path
     }
 }
 
-void generateReponse(std::vector<double> &path, std::string& response){
+void generateReponse(std::vector<double> &path, std::string& response, uint64_t distance){
     // response has to be in [[lat,long],...] format, so (long, lat) is swapped
     response += "{\"path\":[";
     response += "[" + std::to_string(path.at(1)) + "," + std::to_string(path.at(0)) + "]";
@@ -233,7 +233,10 @@ void generateReponse(std::vector<double> &path, std::string& response){
         response += ",[" + std::to_string(path.at(2*i+1)) + "," + std::to_string(path.at(2*i)) + "]";
     
     }
-    response += "]}";
+    response += "],\n";
+    response += "\"dist\": ";
+    response += std::to_string(distance); 
+    response += "}";
 }
 
 
@@ -242,6 +245,7 @@ class PathAlgorithm {
     public:
         virtual void getPath(uint64_t startPoint, uint64_t endPoint, std::vector<uint64_t> &path) = 0;
         virtual uint64_t getDist(uint64_t startPoint, uint64_t endPoint) = 0;
+        virtual uint64_t getNewDist(uint64_t startPoint, uint64_t endPoint) = 0;
 };
 
 class FirstDijkstra: public PathAlgorithm{
@@ -249,6 +253,7 @@ class FirstDijkstra: public PathAlgorithm{
         FirstDijkstra(AdjacencyArray &array);
         void getPath(uint64_t startPoint, uint64_t endPoint, std::vector<uint64_t> &path);
         uint64_t getDist(uint64_t startPoint, uint64_t endPoint);
+        uint64_t getNewDist(uint64_t startPoint, uint64_t endPoint);
     private:
         void generatePath(uint64_t startPoint, uint64_t endPoint, std::vector<uint64_t> &path);
         void fillMaps(uint64_t startPoint, uint64_t endPoint);
@@ -264,6 +269,7 @@ class SecondDijkstra: public PathAlgorithm{
         SecondDijkstra(AdjacencyArray &array);
         void getPath(uint64_t startPoint, uint64_t endPoint, std::vector<uint64_t> &path);
         uint64_t getDist(uint64_t startPoint, uint64_t endPoint);
+        uint64_t getNewDist(uint64_t startPoint, uint64_t endPoint);
         void prepareDatastructures();
     private:
         std::vector<uint64_t> distance;
@@ -284,8 +290,13 @@ void FirstDijkstra::getPath(uint64_t startPoint, uint64_t endPoint, std::vector<
     generatePath(startPoint, endPoint, path);
 }
 
+
+uint64_t FirstDijkstra::getNewDist(uint64_t startPoint, uint64_t endPoint){
+    return distance.at(endPoint);
+}
+
 uint64_t FirstDijkstra::getDist(uint64_t startPoint, uint64_t endPoint){
-    return 0;
+    return distance.at(endPoint);
 }
 
 void FirstDijkstra::generatePath(uint64_t startPoint, uint64_t endPoint, std::vector<uint64_t> &path){
@@ -471,6 +482,10 @@ uint64_t SecondDijkstra::getDist(uint64_t startPoint, uint64_t endPoint){
 
     }
 
+}
+
+uint64_t SecondDijkstra::getNewDist(uint64_t startPoint, uint64_t endPoint){
+    return distance.at(endPoint);
 }
 
 void SecondDijkstra::getPath(uint64_t startPoint, uint64_t endPoint, std::vector<uint64_t> &path){

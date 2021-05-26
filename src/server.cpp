@@ -56,8 +56,8 @@ void generateReponse(double longStart, double latStart, double longGoal, double 
 static std::string page;
 
 static AdjacencyArray adjArray("data/worldGrid_1415_707.save");
-static SecondDijkstra firstDijkstra(adjArray);
-static PathAlgorithm &pathAlgorithm = firstDijkstra;
+static SecondDijkstra secondDijkstra(adjArray);
+static PathAlgorithm &pathAlgorithm = secondDijkstra;
 
 int main(void)
 {
@@ -94,11 +94,14 @@ int main(void)
 
         std::vector<uint64_t> idPath;
         pathAlgorithm.getPath(sNode, tNode, idPath);
+
+        uint64_t distance = pathAlgorithm.getNewDist(sNode, tNode);
+
         std::vector<double> nodePath;
         generateNodePath(nodePath, idPath, adjArray);
 
         std::string response;
-        generateReponse(nodePath, response);
+        generateReponse(nodePath, response, distance);
 
         // return geojson with of results path
         std::cout << response << std::endl;
