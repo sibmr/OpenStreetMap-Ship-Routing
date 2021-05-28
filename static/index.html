@@ -22,7 +22,7 @@
 
 <h1>Ship Routing UI</h1>
 
-<div id="outerdiv" class="container-fluid" >
+<div id="outerdiv" class="container-fluid" cursor="default" >
     <div id="mapid" style="height: 800px;"></div>
 </div>
 <div>
@@ -54,6 +54,7 @@
 		tileSize: 512,
 		zoomOffset: -1
 	}).addTo(mymap);
+	document.getElementById('mapid').style.cursor = 'default'
 
 
 	function correctLongJump(path){
