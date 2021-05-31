@@ -23,9 +23,9 @@ struct AdjacencyArray {
  * 
  * @param gridData  out: struct containg the grid data (implicit 2D bool array indicating land/ocean for each point)
  */
-void loadGridPoints(GridData &gridData){
+void loadGridPoints(GridData &gridData, std::string path){
     std::ifstream textfile;
-    textfile.open("data/worldGrid_1415_707.save", std::ios::in);
+    textfile.open(path, std::ios::in);
 
     double longLow, latLow, longHigh, latHigh;
     uint64_t width, height;
@@ -224,10 +224,11 @@ void saveAdjacencyArray(AdjacencyArray &array, std::string path){
 int main(int argc, char** argv) {
     GridData dat;
     AdjacencyArray adjArray;
-    loadGridPoints(dat);
+    std::string path = "data/worldGrid_4472_2236.save";
+    loadGridPoints(dat, path);
     fillAdjacencyArray(dat, adjArray);
     // save
     std::cout << dat.height << std::endl;
     testLoadFill(dat, adjArray);
-    saveAdjacencyArray(adjArray, "data/worldGrid_1415_707.save");
+    saveAdjacencyArray(adjArray, path);
 }

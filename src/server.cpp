@@ -55,7 +55,7 @@ void generateReponse(double longStart, double latStart, double longGoal, double 
 // global main html file contents, served to every client
 static std::string page;
 
-static AdjacencyArray adjArray("data/worldGrid_1415_707.save");
+static AdjacencyArray adjArray("data/worldGrid_4472_2236.save");
 static SecondDijkstra secondDijkstra(adjArray);
 static PathAlgorithm &pathAlgorithm = secondDijkstra;
 

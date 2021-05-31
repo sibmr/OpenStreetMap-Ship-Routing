@@ -354,7 +354,7 @@ template<std::size_t partition_width, std::size_t partition_height, std::size_t 
 void determineGridPoints(
     std::vector<Edge*>(&partitions)[partition_width][partition_height], 
     bool (&partitionCenters)[partition_width][partition_height], 
-    bool (&gridPoints)[grid_width][grid_height]
+    std::array<std::array<bool, grid_height>, grid_width> &gridPoints
     )
 {   
     // add half step offset to borders to get full step width when connecting accross map edge
@@ -473,7 +473,7 @@ void saveGrid(std::vector<bool> &vectorGrid, uint64_t iNodes, uint64_t jNodes){
  * saves the given grid points 2D array, along with its width and height
  **/
 template<std::size_t grid_width, std::size_t grid_height>
-void saveGridPoints(std::string path,  bool (&gridPoints)[grid_width][grid_height]){
+void saveGridPoints(std::string path,  std::array<std::array<bool, grid_height>, grid_width> &gridPoints){
     std::ofstream textfile;
     size_t lastindex = path.find_last_of(".");
     std::string text_file_name = path.substr(0, lastindex);
@@ -536,7 +536,9 @@ void saveEdgesGeoJson(std::vector<Edge> edges){
 }
 
 template<std::size_t grid_width, std::size_t grid_height>
-void saveGridPointsGeoJson(int idxLongLow, int idxLatLow, int idxLongHigh, int idxLatHigh, bool (&gridPoints)[grid_width][grid_height]){
+void saveGridPointsGeoJson(int idxLongLow, int idxLatLow, int idxLongHigh, int idxLatHigh, 
+    std::array<std::array<bool, grid_height>, grid_width> &gridPoints)
+{
     const double longStep = (globalLongHigh-globalLongLow)/(grid_width+1);
     const double latStep = (globalLatHigh-globalLatLow)/(grid_height+1);
 
@@ -695,7 +697,7 @@ void test_antarctica_data(){
     //saveEdgesGeoJson(edges2);
     std::vector<Edge*> partitions[201][107];
     bool partitionCenters[201][107];
-    bool gridPoints[1415][707];
+    std::array<std::array<bool, 1415>, 707> gridPoints;
     //bool gridPoints[400][200];
     fillPartitions(edges2, partitions);
     std::cout << "fill partition centers .." << std::endl;
@@ -713,7 +715,7 @@ void test_antarctica_data(){
  * for the grid nodes wether they are on land or in the ocean
  **/
 template<std::size_t grid_width, std::size_t grid_height>
-void prepareGridNodes(std::string path, bool (&gridPoints)[grid_width][grid_height]){
+void prepareGridNodes(std::string path, std::array<std::array<bool, grid_height>, grid_width> &gridPoints){
     std::vector<Edge> edges;
     load_ploygon_edges(path, edges);
     std::cout << "loading done\n";
@@ -728,9 +730,16 @@ void prepareGridNodes(std::string path, bool (&gridPoints)[grid_width][grid_heig
 }
 
 void saveWorldGridPoints(){
-    bool gridPoints[1415][707];
-    prepareGridNodes("data/planet-coastlines.save", gridPoints);
-    saveGridPoints("data/worldGrid_1415_707.save", gridPoints);
+    const size_t width = 4472, height = 2236;
+    std::array<std::array<bool,height>,width>  *gridPoints = new std::array<std::array<bool,height>,width>; 
+    std::cout << sizeof(bool)*width*height << "\n";
+    prepareGridNodes("data/planet-coastlines.save", *gridPoints);
+    saveGridPoints("data/worldGrid_4472_2236.save", *gridPoints);
+
+    for(size_t i = 0; i<width; ++i){
+        delete[]  (gridPoints++)->data();
+    }
+    delete[] gridPoints;
 }
 
 int main(int argc, char** argv) {
