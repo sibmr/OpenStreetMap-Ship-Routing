@@ -449,14 +449,20 @@ void fillPartitionCenters(std::vector<Edge*> (&partitions)[width][height], bool 
 }
 
 /**
- * @brief 
+ * @brief Given the partitions with predetermined partition centers, calculate if a point is on land or in the ocean
  * 
- * @tparam width 
- * @tparam height 
- * @param longitude 
- * @param latitude 
- * @return true 
- * @return false 
+ * First the partition that the query point (longitude, latitude) is determinde
+ * Intersections of edges with the line segment from the query node to the partitionCenter are counted
+ * Based on the intersection count and if the partitionCenter is on land we can tell if the node is on land or in the ocean
+ * 
+ * @tparam width    of partition grid
+ * @tparam height   of patition grid
+ * @param partitions
+ * @param partitionCenters
+ * @param longitude of query position
+ * @param latitude  of query position
+ * @return true     if point (longitude, latitude) is on land
+ * @return false    otherwise
  */
 template<std::size_t width, std::size_t height>
 bool queryPartitions(std::vector<Edge*>(&partitions)[width][height], bool (&partitionCenters)[width][height], double longitude, double latitude){
@@ -475,6 +481,20 @@ bool queryPartitions(std::vector<Edge*>(&partitions)[width][height], bool (&part
     return (count%2==0) == partitionCenters[i][j];
 }
 
+/**
+ * @brief For a grid of points, determine for each point if it is on land or in the ocean
+ * 
+ * Call query partitions on each grid point
+ * This is parallelized using OpenMP
+ * 
+ * @tparam partition_width      of partition grid
+ * @tparam partition_height     of partition grid
+ * @tparam grid_width           of query points grid
+ * @tparam grid_height          of query points grid
+ * @param partitions            of edges
+ * @param partitionCenters      wether the partition center is on land or in the ocean
+ * @param gridPoints            wether the grid points are on land or in the ocean
+ */
 template<std::size_t partition_width, std::size_t partition_height, std::size_t grid_width, std::size_t grid_height>
 void determineGridPoints(
     std::vector<Edge*>(&partitions)[partition_width][partition_height], 
@@ -528,7 +548,15 @@ void determineGridPoints(
 }
 
 
-
+/**
+ * @brief Alternative implementation of queryPartitions, currently unused
+ * 
+ * @tparam width 
+ * @tparam height 
+ * @param vectorGrid 
+ * @param iNodes 
+ * @param jNodes 
+ */
 template<std::size_t width, std::size_t height>
 void generateGrid(std::vector<bool> &vectorGrid, std::vector<Edge*>(&partitions)[width][height], bool (&partitionCenters)[width][height], uint64_t iNodes, uint64_t jNodes){
     const double longStep = ((globalLongHigh - globalLongLow) / iNodes);
@@ -551,6 +579,9 @@ void generateGrid(std::vector<bool> &vectorGrid, std::vector<Edge*>(&partitions)
     }
 }
 
+/**
+ * @brief method for visualizing partition centers (wether they are on land)
+ */
 template<std::size_t width, std::size_t height>
 bool print_partition_centers(bool (&partitionCenters)[width][height]){
     std::cout << "Printing partition centers" << std::endl;
@@ -563,6 +594,9 @@ bool print_partition_centers(bool (&partitionCenters)[width][height]){
     return true;
 }
 
+/**
+ * @brief method for printing size of partitions
+ */
 template<std::size_t width, std::size_t height>
 bool print_partitions(std::vector<Edge*>(&partitions)[width][height]){
     std::cout << "Printing partitions" << std::endl;
@@ -575,6 +609,10 @@ bool print_partitions(std::vector<Edge*>(&partitions)[width][height]){
     return true;
 }
 
+/**
+ * @brief method for storing the vector version of the grid
+ * currently unused
+ */
 void saveGrid(std::vector<bool> &vectorGrid, uint64_t iNodes, uint64_t jNodes){
     std::ofstream myfile;
 
@@ -595,8 +633,15 @@ void saveGrid(std::vector<bool> &vectorGrid, uint64_t iNodes, uint64_t jNodes){
 }
 
 /**
- * saves the given grid points 2D array, along with its width and height
- **/
+ * @brief save grid points to disk: intermediate representation produced by the point in polygon check
+ * 
+ * creates file at specified path - example: data/worldGrid_width_height.save
+ * 
+ * @tparam grid_width
+ * @tparam grid_height 
+ * @param path 
+ * @param gridPoints 
+ */
 template<std::size_t grid_width, std::size_t grid_height>
 void saveGridPoints(std::string path,  std::array<std::array<bool, grid_height>, grid_width> &gridPoints){
     std::ofstream textfile;
@@ -623,6 +668,11 @@ void saveGridPoints(std::string path,  std::array<std::array<bool, grid_height>,
     }
 }
 
+/**
+ * @brief Create a file containing a geojson representation of edges
+ * 
+ * @param edges 
+ */
 void saveEdgesGeoJson(std::vector<Edge> edges){
 
     std::ofstream file;
@@ -660,6 +710,9 @@ void saveEdgesGeoJson(std::vector<Edge> edges){
 
 }
 
+/**
+ * @brief Create a file containing a geojson representation of the grid
+ */
 template<std::size_t grid_width, std::size_t grid_height>
 void saveGridPointsGeoJson(int idxLongLow, int idxLatLow, int idxLongHigh, int idxLatHigh, 
     std::array<std::array<bool, grid_height>, grid_width> &gridPoints)
@@ -707,8 +760,8 @@ void saveGridPointsGeoJson(int idxLongLow, int idxLatLow, int idxLongHigh, int i
 }
 
 /**
- * This method shows that conversion does not work for the edge case latitude=-90
- * */
+ * @brief test sphericalToRectangular and rectangularToSpherical methods
+ */
 void test_conversion(){
     for(double lo=-180; lo<=180; lo+=0.5){
         for(double la=-89.999; la<=90; la+=0.5){
@@ -724,6 +777,9 @@ void test_conversion(){
     }
 }
 
+/**
+ * @brief Test methods on synthetic data
+ */
 void test_synthetic(){
     // check rectangular to spherical
     double lo = 0;
@@ -808,6 +864,9 @@ void test_synthetic(){
 
 }
 
+/**
+ * @brief Test methods on data non-synthetic data
+ */
 void test_antarctica_data(){
     // read data from binary file
     std::vector<Edge> edges2;
@@ -833,12 +892,15 @@ void test_antarctica_data(){
     saveGridPointsGeoJson(250, 150, 300, 200, gridPoints);
 }
 
-
-
 /**
- * reads a .save file containing coastlines generated by the pbf-extractor and determines 
- * for the grid nodes wether they are on land or in the ocean
- **/
+ * @brief reads a .save file at path containing coastlines generated by the coastlineExtraction 
+ * and determines for the grid nodes wether they are on land or in the ocean
+ * 
+ * @tparam grid_width 
+ * @tparam grid_height 
+ * @param path 
+ * @param gridPoints 
+ */
 template<std::size_t grid_width, std::size_t grid_height>
 void prepareGridNodes(std::string path, std::array<std::array<bool, grid_height>, grid_width> &gridPoints){
     std::vector<Edge> edges;
@@ -854,6 +916,9 @@ void prepareGridNodes(std::string path, std::array<std::array<bool, grid_height>
     saveGridPointsGeoJson(250, 150, 300, 200, gridPoints);
 }
 
+/**
+ * @brief query grid points and save them to disk
+ */
 void saveWorldGridPoints(){
     const size_t width = 4472, height = 2236;
     std::array<std::array<bool,height>,width>  *gridPoints = new std::array<std::array<bool,height>,width>; 
