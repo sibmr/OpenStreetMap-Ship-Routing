@@ -245,7 +245,6 @@ class PathAlgorithm {
     public:
         virtual void getPath(uint64_t startPoint, uint64_t endPoint, std::vector<uint64_t> &path) = 0;
         virtual uint64_t getDist(uint64_t startPoint, uint64_t endPoint) = 0;
-        virtual uint64_t getNewDist(uint64_t startPoint, uint64_t endPoint) = 0;
 };
 
 class FirstDijkstra: public PathAlgorithm{
@@ -253,7 +252,6 @@ class FirstDijkstra: public PathAlgorithm{
         FirstDijkstra(AdjacencyArray &array);
         void getPath(uint64_t startPoint, uint64_t endPoint, std::vector<uint64_t> &path);
         uint64_t getDist(uint64_t startPoint, uint64_t endPoint);
-        uint64_t getNewDist(uint64_t startPoint, uint64_t endPoint);
     private:
         void generatePath(uint64_t startPoint, uint64_t endPoint, std::vector<uint64_t> &path);
         void fillMaps(uint64_t startPoint, uint64_t endPoint);
@@ -269,9 +267,9 @@ class SecondDijkstra: public PathAlgorithm{
         SecondDijkstra(AdjacencyArray &array);
         void getPath(uint64_t startPoint, uint64_t endPoint, std::vector<uint64_t> &path);
         uint64_t getDist(uint64_t startPoint, uint64_t endPoint);
-        uint64_t getNewDist(uint64_t startPoint, uint64_t endPoint);
         void prepareDatastructures();
     private:
+        uint64_t fillVectors(uint64_t startPoint, uint64_t endPoint);
         std::vector<uint64_t> distance;
         std::vector<HeapElement> heap;
         std::vector<uint64_t> visited;
@@ -290,10 +288,6 @@ void FirstDijkstra::getPath(uint64_t startPoint, uint64_t endPoint, std::vector<
     generatePath(startPoint, endPoint, path);
 }
 
-
-uint64_t FirstDijkstra::getNewDist(uint64_t startPoint, uint64_t endPoint){
-    return distance.at(endPoint);
-}
 
 uint64_t FirstDijkstra::getDist(uint64_t startPoint, uint64_t endPoint){
     return distance.at(endPoint);
@@ -419,7 +413,7 @@ void SecondDijkstra::prepareDatastructures(){
  * @param endPoint 
  * @return uint64_t 
  */
-uint64_t SecondDijkstra::getDist(uint64_t startPoint, uint64_t endPoint){
+uint64_t SecondDijkstra::fillVectors(uint64_t startPoint, uint64_t endPoint){
 
     heap.push_back(HeapElement{startPoint, UINT64_MAX, 0});
     heap.push_back(HeapElement{endPoint, UINT64_MAX, UINT64_MAX});
@@ -484,7 +478,7 @@ uint64_t SecondDijkstra::getDist(uint64_t startPoint, uint64_t endPoint){
 
 }
 
-uint64_t SecondDijkstra::getNewDist(uint64_t startPoint, uint64_t endPoint){
+uint64_t SecondDijkstra::getDist(uint64_t startPoint, uint64_t endPoint){
     return distance.at(endPoint);
 }
 
@@ -504,7 +498,7 @@ void SecondDijkstra::getPath(uint64_t startPoint, uint64_t endPoint, std::vector
 
     
     prepareDatastructures();
-    getDist(startPoint, endPoint);
+    fillVectors(startPoint, endPoint);
 
 
     if(distance.at(endPoint) < UINT64_MAX){
