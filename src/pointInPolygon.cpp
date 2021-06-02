@@ -1,3 +1,24 @@
+/**
+ * @file pointInPolygon.cpp
+ * @author Marcel Galuschka
+ * @author Simon Bihlmaier
+ * @brief Point in Polygon check for Coastline Polygons
+ * @version 0.1
+ * @date 2021-06-02
+ * 
+ * Implementation is inspired by:
+ * 
+ * title:           Fast and Robust Point-in-Spherical-Polygon Tests Using Multilevel Spherical Grids
+ * authors:         Jing Li, Han Zhang, and Wencheng Wang
+ * published in:    Next Generation Computer
+ *                  Animation Techniques
+ *                  Third International Workshop, AniNex 2017
+ *                  Bournemouth, UK, June 22–23, 2017
+ *                  Revised Selected Papers
+ * pages:           56-66
+ * 
+ */
+
 # include <iostream>
 # include <fstream>
 # include <string>
@@ -42,8 +63,12 @@ void printEdge(Edge edge){
 }
 
 /**
- * supposed position in 3D on a sphere of radius 1
- **/
+ * @brief calculate 3d position on a sphere with origin as center
+ * 
+ * @param longitude 
+ * @param latitude 
+ * @return Vec3D 
+ */
 Vec3D sphericalToRectangular(double longitude, double latitude){
     double theta = (M_PI*(latitude+90))/180.0;
     double phi = (M_PI*longitude)/180.0;
@@ -54,6 +79,12 @@ Vec3D sphericalToRectangular(double longitude, double latitude){
     return Vec3D{x, y, z};
 }
 
+/**
+ * @brief 3d position to longitude, latitude on sphere of radius r
+ * 
+ * @param coords  3d position
+ * @return Vec3D  {r, longitude, latitude}
+ */
 Vec3D rectangularToSpherical(Vec3D coords){
     double r = sqrt(coords.x*coords.x + coords.y*coords.y + coords.z*coords.z);
     double latitude = -atan2(coords.z,sqrt(coords.x*coords.x + coords.y*coords.y))*(180/M_PI);
@@ -62,6 +93,13 @@ Vec3D rectangularToSpherical(Vec3D coords){
     return Vec3D{r, longitude, latitude};
 }
 
+/**
+ * @brief calculate the cross product of two 3d vectors v1, v2
+ * 
+ * @param v1
+ * @param v2 
+ * @return Vec3D orthogonal to v1 and v2
+ */
 Vec3D crossProduct(const Vec3D &v1, const Vec3D &v2){
     return Vec3D{
         v1.y*v2.z - v1.z*v2.y,
@@ -70,6 +108,13 @@ Vec3D crossProduct(const Vec3D &v1, const Vec3D &v2){
     };
 }
 
+/**
+ * @brief add two 3d vectors v1, v2
+ * 
+ * @param v1 
+ * @param v2 
+ * @return Vec3D sum of v1 and v2
+ */
 Vec3D add(const Vec3D &v1, const Vec3D &v2){
     return Vec3D{
         v1.x+v2.x,
@@ -78,6 +123,13 @@ Vec3D add(const Vec3D &v1, const Vec3D &v2){
     };
 }
 
+/**
+ * @brief substract two 3d vectors v1, v2
+ * 
+ * @param v1 
+ * @param v2 
+ * @return Vec3D difference of v1 and v2
+ */
 Vec3D sub(const Vec3D &v1, const Vec3D &v2){
     return Vec3D{
         v1.x-v2.x,
@@ -86,6 +138,13 @@ Vec3D sub(const Vec3D &v1, const Vec3D &v2){
     };
 }
 
+/**
+ * @brief divide 3d vector v by a scalar divisor
+ * 
+ * @param v 
+ * @param divisor 
+ * @return Vec3D v divided by divisor
+ */
 Vec3D div(const Vec3D &v, double divisor){
     return Vec3D{
         v.x/divisor,
@@ -94,15 +153,37 @@ Vec3D div(const Vec3D &v, double divisor){
     };
 }
 
+/**
+ * @brief calculate dot product between 3d vectors v1 and v2
+ * 
+ * @param v1 
+ * @param v2 
+ * @return double 
+ */
 double dotProduct(Vec3D v1, Vec3D v2){
     return v1.x*v2.x+v1.y*v2.y+v1.z*v2.z;
 }
 
+/**
+ * @brief normalize 3d vector
+ * 
+ * @param v 
+ * @return Vec3D unit-length vector with same direction as v
+ */
 Vec3D normalize(Vec3D v){
     double norm = std::sqrt(dotProduct(v,v));
     return div(v, norm); 
 }
 
+/**
+ * @brief check if node at position (n_long, n_lat) is left of Edge / Line Segment e on a sphere
+ * 
+ * @param n_long 
+ * @param n_lat 
+ * @param e 
+ * @return true     if the node is left of the edge
+ * @return false    otherwise
+ */
 bool isNodeLeftOfEdge(double n_long, double n_lat, const Edge &e){
     Vec3D c = sphericalToRectangular(n_long,                   n_lat);
     Vec3D a = sphericalToRectangular(e.sourceLongitude,        e.sourceLatitude);
@@ -121,6 +202,22 @@ bool isNodeLeftOfEdge(double n_long, double n_lat, const Edge &e){
     return w > 0;
 }
 
+/**
+ * @brief Check if two edges or line segments on a sphere are intersecting
+ * 
+ * If for each edge e, the source and target node of the other edge e' are on opposite sides of e,
+ * then the edges have to cross
+ * 
+ * In addition we have to check if they are more than half of the maximum distance of two points on a
+ * sphere apart by calculating the cos(angle) between them
+ * 
+ * This prevents detecting intersections with edges on the opposite side of the globe
+ * 
+ * @param e1 
+ * @param e2 
+ * @return true     if e1 and e2 are intersecting
+ * @return false    otherwise
+ */
 bool isArcIntersecting(Edge e1, Edge e2){
     bool e1node1L = isNodeLeftOfEdge(e1.sourceLongitude, e1.sourceLatitude,  e2);
     bool e1node2L = isNodeLeftOfEdge(e1.targetLongitude, e1.targetLatitude,  e2);
@@ -136,7 +233,14 @@ bool isArcIntersecting(Edge e1, Edge e2){
     return (e1node1L != e1node2L) && (e2node1L != e2node2L) && angle > 0;
 }
 
-// new isPointInPolygon less pointers
+/**
+ * @brief 
+ * 
+ * @param n 
+ * @param edges 
+ * @return true 
+ * @return false 
+ */
 bool isPointInPolygon(Node n, std::vector<Edge> edges){
     Edge firstEdge = edges.at(0);
     bool nLeftOfEdge = isNodeLeftOfEdge(n.longitude, n.latitude, firstEdge);
