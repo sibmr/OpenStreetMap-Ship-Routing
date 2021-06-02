@@ -107,6 +107,7 @@
 			fulldist = response["dist"];
 			dist = Math.round(fulldist/1000);
 			document.getElementById("pageDistance").innerHTML = fulldist/1000;
+			correctLongJump(path)
 			polyline.setLatLngs(path);
 			popupTarget
 				.setLatLng(path[0])
