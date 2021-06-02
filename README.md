@@ -19,7 +19,7 @@ Install using apt:
 
     sudo apt-get install libosmpbf-dev
 
-### libosmiumpbfreader:
+### cpp-httplib:
 https://github.com/yhirose/cpp-httplib
 
 ## Installation
