@@ -321,7 +321,7 @@ int main(int argc, char** argv) {
     std::string outputFileName;
 
     if(argc > 3 || argc < 2) {
-        std::cout << "Usage: " << argv[0] << " file_to_read.osm.pbf" << " " << "file_to save" << std::endl;
+        std::cout << "Usage: " << argv[0] << " file_to_read.pbf" << " " << "file_to.coastline" << std::endl;
         return 1;
     }
     // input and output file given
