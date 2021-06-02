@@ -95,7 +95,7 @@ int main(void)
         std::vector<uint64_t> idPath;
         pathAlgorithm.getPath(sNode, tNode, idPath);
 
-        uint64_t distance = pathAlgorithm.getNewDist(sNode, tNode);
+        uint64_t distance = pathAlgorithm.getDist(sNode, tNode);
 
         std::vector<double> nodePath;
         generateNodePath(nodePath, idPath, adjArray);
