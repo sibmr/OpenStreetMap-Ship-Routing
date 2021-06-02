@@ -728,10 +728,7 @@ void saveWorldGridPoints_tenmil(std::string inputFile, std::string outputFile){
     prepareGridNodes(inputFile, *gridPoints);
     saveGridPoints(outputFile, *gridPoints);
 
-    //for(size_t i = 0; i<width; ++i){
-    //    delete[]  (gridPoints++)->data();
-    //}
-    //delete[] gridPoints;
+    delete[] gridPoints;
 }
 void saveWorldGridPoints_onemil(std::string inputFile, std::string outputFile){
     const size_t width = 1415, height = 707;
@@ -740,10 +737,7 @@ void saveWorldGridPoints_onemil(std::string inputFile, std::string outputFile){
     prepareGridNodes(inputFile, *gridPoints);
     saveGridPoints(outputFile, *gridPoints);
 
-    //for(size_t i = 0; i<width; ++i){
-    //    delete[]  (gridPoints++)->data();
-    //}
-    //delete[] gridPoints;
+    delete[] gridPoints;
 }
 void saveWorldGridPoints_hundredthousand(std::string inputFile, std::string outputFile){
     const size_t width = 420, height = 240;
@@ -752,10 +746,7 @@ void saveWorldGridPoints_hundredthousand(std::string inputFile, std::string outp
     prepareGridNodes(inputFile, *gridPoints);
     saveGridPoints(outputFile, *gridPoints);
 
-    //for(size_t i = 0; i<width; ++i){
-    //    delete[]  (gridPoints++)->data();
-    //}
-    //delete[] gridPoints;
+    delete[] gridPoints;
 }
 
 int main(int argc, char** argv) {
