@@ -24,6 +24,11 @@ https://github.com/yhirose/cpp-httplib
 
 ## Installation
 
+### Clone repository
+
+    git clone git@github.com:sibmr/OpenStreetMap-Ship-Routing.git
+    git submodule update --init --recursive
+
 ### Install Program using CMake
 
     mkdir build
