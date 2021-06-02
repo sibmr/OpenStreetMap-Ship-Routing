@@ -234,12 +234,20 @@ bool isArcIntersecting(Edge e1, Edge e2){
 }
 
 /**
- * @brief 
+ * @brief check if node n is inside the polygons defined by a list of edges/line segments
+ * 
+ * One edge e' is selected and we check if the node is left of that edge.
+ * Then the number of intersections of all other edges with 
+ * the line segmentfrom the midpoint of e' to node n are counted.
+ * Finally we can tell, based on the intersection count and if n is left of e'
+ * if n is inside a polygon or not.
+ * 
+ * this check can be used on all coastline edges for initialization of the first partition center
  * 
  * @param n 
  * @param edges 
- * @return true 
- * @return false 
+ * @return true     if n is inside the polygons defined by edges
+ * @return false    otherwise
  */
 bool isPointInPolygon(Node n, std::vector<Edge> edges){
     Edge firstEdge = edges.at(0);
@@ -266,15 +274,19 @@ bool isPointInPolygon(Node n, std::vector<Edge> edges){
         intersectionCount += isArcIntersecting(*edgeIter, intersectionEdge);
     }
 
-    std::cout << intersectionCount << "\n";
     bool even = (intersectionCount%2) == 0;
 
-    // (left and !even) OR (!left and even) means the node is outside, otherwise it is inside
-    // equivalent to left XOR even
+    // (left and even) OR (!left and !even) means the node is outside, otherwise it is inside
+    // equivalent to left == even
     return nLeftOfEdge == even;
 }
 
-
+/**
+ * @brief Load the extracted coastline edges at path load_string into a vector of edges
+ * 
+ * @param load_string 
+ * @param edges 
+ */
 void load_ploygon_edges(std::string load_string, std::vector<Edge> &edges){
 
     std::ifstream textfile;
@@ -297,8 +309,16 @@ void load_ploygon_edges(std::string load_string, std::vector<Edge> &edges){
 }
 
 /**
- * Check if param Edge intersects window defined by bounds on longitude and latitude (should also detect edges whose end points are not in the cell)
- **/
+ * @brief Check if an edge is fully or partly contained in a rectangle on a sphere
+ * 
+ * @param longLow   | bottom left corner of rectangle
+ * @param latLow    |
+ * @param longHigh  | bottom right corner of rectangle
+ * @param latHigh   |
+ * @param edge      
+ * @return true     if edge is contained in the window or intersecting the window
+ * @return false    otherwise
+ */
 bool isEdgeInWindow(double longLow, double latLow, double longHigh, double latHigh, Edge &edge){
     return 
         (edge.sourceLongitude > longLow) && (edge.sourceLongitude < longHigh) && (edge.sourceLatitude > latLow) && (edge.sourceLatitude < latHigh)
@@ -318,10 +338,13 @@ void getBounds(std::array<int, 4> &array, Edge edge, size_t width, size_t height
 };
 
 /**
- * TODO: lots of room for optimization
- * TODO: only check relevant cells/windows, not all, based on node coordinates
- * TODO: test this
- **/
+ * @brief for a grid partitioning, fill each partition cell with the corresponding edges
+ * 
+ * @tparam width    of the partition grid
+ * @tparam height   of the partition grid
+ * @param edges         input: list of edges
+ * @param partitions    output: partition grid
+ */
 template<std::size_t width, std::size_t height>
 void fillPartitions(std::vector<Edge> &edges, std::vector<Edge*> (&partitions)[width][height]){
     const double longStep = (globalLongHigh-globalLongLow)/width;
@@ -335,8 +358,6 @@ void fillPartitions(std::vector<Edge> &edges, std::vector<Edge*> (&partitions)[w
         candidate = &edges.at(c);
         getBounds(boundsArray, *candidate, width, height);
 
-
-        // TODO: optimize this
         for(int i = boundsArray[0]; i <= boundsArray[1]; i++){
             for(int j = boundsArray[2]; j <= boundsArray[3]; j++)
             {
@@ -350,25 +371,18 @@ void fillPartitions(std::vector<Edge> &edges, std::vector<Edge*> (&partitions)[w
             std::cout << (count*100)/edges.size() << "\n";
     }
 
-    //std::cout << "partitions" << std::endl;
-    //for(int j = height -1; j >= 0; j--)
-    //{
-    //    for(int i = 0; i < width; i++)
-    //    {
-    //        std::cout << (partitions[i][j].size()>0)  << " ";
-    //        for(Edge *edge : partitions[i][j]){
-    //            printEdge(*edge);
-    //        }
-    //    }
-    //    std::cout << std::endl;
-    //}
-
 }
 
 /**
- * Have to watch out not to count replicated edges of two neighboring cells double (look if Edge* points to same address)
- * TODO: test this
- **/
+ * @brief for each of the partitions, check if the partition center is in a polygon or outside
+ * 
+ * this is done in a similar fashion to the article that is referenced at the top of this file
+ * 
+ * @tparam width            of the partitions grid
+ * @tparam height           of the partitions grid
+ * @param partitions        input: partitions containing the edges
+ * @param partitionCenters  ouput: true if on land, false if in ocean
+ */
 template<std::size_t width, std::size_t height>
 void fillPartitionCenters(std::vector<Edge*> (&partitions)[width][height], bool (&partitionCenters)[width][height]){
     const double longStep = (globalLongHigh-globalLongLow)/width;
@@ -435,8 +449,15 @@ void fillPartitionCenters(std::vector<Edge*> (&partitions)[width][height], bool 
 }
 
 /**
- * TODO: test this
- **/
+ * @brief 
+ * 
+ * @tparam width 
+ * @tparam height 
+ * @param longitude 
+ * @param latitude 
+ * @return true 
+ * @return false 
+ */
 template<std::size_t width, std::size_t height>
 bool queryPartitions(std::vector<Edge*>(&partitions)[width][height], bool (&partitionCenters)[width][height], double longitude, double latitude){
     const double longStep = (globalLongHigh-globalLongLow)/width;
