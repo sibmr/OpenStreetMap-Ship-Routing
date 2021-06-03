@@ -110,20 +110,29 @@
 		}).done(function(response) {
 			path = response["path"];				
 			fulldist = response["dist"];
-			dist = Math.round(fulldist/1000);
-			document.getElementById("pageDistance").innerHTML = fulldist/1000;
-			correctLongJump(path)
-			polyline.setLatLngs(path);
-			popupTarget
-				.setLatLng(path[0])
-				.setContent(dist + " km")
-				.openOn(mymap);				
+			routeFound = response["route"];
+			if(routeFound){
+				dist = Math.round(fulldist/1000);
+				document.getElementById("pageDistance").innerHTML = fulldist/1000;
+				correctLongJump(path)
+				polyline.setLatLngs(path);
+				popupTarget
+					.setLatLng(path[0])
+					.setContent(dist + " km")
+					.openOn(mymap);				
+				// move startpoint if path wraps around world
+				markerSource
+					.setLatLng(path[path.length - 1])
+					.openOn(mymap);
+			}else{
+				popupTarget
+					.setLatLng(markerTarget.getLatLng())
+					.setContent("No route found")
+					.openOn(mymap);
+				console.log("No route found");
+			}
 		}).fail(function() {
-			popupTarget
-				.setLatLng(markerTarget.getLatLng())
-				.setContent("No route found")
-				.openOn(mymap);
-			console.log("No route found");
+			console.log("server not available")
 		});
 	}
 	function requestNode()
