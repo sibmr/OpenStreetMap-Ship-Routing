@@ -3,6 +3,7 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
+#include <mutex>
 
 # include "dijkstra.cpp"
 
@@ -52,18 +53,23 @@ void generateReponse(double longStart, double latStart, double longGoal, double 
 
 }
     
-// global main html file contents, served to every client
-static std::string page;
 
-static AdjacencyArray adjArray("data/worldGrid_4472_2236.save");
-static SecondDijkstra secondDijkstra(adjArray);
-static PathAlgorithm &pathAlgorithm = secondDijkstra;
 
 int main(void)
 {
     using namespace httplib;
 
     Server svr;
+
+    // global main html file contents, served to every client
+    static std::string page;
+
+    static AdjacencyArray adjArray("data/worldGrid_4472_2236.save");
+    static SecondDijkstra secondDijkstra(adjArray);
+    static PathAlgorithm &pathAlgorithm = secondDijkstra;
+    
+    static std::mutex mutex;
+    static std::unique_lock<std::mutex> lock (mutex, std::defer_lock);
 
     // initialize main page from disk
     std::string path = "static/index.html";
@@ -92,6 +98,8 @@ int main(void)
         uint64_t sNode = longLatToNodeId(adjArray, longStart, latStart);
         uint64_t tNode = longLatToNodeId(adjArray, longGoal, latGoal);
 
+        lock.lock();
+
         std::vector<uint64_t> idPath;
         pathAlgorithm.getPath(sNode, tNode, idPath);
 
@@ -99,6 +107,8 @@ int main(void)
 
         std::vector<double> nodePath;
         generateNodePath(nodePath, idPath, adjArray);
+
+        lock.unlock();
 
         std::string response;
         generateReponse(nodePath, response, distance);
