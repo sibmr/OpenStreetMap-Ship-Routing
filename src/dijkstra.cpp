@@ -15,6 +15,11 @@ struct AdjacencyArray {
     std::vector<uint64_t> edges;
     std::vector<bool> nodes;
 
+    /**
+     * @brief Construct a new Adjacency Array object
+     * 
+     * @param path path to input .graph file
+     */
     AdjacencyArray(std::string path) : offsets(), edges(), nodes(){
         std::ifstream adjacency_input_file;
 
