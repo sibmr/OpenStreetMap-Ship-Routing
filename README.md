@@ -34,7 +34,7 @@ Install using apt:
 ### cpp-httplib:
 https://github.com/yhirose/cpp-httplib
 
-is installed as submodule **currently not working for http clone** 
+is installed as submodule 
 
 ## Installation
 
