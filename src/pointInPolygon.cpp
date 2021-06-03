@@ -753,67 +753,69 @@ int main(int argc, char** argv) {
     std::string inputFileName;
     std::string outputFileName;
 
-    if(argc < 2 || argc > 5)
+    if(argc < 1 || argc > 5)
     {
         std::cout << "Usage: " << argv[0] << " file_to_read.coastline" << " " << "file_to.grid" << std::endl;
         return 1;
     }
 
-    int iFileId = -1;
-    int oFileId = -1;
+    int inputFileId = -1;
+    int outputFileId = -1;
     int gridSize = 0; // 0 -> 1M, 1 -> 10M, -1 -> 100K
     std::string gridSizeString = "1M";
     // read arguments
-    if(std::string(argv[1])  == "-t"){
-        if(argc > 2){
-            iFileId = 2;
-        }
-    }else if(std::string(argv[1]) == "-n"){
-        if(argc > 2){
-            if(std::string(argv[2]) == "1M"){
-                gridSize = 0;
-                gridSizeString = "1M";
-            }else if(std::string(argv[2]) == "10M"){
-                gridSize = 1;
-                gridSizeString = "10M";
-            }else if(std::string(argv[2]) == "100K"){
-                gridSize = -1;
-                gridSizeString = "100K";
-            }else{
-                std::cout << "only \"100K\", \"1M\" and \"10M\" nodes are supported" << std::endl;
-                return 1;
+    if(argc > 1){
+        if(std::string(argv[1])  == "-t"){
+            if(argc > 2){
+                inputFileId = 2;
             }
-        }
-        if(argc > 3){
-            iFileId = 3;
-        }
-        if(argc > 4){
-            oFileId = 4;
-        }
-    }else{
-        if(argc > 1){
-            iFileId = 1;
-        }
-        if(argc > 2){
-            oFileId = 2;
+        }else if(std::string(argv[1]) == "-n"){
+            if(argc > 2){
+                if(std::string(argv[2]) == "1M"){
+                    gridSize = 0;
+                    gridSizeString = "1M";
+                }else if(std::string(argv[2]) == "10M"){
+                    gridSize = 1;
+                    gridSizeString = "10M";
+                }else if(std::string(argv[2]) == "100K"){
+                    gridSize = -1;
+                    gridSizeString = "100K";
+                }else{
+                    std::cout << "only \"100K\", \"1M\" and \"10M\" nodes are supported" << std::endl;
+                    return 1;
+                }
+            }
+            if(argc > 3){
+                inputFileId = 3;
+            }
+            if(argc > 4){
+                outputFileId = 4;
+            }
+        }else{
+            if(argc > 1){
+                inputFileId = 1;
+            }
+            if(argc > 2){
+                outputFileId = 2;
+            }
         }
     }
 
-    // generate input file String 
-    if(iFileId == -1){
+    // generate input filename
+    if(inputFileId == -1){
         inputFileName = "data/planet.coastline";
         std::cout << "no input file given assume " <<  inputFileName << std::endl;
     }else{
-        inputFileName = std::string(argv[iFileId]);
+        inputFileName = std::string(argv[inputFileId]);
         std::cout << "Use inputfile: " <<  inputFileName << std::endl;
     }
 
-    // generate output String
+    // generate output filename
     std::string tmp_oFile;
-    if(oFileId == -1){
-        tmp_oFile = argv[iFileId];
+    if(outputFileId == -1){
+        tmp_oFile = inputFileName;
     }else{
-        tmp_oFile = argv[oFileId];
+        tmp_oFile = argv[outputFileId];
     }
     size_t lastindex = tmp_oFile.find_last_of(".");
     outputFileName = tmp_oFile.substr(0, lastindex);
@@ -823,26 +825,26 @@ int main(int argc, char** argv) {
     outputFileName += ".grid";
 
     // test mode 
-    if(argv[1] == "-t"){    
-        test_conversion();
-        test_synthetic();
-        std::ifstream ifile(inputFileName);
-        if(ifile){
-            test_sampleData(inputFileName);
-        }else{
-            std::cout << "test file not found" << std::endl;
+    if(argc > 1){
+        if(std::string(argv[1]) == "-t"){    
+            std::cout << "Test mode" << std::endl;
+            test_conversion();
+            test_synthetic();
+            std::ifstream ifile(inputFileName);
+            if(ifile){
+                test_sampleData(inputFileName);
+            }else{
+                std::cout << "test file not found" << std::endl;
+            }
+            return 0;
         }
-        return 0;
     }
-    else
-    {
-        if(gridSize == 0){
-            saveWorldGridPoints_onemil(inputFileName, outputFileName);
-        }else if(gridSize == 1){
-            saveWorldGridPoints_tenmil(inputFileName, outputFileName);
-        }else if(gridSize == -1){
-            saveWorldGridPoints_hundredthousand(inputFileName, outputFileName);
-        }
+    if(gridSize == 0){
+        saveWorldGridPoints_onemil(inputFileName, outputFileName);
+    }else if(gridSize == 1){
+        saveWorldGridPoints_tenmil(inputFileName, outputFileName);
+    }else if(gridSize == -1){
+        saveWorldGridPoints_hundredthousand(inputFileName, outputFileName);
     }
     return 0;
 } 
