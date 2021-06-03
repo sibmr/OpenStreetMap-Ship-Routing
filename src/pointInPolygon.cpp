@@ -906,7 +906,6 @@ void prepareGridNodes(std::string path, std::array<std::array<bool, grid_height>
     print_partitions(partitions);
     print_partition_centers(partitionCenters);
     determineGridPoints(partitions, partitionCenters, gridPoints);
-    saveGridPointsGeoJson(250, 150, 300, 200, gridPoints);
 }
 
 /**

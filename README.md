@@ -1,15 +1,5 @@
 # Ship Routing using OpenStreetMap
 
-## Links
-OSM:  
-http://wiki.openstreetmap.org/wiki/Nodes​  
-http://wiki.openstreetmap.org/wiki/Tags  
-https://wiki.openstreetmap.org/wiki/Ways  
-https://wiki.openstreetmap.org/wiki/Coastline  
-Reading Data:  
-https://wiki.openstreetmap.org/wiki/PBF_Format#The_code  
-https://osmcode.org/libosmium/
-
 ## Dependencies
 
 
@@ -24,7 +14,7 @@ Install using apt:
     sudo apt-get install g++
 
 
-### libosmiumpbfreader:
+### libosmbfreader:
 https://github.com/CanalTP/libosmpbfreader
 
 Install using apt:  
@@ -59,6 +49,11 @@ Each program will generate an intermediate file with one of the following suffix
 * .grid
 * .graph
 
+It is recommend to create a data folder to store the intermediate files as well as the planet-coastlines.pbf file.
+    
+    mkdir data
+    mv planet-coastlines.pbf data/
+
 Each program can get either one or two files as input parameter.
 The first of the parameter will be the input file and the second one the output file.
 If only one file is given, the output file will be saved in the same directory with the corresponding suffix.
@@ -87,7 +82,7 @@ From project root:
 
 Example:
 
-    ./build/bin/pointInPolygon ./build/bin/planet.coastline data/planet.grid
+    ./build/bin/pointInPolygon data/planet.coastline data/planet.grid
 
 In addition, you can select the number of nodes to be 100.000 Nodes, one million Nodes or ten million Nodes.
 With the "-n" argument followed by "100K", "1M", "10M". 
@@ -118,3 +113,11 @@ Example:
 
 Visit http://localhost:8080 using the Browser
 
+## Links
+OSM:  
+http://wiki.openstreetmap.org/wiki/Nodes​  
+http://wiki.openstreetmap.org/wiki/Tags  
+https://wiki.openstreetmap.org/wiki/Ways  
+https://wiki.openstreetmap.org/wiki/Coastline  
+Reading Data:  
+https://wiki.openstreetmap.org/wiki/PBF_Format#The_code 
