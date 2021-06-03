@@ -909,6 +909,12 @@ void prepareGridNodes(std::string path, std::array<std::array<bool, grid_height>
     saveGridPointsGeoJson(250, 150, 300, 200, gridPoints);
 }
 
+/**
+ * @brief create array of around one million gridPoints with width 4472 and height 2236 nodes
+ * 
+ * @param inputFile 
+ * @param outputFile 
+ */
 void saveWorldGridPoints_tenmil(std::string inputFile, std::string outputFile){
     const size_t width = 4472, height = 2236;
     std::array<std::array<bool,height>,width>  *gridPoints = new std::array<std::array<bool,height>,width>; 
@@ -918,6 +924,13 @@ void saveWorldGridPoints_tenmil(std::string inputFile, std::string outputFile){
 
     delete[] gridPoints;
 }
+
+/**
+ * @brief create array of around 10 million gridPoints with width 1415 and height 707 nodes
+ * 
+ * @param inputFile 
+ * @param outputFile 
+ */
 void saveWorldGridPoints_onemil(std::string inputFile, std::string outputFile){
     const size_t width = 1415, height = 707;
     std::array<std::array<bool,height>,width>  *gridPoints = new std::array<std::array<bool,height>,width>; 
@@ -927,6 +940,13 @@ void saveWorldGridPoints_onemil(std::string inputFile, std::string outputFile){
 
     delete[] gridPoints;
 }
+
+/**
+ * @brief create array of around hundred thousand gridPoints with width 420 and height 240 nodes
+ * 
+ * @param inputFile 
+ * @param outputFile 
+ */
 void saveWorldGridPoints_hundredthousand(std::string inputFile, std::string outputFile){
     const size_t width = 420, height = 240;
     std::array<std::array<bool,height>,width>  *gridPoints = new std::array<std::array<bool,height>,width>; 
