@@ -4,6 +4,7 @@
 #include <fstream>
 #include <vector>
 #include <mutex>
+#include <fstream>
 
 # include "dijkstra.cpp"
 
@@ -36,6 +37,14 @@ int main(int argc, char** argv)
         std::cout << "no input file given assume " <<  inputFileName << std::endl;
     }
 
+    {
+        std::ifstream f(inputFileName);
+        if(!f.good()){
+            std::cout << "file: " << inputFileName << " not found\n";
+            return 0;
+        }
+    }
+    
 
     using namespace httplib;
 
