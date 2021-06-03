@@ -166,11 +166,7 @@ void testLoadFill(GridData &dat, AdjacencyArray &adjArray){
 void saveAdjacencyArray(AdjacencyArray &array, std::string path){
     std::ofstream adjacency_output_file;
 
-    size_t lastindex = path.find_last_of(".");
-    std::string adjacency_file_name = path.substr(0, lastindex);
-    adjacency_file_name += "_adjacencyarray.save";
-
-    adjacency_output_file.open(adjacency_file_name, std::ios::out | std::ios::trunc);
+    adjacency_output_file.open(path, std::ios::out | std::ios::trunc);
     adjacency_output_file.exceptions(adjacency_output_file.exceptions() | std::ios::failbit | std::ifstream::badbit);
 
     // write globe size
@@ -222,13 +218,65 @@ void saveAdjacencyArray(AdjacencyArray &array, std::string path){
 }
 
 int main(int argc, char** argv) {
+    std::string inputFileName;
+    std::string outputFileName;
+
+    int inputFileId = -1;
+    int outputFileId = -1;
+
+    bool verboseOutput = false;
+
+    // check input parameter
+    if(argc < 1 || argc > 4){
+        std::cout << "Usage: " << argv[0] << " file_to_read.grid" << " " << "file_to.graph" << std::endl;
+        return 1;
+    }
+    if(argc > 1){
+        if(std::string(argv[1]) == "-t"){
+            verboseOutput = true;
+            if(argc > 2){
+                inputFileId = 2;
+            }
+            if(argc > 3){
+                outputFileId = 3;
+            }
+        }else{
+            if(argc > 1){
+                inputFileId = 1;
+            }if(argc > 2){
+                outputFileId = 2;
+            }
+        }
+    }
+
+    // generate input filename
+    if(inputFileId == -1){
+        inputFileName = "data/planet.grid";
+        std::cout << "no input file given assume " <<  inputFileName << std::endl;
+    }else{
+        inputFileName = std::string(argv[inputFileId]);
+    }
+
+    // generate output filename
+    std::string tmp_oFile;
+    if(outputFileId == -1){
+        tmp_oFile = inputFileName;
+    }else{
+        tmp_oFile = argv[outputFileId];
+    }
+    size_t lastindex = tmp_oFile.find_last_of(".");
+    outputFileName = tmp_oFile.substr(0, lastindex);
+    outputFileName += ".graph";
+
     GridData dat;
     AdjacencyArray adjArray;
-    std::string path = "data/worldGrid_4472_2236.save";
-    loadGridPoints(dat, path);
+
+    loadGridPoints(dat, inputFileName);
     fillAdjacencyArray(dat, adjArray);
     // save
     std::cout << dat.height << std::endl;
-    testLoadFill(dat, adjArray);
-    saveAdjacencyArray(adjArray, path);
+    if(verboseOutput){
+        testLoadFill(dat, adjArray);
+    }
+    saveAdjacencyArray(adjArray, outputFileName);
 }
