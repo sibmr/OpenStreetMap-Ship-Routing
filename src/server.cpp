@@ -33,6 +33,7 @@ int main(int argc, char** argv)
         inputFileName = std::string(argv[1]);
     }else{
         inputFileName = "data/planet.graph";
+        std::cout << "no input file given assume " <<  inputFileName << std::endl;
     }
 
 
