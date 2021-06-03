@@ -70,6 +70,32 @@ int main(int argc, char** argv)
         res.set_content(page, "text/html");
     });
 
+    svr.Post("/testNode", [](const Request& req, Response& res) {
+        double longStart =  std::stod((*req.params.find("longStart")).second);
+        double latStart =   std::stod((*req.params.find("latStart")).second);
+
+        uint64_t sNode = longLatToNodeId(adjArray, longStart, latStart);
+
+        //lock.lock();
+
+        std::string response;
+        if(isNodeOnLand(adjArray, sNode)){
+            response = "{\"water\": false}";
+        }else{
+            response = "{\"water\": true}";
+        }
+
+        //lock.unlock();
+
+        // return geojson with of results path
+        std::cout << response << std::endl;
+        
+        // return json with of results path
+        res.set_content(response, "application/json");
+        
+    });
+
+
     // handle client requests of form {longStart: double, latStart:double, longGoal:double, latGoal:double}
     // calculate path, return result path {failure: true/false, path:[[long,lat],[long,lat],...]}
     svr.Post("/getRoute", [](const Request& req, Response& res) {
