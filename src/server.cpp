@@ -76,12 +76,7 @@ int main(int argc, char** argv)
 
         uint64_t sNode = longLatToNodeId(adjArray, lng, lat);
 
-        std::string response;
-        if(isNodeOnLand(adjArray, sNode)){
-            response = "{\"water\": false}";
-        }else{
-            response = "{\"water\": true}";
-        }
+        std::string response = "{\"water\": " +  std::to_string(!isNodeOnLand(adjArray, sNode)) + "}";
 
         // return geojson with of results path
         std::cout << response << std::endl;
@@ -109,10 +104,13 @@ int main(int argc, char** argv)
         std::vector<uint64_t> idPath;
         pathAlgorithm.reset();
         uint64_t distance = pathAlgorithm.calculateDist(sNode, tNode);
-        pathAlgorithm.getPath(idPath);
 
         std::vector<double> posPath;
-        generatePositionPath(posPath, idPath, adjArray);
+
+        if(distance < UINT64_MAX){
+            pathAlgorithm.getPath(idPath);
+            generatePositionPath(posPath, idPath, adjArray);
+        }
 
         lock.unlock();
 
