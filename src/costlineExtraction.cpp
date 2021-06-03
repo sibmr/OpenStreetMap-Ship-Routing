@@ -236,10 +236,7 @@ void save_coastline_to_geojson(std::string geoJsonPath, std::vector<Node> &nodes
  */
 void save_coastline_edges_to_file(std::string save_string, std::vector<Node> &nodes, std::vector<Way> &ways, std::vector<uint64_t> &export_ways){
     std::ofstream textfile;
-    size_t lastindex = save_string.find_last_of(".");
-    std::string text_file_name = save_string.substr(0, lastindex);
-    text_file_name += ".save";
-    textfile.open(text_file_name, std::ios::out | std::ios::trunc);
+    textfile.open(save_string, std::ios::out | std::ios::trunc);
     textfile.exceptions(textfile.exceptions() | std::ios::failbit | std::ifstream::badbit);
 
 
@@ -320,10 +317,27 @@ void save_coastline_edges_to_file(std::string save_string, std::vector<Node> &no
 
 
 int main(int argc, char** argv) {
-    std::cout << "Hello World\n";
-    if(argc != 3) {
-        std::cout << "Usage: " << argv[0] << " file_to_read.osm.pbf" << " " << "file_to save" << std::endl;
+    std::string inputFileName;
+    std::string outputFileName;
+
+    if(argc > 3 || argc < 2) {
+        std::cout << "Usage: " << argv[0] << " file_to_read.pbf" << " " << "file_to.coastline" << std::endl;
         return 1;
+    }
+    // input and output file given
+    if(argc == 3) {
+        inputFileName = argv[1];
+        std::string tmp_outputFileName = argv[2];
+        size_t lastindex = tmp_outputFileName.find_last_of(".");
+        outputFileName = tmp_outputFileName.substr(0, lastindex);
+        outputFileName += ".coastline";
+    }
+    // only input file given
+    if(argc == 2) {
+        inputFileName = argv[1];
+        size_t lastindex = inputFileName.find_last_of(".");
+        outputFileName = inputFileName.substr(0, lastindex);
+        outputFileName += ".coastline";
     }
 
     // start tracking time
@@ -334,11 +348,11 @@ int main(int argc, char** argv) {
     std::vector<Node> nodes;
     std::vector<Way> ways;
     std::vector<uint64_t> export_ways;
-    load_coastline_data(argv[1], nodes, ways, export_ways);
+    load_coastline_data(inputFileName, nodes, ways, export_ways);
     std::cout << "Nodes vector takes up " << (nodes.size()*3.*4.)/1e6 << " MB\n";
     
     //save_coastline_to_geojson(argv[2], nodes, ways, export_ways);
-    save_coastline_edges_to_file(argv[2], nodes, ways, export_ways);
+    save_coastline_edges_to_file(outputFileName, nodes, ways, export_ways);
     
     
     // stop tracking time

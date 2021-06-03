@@ -1080,3 +1080,9 @@ include/osmpbfreader/osmpbfreader.cbp
 include/httplib.h
 include/cpp-httplib
 include/cpp-httplib
+
+
+# add our fileendings
+*.coastline
+*.grid
+*.graph

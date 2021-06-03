@@ -12,6 +12,18 @@ https://osmcode.org/libosmium/
 
 ## Dependencies
 
+
+### cmake:
+Install using apt:  
+
+    sudo apt-get install cmake
+
+### g++:
+Install using apt:  
+
+    sudo apt-get install g++
+
+
 ### libosmiumpbfreader:
 https://github.com/CanalTP/libosmpbfreader
 
@@ -22,7 +34,14 @@ Install using apt:
 ### cpp-httplib:
 https://github.com/yhirose/cpp-httplib
 
+is installed as submodule **currently not working for http clone** 
+
 ## Installation
+
+### Clone repository
+
+    git clone git@github.com:sibmr/OpenStreetMap-Ship-Routing.git
+    git submodule update --init --recursive
 
 ### Install Program using CMake
 

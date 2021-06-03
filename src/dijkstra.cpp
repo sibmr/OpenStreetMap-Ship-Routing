@@ -18,11 +18,7 @@ struct AdjacencyArray {
     AdjacencyArray(std::string path) : offsets(), edges(), nodes(){
         std::ifstream adjacency_input_file;
 
-        size_t lastindex = path.find_last_of(".");
-        std::string adjacency_file_name = path.substr(0, lastindex);
-        adjacency_file_name += "_adjacencyarray.save";
-
-        adjacency_input_file.open(adjacency_file_name, std::ios::in);
+        adjacency_input_file.open(path, std::ios::in);
 
         // write globe size
         adjacency_input_file.read(reinterpret_cast<char *>(&longLow),     sizeof(longLow));
