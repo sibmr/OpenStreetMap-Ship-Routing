@@ -64,19 +64,17 @@ int main(int argc, char** argv)
     std::string path = "static/index.html";
     loadStatic(path, page);
 
-    //loadAdjacencyArray(adjArray, "data/worldGrid_1415_707.save");
-
     svr.Get("/", [](const Request& req, Response& res) {
         res.set_content(page, "text/html");
     });
 
+    // handle client requests of form {long: double, lat:double}
+    // check if node is on water or on land {failure: true/false, water:true/false}
     svr.Post("/testNode", [](const Request& req, Response& res) {
-        double longStart =  std::stod((*req.params.find("longStart")).second);
-        double latStart =   std::stod((*req.params.find("latStart")).second);
+        double lng =  std::stod((*req.params.find("long")).second);
+        double lat =   std::stod((*req.params.find("lat")).second);
 
-        uint64_t sNode = longLatToNodeId(adjArray, longStart, latStart);
-
-        //lock.lock();
+        uint64_t sNode = longLatToNodeId(adjArray, lng, lat);
 
         std::string response;
         if(isNodeOnLand(adjArray, sNode)){
@@ -84,8 +82,6 @@ int main(int argc, char** argv)
         }else{
             response = "{\"water\": true}";
         }
-
-        //lock.unlock();
 
         // return geojson with of results path
         std::cout << response << std::endl;
@@ -105,11 +101,6 @@ int main(int argc, char** argv)
         double latGoal =    std::stod((*req.params.find("latGoal")).second);
         std::cout << "Route from (" << longStart << ", " << latStart << ") to (" << longGoal << ", " << latGoal << ")\n";
         
-
-        //std::string response;
-        //generateReponse(longStart, latStart, longGoal, latGoal, response);
-        //std::cout << response << std::endl;
-
         uint64_t sNode = longLatToNodeId(adjArray, longStart, latStart);
         uint64_t tNode = longLatToNodeId(adjArray, longGoal, latGoal);
 

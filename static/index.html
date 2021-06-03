@@ -44,7 +44,6 @@
 	var markerTarget = L.marker();
 	var popupTarget = L.popup();
 	var firstMarkerSet = false;
-	var secondMarkerSet = false;
 
 	// from https://stackoverflow.com/questions/16543446/how-to-make-leaflet-map-height-variable
 	$(window).on("resize", function() {
@@ -130,8 +129,8 @@
 	function requestNode()
 	{
 		$.post('/testNode', {
-			longStart: testLocation[0],
-			latStart: testLocation[1]
+			long: testLocation[0],
+			lat: testLocation[1]
 		}).done(function(response) {
 			onWater = response["water"];				
 			if(onWater){
