@@ -229,14 +229,19 @@ void generatePositionPath(std::vector<double> &posPath, std::vector<uint64_t> &i
 void generateReponse(std::vector<double> &posPath, std::string& response, uint64_t distance){
     // response has to be in [[lat,long],...] format, so (long, lat) is swapped
     response += "{\"path\":[";
-    response += "[" + std::to_string(posPath.at(1)) + "," + std::to_string(posPath.at(0)) + "]";
-    for(int i=1; i<posPath.size()/2; ++i){
-        response += ",[" + std::to_string(posPath.at(2*i+1)) + "," + std::to_string(posPath.at(2*i)) + "]";
+    if(distance < UINT64_MAX){
+        response += "[" + std::to_string(posPath.at(1)) + "," + std::to_string(posPath.at(0)) + "]";
+        for(int i=1; i<posPath.size()/2; ++i){
+            response += ",[" + std::to_string(posPath.at(2*i+1)) + "," + std::to_string(posPath.at(2*i)) + "]";
     
+        }
     }
     response += "],\n";
     response += "\"dist\": ";
     response += std::to_string(distance); 
+    response += ",\n";
+    response += "\"route\": ";
+    response += std::to_string(distance < UINT64_MAX); 
     response += "}";
 }
 
