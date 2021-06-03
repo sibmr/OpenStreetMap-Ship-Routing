@@ -91,10 +91,19 @@ struct AdjacencyArray {
     }
 };
 
+/**
+ * @brief HeapElement for SecondDijkstra implementation
+ */
 struct HeapElement {
     uint64_t nodeIdx, prev, dist;
     
-    // true if own distance is bigger than others distance
+    /**
+     * @brief "reverse" comparison function turning max-heap into min-heap 
+     * 
+     * @param a         other HeapElement
+     * @return true     if own distance is bigger than others distance,
+     * @return false    otherwise
+     */
     bool operator<(const HeapElement &a){
         return dist > a.dist;
     }
@@ -269,7 +278,7 @@ class FirstDijkstra: public PathAlgorithm{
 
 /**
  * @brief Our second more efficient implementation of the dijkstra algorithm
- * 
+ * Similar implementation to https://github.com/Lesstat/dijkstra-performance-study/
  */
 class SecondDijkstra: public PathAlgorithm{
     public:
@@ -293,6 +302,12 @@ class SecondDijkstra: public PathAlgorithm{
 
 FirstDijkstra::FirstDijkstra(AdjacencyArray &array) : array(array){}
 
+/**
+ * @brief retrieve a path of nodes from the last call to calculateDist
+ * this only works if calculateNodes was called before this
+ * 
+ * @param path  output: path of nodes
+ */
 void FirstDijkstra::getPath(std::vector<uint64_t> &path){
     if(distance.at(endPoint) < UINT64_MAX){
         // build up path
@@ -316,6 +331,9 @@ void FirstDijkstra::getPath(std::vector<uint64_t> &path){
     }
 }
 
+/**
+ * @brief reset and prepare the datastructures for the next call to calculateDist
+ */
 void FirstDijkstra::reset(){
     distance.clear();
     previous.clear();
@@ -326,10 +344,22 @@ void FirstDijkstra::reset(){
     }
 }
 
+/**
+ * @brief returns the last distance calculated by calculateDist
+ * 
+ * @return uint64_t
+ */
 uint64_t FirstDijkstra::getDist(){
     return lastCalculatedDistance;
 }
 
+/**
+ * @brief this method computes the dijkstra algorithm to find the shortest path from startPoint_ to endPoint_
+ * 
+ * @param startPoint_   node id of start node
+ * @param endPoint_     node id of goal node
+ * @return uint64_t 
+ */
 uint64_t FirstDijkstra::calculateDist(uint64_t startPoint_, uint64_t endPoint_){
 
     startPoint = startPoint_;
@@ -371,7 +401,7 @@ uint64_t FirstDijkstra::calculateDist(uint64_t startPoint_, uint64_t endPoint_){
                 distance.at(currTargetNode) = currDistance;
                 previous.at(currTargetNode) = currSourceNode;
 
-                // do not expand node if it has higher distance than 
+                // do not expand node if it has higher distance than the current target distance
                 if(currDistance <= currTargetDistance){
                     pq.push(std::make_pair(currDistance, currTargetNode));
                 }
@@ -380,17 +410,33 @@ uint64_t FirstDijkstra::calculateDist(uint64_t startPoint_, uint64_t endPoint_){
     }
 }
 
+/**
+ * @brief Construct a new Second Dijkstra:: Second Dijkstra object
+ * 
+ * Initialize datastructures
+ * Initialize distances between nodes
+ * 
+ * @param array 
+ */
 SecondDijkstra::SecondDijkstra(AdjacencyArray &array) : adjArray(array), prev(array.width*array.height, UINT64_MAX){
     reset();
     
+    // calculate distances between nodes:
+    // constLngDist is the distance between nodes with the same longitude but different latitude
+    // constLatDist is the distance between nodes with the same latitude but different logitude
     // distance between (i,0) and (i,1)
     constLngDist = nodeDistance(adjArray, 0, 1);
+    // for each constant latitude "ring" around the globe, the distance is different
+    // mirroring is disregarded
     for(uint64_t i = 0; i<adjArray.height; ++i){
         // distance between (0,i) and (1,i)
         constLatDist.push_back(nodeDistance(adjArray, i, adjArray.height+i));
     }
 }
 
+/**
+ * @brief reset datastructures to prepare for next call to calculateDist
+ */
 void SecondDijkstra::reset(){
     std::vector<uint64_t> initDist(adjArray.width*adjArray.height, UINT64_MAX);
     distance = std::move(initDist);
@@ -399,7 +445,11 @@ void SecondDijkstra::reset(){
 }
 
 /**
- * @brief For this to work, reset need to be called first
+ * @brief efficient dijkstra shortest-path implementation
+ * 
+ * Uses binary Min(Max)-heap for greedy node visitation strategy
+ * 
+ * For this to work, reset need to be called first
  * 
  * @param startPoint 
  * @param endPoint 
@@ -417,8 +467,6 @@ uint64_t SecondDijkstra::calculateDist(uint64_t startPoint_, uint64_t endPoint_)
 
     HeapElement front;
 
-    //std::cout << "survived1" << "\n";
-
     while(true){
         if(heap.empty()){
             return UINT64_MAX;
@@ -433,17 +481,9 @@ uint64_t SecondDijkstra::calculateDist(uint64_t startPoint_, uint64_t endPoint_)
             continue;
         }
 
-        //std::cout << "survived2" << "\n";
-
         distance.at(front.nodeIdx) = front.dist;
-        // std::cout << prev.size() << "\n";
-        // std::cout << distance.size() << "\n";
-        // std::cout << "survived2.1" << "\n";
         prev.at(front.nodeIdx) = front.prev;
-        //std::cout << "survived2.2" << "\n";
         visited.push_back(front.nodeIdx);
-
-        //std::cout << "survived3" << "\n";
 
         for(uint64_t currEdgeId = adjArray.offsets.at(front.nodeIdx); currEdgeId < adjArray.offsets.at(front.nodeIdx+1); currEdgeId++){
             uint64_t neighborIdx = adjArray.edges.at(currEdgeId);
@@ -474,10 +514,20 @@ uint64_t SecondDijkstra::calculateDist(uint64_t startPoint_, uint64_t endPoint_)
 
 }
 
+/**
+ * @brief returns distance of last call to calculateDist
+ * 
+ * @return uint64_t 
+ */
 uint64_t SecondDijkstra::getDist(){
     return lastCalculatedDistance;
 }
 
+/**
+ * @brief retrieve path calculated by the last call to calculateDist
+ * 
+ * @param path 
+ */
 void SecondDijkstra::getPath(std::vector<uint64_t> &path){
     if(distance.at(endPoint) < UINT64_MAX){
         // build up path
