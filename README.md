@@ -40,8 +40,7 @@ is installed as submodule **currently not working for http clone**
 
 ### Clone repository
 
-    git clone git@github.com:sibmr/OpenStreetMap-Ship-Routing.git
-    git submodule update --init --recursive
+    git clone --recurse-submodules https://github.com/sibmr/OpenStreetMap-Ship-Routing.git
 
 ### Install Program using CMake
 
