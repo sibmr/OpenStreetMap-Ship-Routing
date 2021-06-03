@@ -80,23 +80,24 @@ int main(int argc, char** argv)
         lock.lock();
 
         std::vector<uint64_t> idPath;
-        pathAlgorithm.getPath(sNode, tNode, idPath);
+        pathAlgorithm.reset();
+        uint64_t distance = pathAlgorithm.calculateDist(sNode, tNode);
+        pathAlgorithm.getPath(idPath);
 
-        uint64_t distance = pathAlgorithm.getDist(sNode, tNode);
-
-        std::vector<double> nodePath;
-        generateNodePath(nodePath, idPath, adjArray);
+        std::vector<double> posPath;
+        generatePositionPath(posPath, idPath, adjArray);
 
         lock.unlock();
 
         std::string response;
-        generateReponse(nodePath, response, distance);
+        generateReponse(posPath, response, distance);
 
         // return geojson with of results path
         std::cout << response << std::endl;
         
         // return json with of results path
         res.set_content(response, "application/json");
+        
     });
 
     svr.listen("localhost", 8080);

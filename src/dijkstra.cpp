@@ -21,6 +21,23 @@ struct AdjacencyArray {
      * @param path path to input .graph file
      */
     AdjacencyArray(std::string path) : offsets(), edges(), nodes(){
+
+        /*
+        * input file
+        * longLow       - double
+        * latLow        - double
+        * longHigh      - double
+        * latHigh       - double
+        * width         - uint64_t
+        * height        - uint64_t
+        * offset_size   - uint64_t
+        * offsets       - uint64_t
+        * edges_size    - uint64_t
+        * edges         - uint64_t
+        * nodes_size    - uint64_t
+        * nodes          - bool
+        * */
+
         std::ifstream adjacency_input_file;
 
         adjacency_input_file.open(path, std::ios::in);
@@ -83,83 +100,17 @@ struct HeapElement {
     }
 };
 
-/*
-* input file
-* longLow       - double
-* latLow        - double
-* longHigh      - double
-* latHigh       - double
-* width         - uint64_t
-* height        - uint64_t
-* offset_size   - uint64_t
-* offsets       - uint64_t
-* edges_size    - uint64_t
-* edges         - uint64_t
-* nodes_size    - uint64_t
-* nodes          - bool
-* */
-void loadAdjacencyArray(AdjacencyArray &array, std::string path){
-    std::ifstream adjacency_input_file;
-
-    size_t lastindex = path.find_last_of(".");
-    std::string adjacency_file_name = path.substr(0, lastindex);
-    adjacency_file_name += "_adjacencyarray.save";
-
-    adjacency_input_file.open(adjacency_file_name, std::ios::in);
-
-    // write globe size
-    adjacency_input_file.read(reinterpret_cast<char *>(&array.longLow),     sizeof(array.longLow));
-    adjacency_input_file.read(reinterpret_cast<char *>(&array.latLow),      sizeof(array.latLow));
-    adjacency_input_file.read(reinterpret_cast<char *>(&array.longHigh),    sizeof(array.longHigh));
-    adjacency_input_file.read(reinterpret_cast<char *>(&array.latHigh),     sizeof(array.latHigh));
-    
-
-    // save number of nodes per direction (width, height)
-    adjacency_input_file.read(reinterpret_cast<char *>(&array.width),     sizeof(array.width));
-    adjacency_input_file.read(reinterpret_cast<char *>(&array.height),     sizeof(array.height));
-
-    // save offset vectro size
-    uint64_t offset_size;
-    adjacency_input_file.read(reinterpret_cast<char *>(&offset_size),     sizeof(offset_size));
-    array.offsets.resize(offset_size);
-
-
-    for(uint64_t i = 0; i < offset_size; i++){
-        adjacency_input_file.read(reinterpret_cast<char *>(&array.offsets.at(i)),     sizeof(array.offsets.at(i)));
-    }
-
-
-    uint64_t edges_size;
-    adjacency_input_file.read(reinterpret_cast<char *>(&edges_size),     sizeof(edges_size));
-    array.edges.resize(edges_size);
-
-
-    for(uint64_t i = 0; i < edges_size; i++){
-        adjacency_input_file.read(reinterpret_cast<char *>(&array.edges.at(i)), sizeof(array.edges.at(i)));
-    }
-
-    uint64_t nodes_size = array.nodes.size();
-    adjacency_input_file.read(reinterpret_cast<char *>(&nodes_size), sizeof(nodes_size));
-    array.nodes.resize(nodes_size);
-
-
-
-    std::vector<bool> data(
-        (std::istreambuf_iterator<char>(adjacency_input_file)), 
-        std::istreambuf_iterator<char>());
-    std::copy(
-        data.begin(),
-        data.end(),
-            array.nodes.begin());
-
-    adjacency_input_file.close();
-}
-
+/**
+ * @brief Distance between two points on the globe
+ * Implementation adapted to cpp from: https://www.movable-type.co.uk/scripts/latlong.html
+ * 
+ * @param p1lng     Input:   Two LongLat Points in Degrees
+ * @param p1lat 
+ * @param p2lng     Output:  Distance between the Points in Meters
+ * @param p2lat 
+ * @return double 
+ */
 double latLongDistance(double p1lng, double p1lat, double p2lng, double p2lat){
-    /**
-     * Input:   Two LongLat Points in Degrees
-     * Output:  Distance between the Points in Metres
-     **/
     
     // Haversine formula:
     const double R = 6.371e6;
@@ -177,6 +128,14 @@ double latLongDistance(double p1lng, double p1lat, double p2lng, double p2lat){
 }
 
 // return (long, lat) from node id
+
+/**
+ * @brief from a node id taken from the adjacency array, get the longitude and latitude of the node 
+ * 
+ * @param result    output: longitude and latitude of the node
+ * @param array     adjacency array
+ * @param id        id of node in adjacency array
+ */
 void nodeIdToLongLat(std::array<double,2> &result, AdjacencyArray &array, uint64_t id){
     const double longStep = (array.longHigh-array.longLow)/(array.width+1);
     const double latStep = (array.latHigh-array.latLow)/(array.height+1);
@@ -187,16 +146,32 @@ void nodeIdToLongLat(std::array<double,2> &result, AdjacencyArray &array, uint64
 
 }
 
+/**
+ * @brief given (longitude, latitude), get the id of the closest node to that point
+ * 
+ * @param array         adjacency array
+ * @param n1long        longitude position
+ * @param n1lat         latitude position
+ * @return uint64_t     node id
+ */
 uint64_t longLatToNodeId(AdjacencyArray &array, double n1long, double n1lat){
     while(n1long < -180){
         n1long += (array.longHigh - array.longLow);
     }
     uint64_t fastIndex =  uint64_t (std::round(std::fmod((n1lat  - array.latLow) / (array.latHigh - array.latLow), 1.0) * array.height));
     uint64_t slowIndex =  uint64_t (std::round(std::fmod((n1long - array.longLow) / (array.longHigh - array.longLow), 1.0) * array.width));
-    //std::cout << fastIndex + slowIndex * array.height << std::endl;
+    
     return fastIndex + slowIndex * array.height;
 }
 
+/**
+ * @brief calcuate the great-circle distance of two nodes on the globe from their ids
+ * 
+ * @param array         adjacency array
+ * @param node1         first node id
+ * @param node2         second node id
+ * @return uint64_t     distance rounded to uint64_t in meters
+ */
 uint64_t nodeDistance(AdjacencyArray &array, uint64_t node1, uint64_t node2){
 
     std::array<double,2> longLat_1;
@@ -204,12 +179,14 @@ uint64_t nodeDistance(AdjacencyArray &array, uint64_t node1, uint64_t node2){
     nodeIdToLongLat(longLat_1, array, node1);
     nodeIdToLongLat(longLat_2, array, node2);
 
-    uint64_t result = uint64_t(latLongDistance(longLat_1[0], longLat_1[1], longLat_2[0], longLat_2[1]));
+    uint64_t result = uint64_t(round(latLongDistance(longLat_1[0], longLat_1[1], longLat_2[0], longLat_2[1])));
 
-    //std::cout << "pos: "<< n1_long << " " << n1_lat << "\t" << "pos: "<< n2_long << " " << n2_lat << "\tdist: " << result <<std::endl;
-    return result; //result;
+    return result;
 }
 
+bool isNodeOnLand(AdjacencyArray &adjArray, uint64_t node){
+    return adjArray.nodes.at(node);
+}
 
 void testLatLongDistance(){
     std::cout << "Test distance:\n";
@@ -217,21 +194,35 @@ void testLatLongDistance(){
     std::cout << latLongDistance(40,40,20,-10) << " " << latLongDistance(20, -80, 30, -85) << std::endl;
 }
 
-void generateNodePath(std::vector<double> &nodePath, std::vector<uint64_t> &path,  AdjacencyArray &array){
+/**
+ * @brief convert a path of node ids to a path of positions (long1, lat1, long2, lat2, ...)
+ * 
+ * @param posPath   path of (long1, lat1, long2, lat2, ...)
+ * @param idPath    path of ids
+ * @param array     adjacency array
+ */
+void generatePositionPath(std::vector<double> &posPath, std::vector<uint64_t> &idPath,  AdjacencyArray &array){
     std::array<double,2> tmp_longLat;
-    for (std::vector<uint64_t>::iterator it = path.begin(); it != path.end(); ++it) {
+    for (std::vector<uint64_t>::iterator it = idPath.begin(); it != idPath.end(); ++it) {
         nodeIdToLongLat(tmp_longLat,array,*it);
-        nodePath.push_back(tmp_longLat[0]);
-        nodePath.push_back(tmp_longLat[1]);
+        posPath.push_back(tmp_longLat[0]);
+        posPath.push_back(tmp_longLat[1]);
     }
 }
 
-void generateReponse(std::vector<double> &path, std::string& response, uint64_t distance){
+/**
+ * @brief from a position path and distance of the path, generate a json response string
+ * 
+ * @param posPath   input:  path of positions
+ * @param response  output: json response string
+ * @param distance  input:  distance of the path
+ */
+void generateReponse(std::vector<double> &posPath, std::string& response, uint64_t distance){
     // response has to be in [[lat,long],...] format, so (long, lat) is swapped
     response += "{\"path\":[";
-    response += "[" + std::to_string(path.at(1)) + "," + std::to_string(path.at(0)) + "]";
-    for(int i=1; i<path.size()/2; ++i){
-        response += ",[" + std::to_string(path.at(2*i+1)) + "," + std::to_string(path.at(2*i)) + "]";
+    response += "[" + std::to_string(posPath.at(1)) + "," + std::to_string(posPath.at(0)) + "]";
+    for(int i=1; i<posPath.size()/2; ++i){
+        response += ",[" + std::to_string(posPath.at(2*i+1)) + "," + std::to_string(posPath.at(2*i)) + "]";
     
     }
     response += "],\n";
@@ -241,18 +232,29 @@ void generateReponse(std::vector<double> &path, std::string& response, uint64_t 
 }
 
 
-
+/**
+ * @brief virtual interface for shortest path algorithms
+ * 
+ */
 class PathAlgorithm {
     public:
-        virtual void getPath(uint64_t startPoint, uint64_t endPoint, std::vector<uint64_t> &path) = 0;
-        virtual uint64_t getDist(uint64_t startPoint, uint64_t endPoint) = 0;
+        virtual void getPath(std::vector<uint64_t> &path) = 0;
+        virtual uint64_t getDist() = 0;
+        virtual uint64_t calculateDist(uint64_t startPoint_, uint64_t endPoint_) = 0;
+        virtual void reset() = 0;
 };
 
+/**
+ * @brief Our first implementation of the dijkstra algorithm
+ * 
+ */
 class FirstDijkstra: public PathAlgorithm{
     public:
         FirstDijkstra(AdjacencyArray &array);
-        void getPath(uint64_t startPoint, uint64_t endPoint, std::vector<uint64_t> &path);
-        uint64_t getDist(uint64_t startPoint, uint64_t endPoint);
+        void getPath(std::vector<uint64_t> &path);
+        uint64_t getDist();
+        uint64_t calculateDist(uint64_t startPoint, uint64_t endPoint);
+        void reset();
     private:
         void generatePath(uint64_t startPoint, uint64_t endPoint, std::vector<uint64_t> &path);
         void fillMaps(uint64_t startPoint, uint64_t endPoint);
@@ -261,14 +263,21 @@ class FirstDijkstra: public PathAlgorithm{
         
         std::map<uint64_t,uint64_t> distance;
         std::map<uint64_t,uint64_t> previous;
+
+        uint64_t startPoint, endPoint, lastCalculatedDistance;
 };
 
+/**
+ * @brief Our second more efficient implementation of the dijkstra algorithm
+ * 
+ */
 class SecondDijkstra: public PathAlgorithm{
     public:
         SecondDijkstra(AdjacencyArray &array);
-        void getPath(uint64_t startPoint, uint64_t endPoint, std::vector<uint64_t> &path);
-        uint64_t getDist(uint64_t startPoint, uint64_t endPoint);
-        void prepareDatastructures();
+        void getPath(std::vector<uint64_t> &path);
+        uint64_t getDist();
+        uint64_t calculateDist(uint64_t startPoint, uint64_t endPoint);
+        void reset();
     private:
         uint64_t fillVectors(uint64_t startPoint, uint64_t endPoint);
         std::vector<uint64_t> distance;
@@ -278,50 +287,13 @@ class SecondDijkstra: public PathAlgorithm{
         AdjacencyArray &adjArray;
         uint64_t constLngDist;
         std::vector<uint64_t> constLatDist;
+        uint64_t startPoint, endPoint, lastCalculatedDistance;
 };
 
 
 FirstDijkstra::FirstDijkstra(AdjacencyArray &array) : array(array){}
 
-void FirstDijkstra::getPath(uint64_t startPoint, uint64_t endPoint, std::vector<uint64_t> &path){
-    distance.clear();
-    previous.clear();
-    generatePath(startPoint, endPoint, path);
-}
-
-
-uint64_t FirstDijkstra::getDist(uint64_t startPoint, uint64_t endPoint){
-    return distance.at(endPoint);
-}
-
-void FirstDijkstra::generatePath(uint64_t startPoint, uint64_t endPoint, std::vector<uint64_t> &path){
-    
-
-    // check if one of the points is on land
-    if(array.nodes.at(startPoint) || array.nodes.at(endPoint)){
-        std::cout << "one point is on land" << std::endl;
-        if(array.nodes.at(startPoint)){
-            std::cout << startPoint << " on land" << std::endl;
-        }
-        if(array.nodes.at(endPoint)){
-            std::cout << endPoint << " on land" << std::endl;
-        }
-        return;
-    }    
-
-
-
-    // reset map
-    for (int i = 0; i < array.nodes.size(); i++){
-        distance.insert({i, UINT64_MAX});
-        previous.insert({i, UINT64_MAX});
-    }
-    distance.at(startPoint) = 0;
-
-    std::cout << "start maps fill" << std::endl;
-    fillMaps(startPoint, endPoint);
-
-
+void FirstDijkstra::getPath(std::vector<uint64_t> &path){
     if(distance.at(endPoint) < UINT64_MAX){
         // build up path
         uint64_t currNode = endPoint;
@@ -344,8 +316,26 @@ void FirstDijkstra::generatePath(uint64_t startPoint, uint64_t endPoint, std::ve
     }
 }
 
-void FirstDijkstra::fillMaps(uint64_t startPoint, uint64_t endPoint){
+void FirstDijkstra::reset(){
+    distance.clear();
+    previous.clear();
+    // reset map
+    for (int i = 0; i < array.nodes.size(); i++){
+        distance.insert({i, UINT64_MAX});
+        previous.insert({i, UINT64_MAX});
+    }
+}
 
+uint64_t FirstDijkstra::getDist(){
+    return lastCalculatedDistance;
+}
+
+uint64_t FirstDijkstra::calculateDist(uint64_t startPoint_, uint64_t endPoint_){
+
+    startPoint = startPoint_;
+    endPoint = endPoint_;
+
+    distance.at(startPoint) = 0;
     typedef std::pair<uint64_t, uint64_t> pqPair;
 
     std::priority_queue<pqPair, std::vector<pqPair>, std::greater<pqPair>> pq;
@@ -360,7 +350,8 @@ void FirstDijkstra::fillMaps(uint64_t startPoint, uint64_t endPoint){
     while (true){
         if(pq.empty()){
             // no node can be expanded anymore
-            return;
+            lastCalculatedDistance = distance.at(endPoint);
+            return lastCalculatedDistance;
         }
         currTop = pq.top(); // first element is dist, second in node id
         pq.pop();
@@ -390,7 +381,7 @@ void FirstDijkstra::fillMaps(uint64_t startPoint, uint64_t endPoint){
 }
 
 SecondDijkstra::SecondDijkstra(AdjacencyArray &array) : adjArray(array), prev(array.width*array.height, UINT64_MAX){
-    prepareDatastructures();
+    reset();
     
     // distance between (i,0) and (i,1)
     constLngDist = nodeDistance(adjArray, 0, 1);
@@ -400,7 +391,7 @@ SecondDijkstra::SecondDijkstra(AdjacencyArray &array) : adjArray(array), prev(ar
     }
 }
 
-void SecondDijkstra::prepareDatastructures(){
+void SecondDijkstra::reset(){
     std::vector<uint64_t> initDist(adjArray.width*adjArray.height, UINT64_MAX);
     distance = std::move(initDist);
     // no need to reset prev
@@ -408,13 +399,16 @@ void SecondDijkstra::prepareDatastructures(){
 }
 
 /**
- * @brief For this to work, prepareDatastructures need to be called first
+ * @brief For this to work, reset need to be called first
  * 
  * @param startPoint 
  * @param endPoint 
  * @return uint64_t 
  */
-uint64_t SecondDijkstra::fillVectors(uint64_t startPoint, uint64_t endPoint){
+uint64_t SecondDijkstra::calculateDist(uint64_t startPoint_, uint64_t endPoint_){
+
+    startPoint = startPoint_;
+    endPoint = endPoint_;
 
     heap.push_back(HeapElement{startPoint, UINT64_MAX, 0});
     heap.push_back(HeapElement{endPoint, UINT64_MAX, UINT64_MAX});
@@ -472,36 +466,19 @@ uint64_t SecondDijkstra::fillVectors(uint64_t startPoint, uint64_t endPoint){
         }
 
         if(front.nodeIdx == endPoint){
-            return distance.at(front.nodeIdx);
+            lastCalculatedDistance = distance.at(front.nodeIdx);
+            return lastCalculatedDistance;
         }
 
     }
 
 }
 
-uint64_t SecondDijkstra::getDist(uint64_t startPoint, uint64_t endPoint){
-    return distance.at(endPoint);
+uint64_t SecondDijkstra::getDist(){
+    return lastCalculatedDistance;
 }
 
-void SecondDijkstra::getPath(uint64_t startPoint, uint64_t endPoint, std::vector<uint64_t> &path){
-    
-    // check if one of the points is on land
-    if(adjArray.nodes.at(startPoint) || adjArray.nodes.at(endPoint)){
-        std::cout << "one point is on land" << std::endl;
-        if(adjArray.nodes.at(startPoint)){
-            std::cout << startPoint << " on land" << std::endl;
-        }
-        if(adjArray.nodes.at(endPoint)){
-            std::cout << endPoint << " on land" << std::endl;
-        }
-        return;
-    }    
-
-    
-    prepareDatastructures();
-    fillVectors(startPoint, endPoint);
-
-
+void SecondDijkstra::getPath(std::vector<uint64_t> &path){
     if(distance.at(endPoint) < UINT64_MAX){
         // build up path
         uint64_t currNode = endPoint;
@@ -524,32 +501,35 @@ void SecondDijkstra::getPath(uint64_t startPoint, uint64_t endPoint, std::vector
     }
     
 }
-//int main() {
-//    AdjacencyArray adjArray;
-//    // load
-//    loadAdjacencyArray(adjArray, "data/worldGrid_1415_707.save");
-//
-//    std::vector<uint64_t> path;
-//    generatePath(path, 1001, 16001, adjArray);
-//    std::vector<double> nodePath;
-//    generateNodePath(nodePath, path, adjArray);
-//
-//
-//    std::string response;
-//    generateReponse(nodePath, response);
-//    std::cout << response << std::endl;
-//
-//    //int counter_one = 0;
-//    //int counter_zero = 0;
-//    //for (int i = 0; i < adjArray.nodes.size(); i++){
-//    //    if(adjArray.nodes.at(i) == 0){
-//    //        counter_zero++;
-//    //    }else
-//    //    {
-//    //        counter_one++;
-//    //    }
-//    //}
-//    //std::cout << counter_zero << " " << counter_one << " " << counter_one + counter_zero << std::endl;
-//    //std::cout << adjArray.edges.size() << std::endl;
-//    //testLatLongDistance();
-//}
+
+void test() {
+    AdjacencyArray adjArray("data/worldGrid_1415_707.save");
+    FirstDijkstra fd(adjArray);
+    PathAlgorithm &pa = fd;
+
+    std::vector<uint64_t> path;
+    pa.reset();
+    pa.calculateDist(1001, 16001);
+    pa.getPath(path);
+    std::vector<double> posPath;
+    generatePositionPath(posPath, path, adjArray);
+
+
+    std::string response;
+    generateReponse(posPath, response, pa.getDist());
+    std::cout << response << std::endl;
+
+    int counter_one = 0;
+    int counter_zero = 0;
+    for (int i = 0; i < adjArray.nodes.size(); i++){
+        if(adjArray.nodes.at(i) == 0){
+            counter_zero++;
+        }else
+        {
+            counter_one++;
+        }
+    }
+    std::cout << counter_zero << " " << counter_one << " " << counter_one + counter_zero << std::endl;
+    std::cout << adjArray.edges.size() << std::endl;
+    testLatLongDistance();
+}
