@@ -7,8 +7,8 @@ set_target_properties(server PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY
 #/target_link_libraries(dijkstra PRIVATE osmpbfreader)
 #/set_target_properties(dijkstra PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 
-add_executable(benchmarkDijkstra benchmarkDijkstra.cpp)
-set_target_properties(benchmarkDijkstra PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+add_executable(benchmarkPathAlgorithm benchmarkPathAlgorithm.cpp)
+set_target_properties(benchmarkPathAlgorithm PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 
 add_executable(buildGraph buildGraph.cpp)
 set_target_properties(buildGraph PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")

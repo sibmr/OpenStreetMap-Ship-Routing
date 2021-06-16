@@ -3,7 +3,7 @@
 #include <numeric>
 #include <algorithm>
 
-#include "dijkstra.cpp"
+#include "Dijkstra.cpp"
 
 void benchmarkDijkstra(PathAlgorithm &pathAlg, AdjacencyArray &adjArray,
     double longStart, double latStart, double longGoal, double latGoal, int numAvg)

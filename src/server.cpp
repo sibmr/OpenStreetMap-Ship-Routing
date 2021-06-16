@@ -6,7 +6,7 @@
 #include <mutex>
 #include <fstream>
 
-# include "dijkstra.cpp"
+#include "Dijkstra.cpp"
 
 /**
  * @brief load static file (html,js,css) from disk
