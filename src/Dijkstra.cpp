@@ -228,7 +228,6 @@ uint64_t SecondDijkstra::calculateDist(uint64_t startPoint_, uint64_t endPoint_)
     endPoint = endPoint_;
 
     heap.push_back(HeapElement{startPoint, UINT64_MAX, 0});
-    heap.push_back(HeapElement{endPoint, UINT64_MAX, UINT64_MAX});
 
     std::make_heap(heap.begin(), heap.end());
 
