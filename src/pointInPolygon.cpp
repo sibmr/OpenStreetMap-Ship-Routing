@@ -495,13 +495,16 @@ bool queryPartitions(std::vector<Edge*>(&partitions)[width][height], bool (&part
  * @param partitionCenters      wether the partition center is on land or in the ocean
  * @param gridPoints            wether the grid points are on land or in the ocean
  */
-template<std::size_t partition_width, std::size_t partition_height, std::size_t grid_width, std::size_t grid_height>
+template<std::size_t partition_width, std::size_t partition_height>
 void determineGridPoints(
     std::vector<Edge*>(&partitions)[partition_width][partition_height], 
     bool (&partitionCenters)[partition_width][partition_height], 
-    std::array<std::array<bool, grid_height>, grid_width> &gridPoints
+    std::vector<std::vector<bool>> &gridPoints
     )
 {   
+    std::size_t grid_width = gridPoints.size();
+    std::size_t grid_height = gridPoints[0].size();
+
     // add half step offset to borders to get full step width when connecting accross map edge
     // 1 spare step to divide at both map borders
     const double longStep = (globalLongHigh-globalLongLow)/(grid_width+1);
@@ -642,8 +645,10 @@ void saveGrid(std::vector<bool> &vectorGrid, uint64_t iNodes, uint64_t jNodes){
  * @param path 
  * @param gridPoints 
  */
-template<std::size_t grid_width, std::size_t grid_height>
-void saveGridPoints(std::string path,  std::array<std::array<bool, grid_height>, grid_width> &gridPoints){
+void saveGridPoints(std::string path,  std::vector<std::vector<bool>> &gridPoints){
+    size_t grid_width = gridPoints.size();
+    size_t grid_height = gridPoints[0].size();
+
     std::ofstream textfile;
     textfile.open(path, std::ios::out | std::ios::trunc);
     textfile.exceptions(textfile.exceptions() | std::ios::failbit | std::ifstream::badbit);
@@ -659,7 +664,8 @@ void saveGridPoints(std::string path,  std::array<std::array<bool, grid_height>,
     for(uint64_t i = 0; i<grid_width; ++i)
     for(uint64_t j = 0; j<grid_height; ++j)
     {
-        textfile.write(reinterpret_cast<const char*>(&gridPoints[i][j]), sizeof(gridPoints[i][j]));
+        bool value = gridPoints[i][j];
+        textfile.write(reinterpret_cast<const char*>(&value), sizeof(gridPoints[i][j]));
         if(((i*grid_height + j)%2000)==0)
             textfile.flush();
     }
@@ -710,10 +716,12 @@ void saveEdgesGeoJson(std::vector<Edge> edges){
 /**
  * @brief Create a file containing a geojson representation of the grid
  */
-template<std::size_t grid_width, std::size_t grid_height>
 void saveGridPointsGeoJson(int idxLongLow, int idxLatLow, int idxLongHigh, int idxLatHigh, 
-    std::array<std::array<bool, grid_height>, grid_width> &gridPoints)
+    std::vector<std::vector<bool>> &gridPoints)
 {
+    std::size_t grid_height = gridPoints.size();
+    std::size_t grid_width = gridPoints.size();
+    
     const double longStep = (globalLongHigh-globalLongLow)/(grid_width+1);
     const double latStep = (globalLatHigh-globalLatLow)/(grid_height+1);
 
@@ -875,7 +883,7 @@ void test_sampleData(std::string inputFile){
     std::cout << "is left of first? " << isNodeLeftOfEdge(toCheck.longitude, toCheck.latitude, edges2.at(0)) << std::endl;
     std::vector<Edge*> partitions[201][107];
     bool partitionCenters[201][107];
-    std::array<std::array<bool, 1415>, 707> gridPoints;
+    std::vector<std::vector<bool>> gridPoints(1415, std::vector<bool>(707, false));
     fillPartitions(edges2, partitions);
     std::cout << "fill partition centers .." << std::endl;
     fillPartitionCenters(partitions, partitionCenters);
@@ -894,8 +902,10 @@ void test_sampleData(std::string inputFile){
  * @param path 
  * @param gridPoints 
  */
-template<std::size_t grid_width, std::size_t grid_height>
-void prepareGridNodes(std::string path, std::array<std::array<bool, grid_height>, grid_width> &gridPoints){
+void prepareGridNodes(std::string path, std::vector<std::vector<bool>> &gridPoints){
+    std::size_t grid_width = gridPoints.size();
+    std::size_t grid_height = gridPoints[0].size();
+    
     std::vector<Edge> edges;
     load_ploygon_edges(path, edges);
     std::cout << "loading done\n";
@@ -916,12 +926,12 @@ void prepareGridNodes(std::string path, std::array<std::array<bool, grid_height>
  */
 void saveWorldGridPoints_tenmil(std::string inputFile, std::string outputFile){
     const size_t width = 4472, height = 2236;
-    std::array<std::array<bool,height>,width>  *gridPoints = new std::array<std::array<bool,height>,width>; 
+    std::vector<std::vector<bool>>  *gridPoints = new std::vector<std::vector<bool>>(width, std::vector<bool>(height, false));
     std::cout << sizeof(bool)*width*height << "\n";
     prepareGridNodes(inputFile, *gridPoints);
     saveGridPoints(outputFile, *gridPoints);
 
-    delete[] gridPoints;
+    delete gridPoints;
 }
 
 /**
@@ -932,12 +942,12 @@ void saveWorldGridPoints_tenmil(std::string inputFile, std::string outputFile){
  */
 void saveWorldGridPoints_onemil(std::string inputFile, std::string outputFile){
     const size_t width = 1415, height = 707;
-    std::array<std::array<bool,height>,width>  *gridPoints = new std::array<std::array<bool,height>,width>; 
+    std::vector<std::vector<bool>>  *gridPoints = new std::vector<std::vector<bool>>(width, std::vector<bool>(height, false));
     std::cout << sizeof(bool)*width*height << "\n";
     prepareGridNodes(inputFile, *gridPoints);
     saveGridPoints(outputFile, *gridPoints);
 
-    delete[] gridPoints;
+    delete gridPoints;
 }
 
 /**
@@ -948,12 +958,12 @@ void saveWorldGridPoints_onemil(std::string inputFile, std::string outputFile){
  */
 void saveWorldGridPoints_hundredthousand(std::string inputFile, std::string outputFile){
     const size_t width = 420, height = 240;
-    std::array<std::array<bool,height>,width>  *gridPoints = new std::array<std::array<bool,height>,width>; 
+    std::vector<std::vector<bool>>  *gridPoints = new std::vector<std::vector<bool>>(width, std::vector<bool>(height, false));
     std::cout << sizeof(bool)*width*height << "\n";
     prepareGridNodes(inputFile, *gridPoints);
     saveGridPoints(outputFile, *gridPoints);
 
-    delete[] gridPoints;
+    delete gridPoints;
 }
 
 int main(int argc, char** argv) {
