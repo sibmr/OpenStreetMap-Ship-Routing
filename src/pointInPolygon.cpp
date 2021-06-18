@@ -665,7 +665,7 @@ void saveGridPoints(std::string path,  std::vector<std::vector<bool>> &gridPoint
     for(uint64_t j = 0; j<grid_height; ++j)
     {
         bool value = gridPoints[i][j];
-        textfile.write(reinterpret_cast<const char*>(&value), sizeof(gridPoints[i][j]));
+        textfile.write(reinterpret_cast<const char*>(&value), sizeof(bool));
         if(((i*grid_height + j)%2000)==0)
             textfile.flush();
     }
