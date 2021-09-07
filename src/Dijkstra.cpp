@@ -97,12 +97,18 @@ uint64_t DijkstraImpl::calculateDist(uint64_t startPoint_, uint64_t endPoint_){
     startPoint = startPoint_;
     endPoint = endPoint_;
 
+    // early stop with same start value
+    if(std::find (visited.begin(), visited.end(), endPoint) != visited.end() && distance.at(startPoint) == 0){
+        return distance.at(endPoint);
+    }else{
+        reset();
+    }
+
     heap.push_back(HeapElement{startPoint, UINT64_MAX, 0});
 
     std::make_heap(heap.begin(), heap.end());
 
     HeapElement front;
-
     while(true){
         if(heap.empty()){
             return UINT64_MAX;

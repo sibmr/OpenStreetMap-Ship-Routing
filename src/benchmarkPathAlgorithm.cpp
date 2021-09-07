@@ -14,13 +14,13 @@ void benchmarkDijkstra(PathAlgorithm &pathAlg, AdjacencyArray &adjArray,
     uint64_t sNode = longLatToNodeId(adjArray, longStart, latStart);
     uint64_t tNode = longLatToNodeId(adjArray, longGoal, latGoal);
 
+    pathAlg.reset();
     for(int i = 0; i<numAvg; ++i){
-
-        pathAlg.reset();
 
         auto startQuery = std::chrono::high_resolution_clock::now();
 
-        pathAlg.calculateDist(sNode, tNode);
+        std::cout << pathAlg.calculateDist(sNode, tNode) << std::endl;
+
         
         auto endQuery = std::chrono::high_resolution_clock::now();
         queryTiming = std::chrono::duration_cast<std::chrono::microseconds>(endQuery - startQuery).count();
