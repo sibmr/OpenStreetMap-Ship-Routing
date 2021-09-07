@@ -54,8 +54,8 @@ int main(int argc, char** argv)
     static std::string page;
 
     static AdjacencyArray adjArray(inputFileName);
-    static SecondDijkstra secondDijkstra(adjArray);
-    static PathAlgorithm &pathAlgorithm = secondDijkstra;
+    static DijkstraImpl dijkstraImpl(adjArray);
+    static PathAlgorithm &pathAlgorithm = dijkstraImpl;
     
     static std::mutex mutex;
     static std::unique_lock<std::mutex> lock (mutex, std::defer_lock);

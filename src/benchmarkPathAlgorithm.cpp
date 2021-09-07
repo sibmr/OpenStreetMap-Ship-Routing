@@ -44,13 +44,7 @@ void benchmarkDijkstra(PathAlgorithm &pathAlg, AdjacencyArray &adjArray,
 int main() {
     AdjacencyArray adjArray("data/planet.graph");
     {
-        FirstDijkstra fd (adjArray);
-        PathAlgorithm &pa = fd;
-        // across atlantic
-        benchmarkDijkstra(pa, adjArray, -62, 40, -14, 53.5, 3);
-    }
-    {
-        SecondDijkstra sd (adjArray);
+        DijkstraImpl sd (adjArray);
         PathAlgorithm &pa = sd;
         // across atlantic
         benchmarkDijkstra(pa, adjArray, -62, 40, -14, 53.5, 3);

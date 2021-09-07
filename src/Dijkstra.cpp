@@ -2,7 +2,7 @@
 #include "PathAlgorithm.cpp"
 
 /**
- * @brief HeapElement for SecondDijkstra implementation
+ * @brief HeapElement for DijkstraImpl implementation
  */
 struct HeapElement {
     // for normal dijkstra, heuristic_dist is the current distance to this node
@@ -20,36 +20,14 @@ struct HeapElement {
     }
 };
 
-/**
- * @brief Our first implementation of the dijkstra algorithm
- * 
- */
-class FirstDijkstra: public PathAlgorithm{
-    public:
-        FirstDijkstra(AdjacencyArray &array);
-        void getPath(std::vector<uint64_t> &path);
-        uint64_t getDist();
-        uint64_t calculateDist(uint64_t startPoint, uint64_t endPoint);
-        void reset();
-    private:
-        void generatePath(uint64_t startPoint, uint64_t endPoint, std::vector<uint64_t> &path);
-        void fillMaps(uint64_t startPoint, uint64_t endPoint);
-        
-        AdjacencyArray &array;
-        
-        std::map<uint64_t,uint64_t> distance;
-        std::map<uint64_t,uint64_t> previous;
-
-        uint64_t startPoint, endPoint, lastCalculatedDistance;
-};
 
 /**
- * @brief Our second more efficient implementation of the dijkstra algorithm
+ * @brief Our more efficient implementation of the dijkstra algorithm
  * Similar implementation to https://github.com/Lesstat/dijkstra-performance-study/
  */
-class SecondDijkstra: public PathAlgorithm{
+class DijkstraImpl: public PathAlgorithm{
     public:
-        SecondDijkstra(AdjacencyArray &array);
+        DijkstraImpl(AdjacencyArray &array);
         void getPath(std::vector<uint64_t> &path);
         uint64_t getDist();
         uint64_t calculateDist(uint64_t startPoint, uint64_t endPoint);
@@ -67,125 +45,17 @@ class SecondDijkstra: public PathAlgorithm{
 };
 
 
-FirstDijkstra::FirstDijkstra(AdjacencyArray &array) : array(array){}
+
 
 /**
- * @brief retrieve a path of nodes from the last call to calculateDist
- * this only works if calculateNodes was called before this
- * 
- * @param path  output: path of nodes
- */
-void FirstDijkstra::getPath(std::vector<uint64_t> &path){
-    if(distance.at(endPoint) < UINT64_MAX){
-        // build up path
-        uint64_t currNode = endPoint;
-        while(currNode != startPoint){
-            currNode = previous.at(currNode);
-            path.push_back(currNode);
-        }
-
-        // print path
-        std::cout << "Path:" << std::endl;
-        for (std::vector<uint64_t>::iterator it = path.begin(); it != path.end(); ++it) {
-            std::cout << *it << " ";
-        }
-        std::cout <<  std::endl;
-        std::cout << "dist: " << distance.at(endPoint)/1000 << "km" << std::endl;
-    }else{
-        std::cout << "no path found" << std::endl;
-        //path.push_back(startPoint);
-        //path.push_back(endPoint);
-    }
-}
-
-/**
- * @brief reset and prepare the datastructures for the next call to calculateDist
- */
-void FirstDijkstra::reset(){
-    distance.clear();
-    previous.clear();
-    // reset map
-    for (int i = 0; i < array.nodes.size(); i++){
-        distance.insert({i, UINT64_MAX});
-        previous.insert({i, UINT64_MAX});
-    }
-}
-
-/**
- * @brief returns the last distance calculated by calculateDist
- * 
- * @return uint64_t
- */
-uint64_t FirstDijkstra::getDist(){
-    return lastCalculatedDistance;
-}
-
-/**
- * @brief this method computes the dijkstra algorithm to find the shortest path from startPoint_ to endPoint_
- * 
- * @param startPoint_   node id of start node
- * @param endPoint_     node id of goal node
- * @return uint64_t 
- */
-uint64_t FirstDijkstra::calculateDist(uint64_t startPoint_, uint64_t endPoint_){
-
-    startPoint = startPoint_;
-    endPoint = endPoint_;
-
-    distance.at(startPoint) = 0;
-    typedef std::pair<uint64_t, uint64_t> pqPair;
-
-    std::priority_queue<pqPair, std::vector<pqPair>, std::greater<pqPair>> pq;
-    pq.push(std::make_pair(0, startPoint));
-    std::pair<uint64_t, uint64_t> currTop; // current top element
-
-    uint64_t currSourceNode;
-    uint64_t currTargetNode;
-    uint64_t currDistance;
-
-    uint64_t currTargetDistance = UINT64_MAX;
-    while (true){
-        if(pq.empty()){
-            // no node can be expanded anymore
-            lastCalculatedDistance = distance.at(endPoint);
-            return lastCalculatedDistance;
-        }
-        currTop = pq.top(); // first element is dist, second in node id
-        pq.pop();
-        //std::cout << pq.size() << std::endl;
-        currSourceNode = currTop.second;
-        //std::cout << pq.size() << std::endl;
-
-        for(uint64_t currEdgeId = array.offsets.at(currSourceNode); currEdgeId < array.offsets.at(currSourceNode+1); currEdgeId++){
-            currTargetNode = array.edges.at(currEdgeId);
-            currDistance = distance.at(currSourceNode) + nodeDistance(array, currSourceNode, currTargetNode);
-            
-            if(distance.at(currTargetNode) > currDistance){
-                if(currTargetNode == endPoint){
-                    // save current best distance to endPoint
-                    currTargetDistance = currDistance;
-                }
-                distance.at(currTargetNode) = currDistance;
-                previous.at(currTargetNode) = currSourceNode;
-
-                // do not expand node if it has higher distance than the current target distance
-                if(currDistance <= currTargetDistance){
-                    pq.push(std::make_pair(currDistance, currTargetNode));
-                }
-            }
-        }
-    }
-}
-
-/**
- * @brief Construct a new Second Dijkstra:: Second Dijkstra object
+ * @brief Construct a new Dijkstra:: DijkstraImpl object
  * 
  * Initialize datastructures
  * Initialize distances between nodes
  * 
  * @param array 
  */
-SecondDijkstra::SecondDijkstra(AdjacencyArray &array) : adjArray(array), prev(array.width*array.height, UINT64_MAX){
+DijkstraImpl::DijkstraImpl(AdjacencyArray &array) : adjArray(array), prev(array.width*array.height, UINT64_MAX){
     reset();
     
     // calculate distances between nodes:
@@ -204,7 +74,7 @@ SecondDijkstra::SecondDijkstra(AdjacencyArray &array) : adjArray(array), prev(ar
 /**
  * @brief reset datastructures to prepare for next call to calculateDist
  */
-void SecondDijkstra::reset(){
+void DijkstraImpl::reset(){
     std::vector<uint64_t> initDist(adjArray.width*adjArray.height, UINT64_MAX);
     distance = std::move(initDist);
     // no need to reset prev
@@ -222,7 +92,7 @@ void SecondDijkstra::reset(){
  * @param endPoint 
  * @return uint64_t 
  */
-uint64_t SecondDijkstra::calculateDist(uint64_t startPoint_, uint64_t endPoint_){
+uint64_t DijkstraImpl::calculateDist(uint64_t startPoint_, uint64_t endPoint_){
 
     startPoint = startPoint_;
     endPoint = endPoint_;
@@ -285,7 +155,7 @@ uint64_t SecondDijkstra::calculateDist(uint64_t startPoint_, uint64_t endPoint_)
  * 
  * @return uint64_t 
  */
-uint64_t SecondDijkstra::getDist(){
+uint64_t DijkstraImpl::getDist(){
     return lastCalculatedDistance;
 }
 
@@ -294,7 +164,7 @@ uint64_t SecondDijkstra::getDist(){
  * 
  * @param path 
  */
-void SecondDijkstra::getPath(std::vector<uint64_t> &path){
+void DijkstraImpl::getPath(std::vector<uint64_t> &path){
     if(distance.at(endPoint) < UINT64_MAX){
         // build up path
         uint64_t currNode = endPoint;
@@ -324,8 +194,8 @@ void SecondDijkstra::getPath(std::vector<uint64_t> &path){
 
 void test() {
     AdjacencyArray adjArray("data/worldGrid_1415_707.save");
-    FirstDijkstra fd(adjArray);
-    PathAlgorithm &pa = fd;
+    DijkstraImpl sd(adjArray);
+    PathAlgorithm &pa = sd;
 
     std::vector<uint64_t> path;
     pa.reset();
