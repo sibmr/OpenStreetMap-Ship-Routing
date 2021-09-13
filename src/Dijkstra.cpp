@@ -31,6 +31,7 @@ class DijkstraImpl: public PathAlgorithm{
         void getPath(std::vector<uint64_t> &path);
         uint64_t getDist();
         uint64_t calculateDist(uint64_t startPoint, uint64_t endPoint);
+        uint64_t calculateDistSavedEdges(uint64_t startPoint, uint64_t endPoint);
         void reset();
     private:
         uint64_t fillVectors(uint64_t startPoint, uint64_t endPoint);
@@ -135,6 +136,85 @@ uint64_t DijkstraImpl::calculateDist(uint64_t startPoint_, uint64_t endPoint_){
 
             // choose length of edge from precalculated lengths
             uint64_t edgeDist = (idxDiff < 2) ? constLngDist : constLatDist.at(neighborIdx%adjArray.height);
+
+            uint64_t newNeighborDist = front.heuristic_dist + edgeDist;
+            uint64_t oldNeighborDist = distance.at(neighborIdx);
+
+            if(newNeighborDist<oldNeighborDist){
+                // do not update distance array: only update for distances that are final
+                // distance.at(neighborIdx) = newNeighborDist;
+                heap.push_back(HeapElement{neighborIdx, front.nodeIdx, newNeighborDist});
+                std::push_heap(heap.begin(), heap.end());
+            }
+        }
+
+        if(front.nodeIdx == endPoint){
+            lastCalculatedDistance = distance.at(front.nodeIdx);
+            return lastCalculatedDistance;
+        }
+
+    }
+
+}
+
+
+
+
+/**
+ * @brief efficient dijkstra shortest-path implementation
+ * 
+ * Uses binary Min(Max)-heap for greedy node visitation strategy
+ * 
+ * Saved Distances
+ * 
+ * @param startPoint 
+ * @param endPoint 
+ * @return uint64_t 
+ */
+uint64_t DijkstraImpl::calculateDistSavedEdges(uint64_t startPoint_, uint64_t endPoint_){
+
+    startPoint = startPoint_;
+    endPoint = endPoint_;
+
+    // early stop with same start value
+    if(std::find (visited.begin(), visited.end(), endPoint) != visited.end() && distance.at(startPoint) == 0){
+        return distance.at(endPoint);
+    }else{
+        reset();
+    }
+
+    heap.push_back(HeapElement{startPoint, UINT64_MAX, 0});
+
+    std::make_heap(heap.begin(), heap.end());
+
+    HeapElement front;
+    while(true){
+        if(heap.empty()){
+            return UINT64_MAX;
+        }
+
+        std::pop_heap(heap.begin(), heap.end());
+        front = heap.back();
+        heap.pop_back();
+
+        // avoid duplicate nodes
+        if(front.heuristic_dist >= distance.at(front.nodeIdx)){
+            continue;
+        }
+
+        distance.at(front.nodeIdx) = front.heuristic_dist;
+        prev.at(front.nodeIdx) = front.prev;
+        visited.push_back(front.nodeIdx);
+
+        for(uint64_t currEdgeId = adjArray.offsets.at(front.nodeIdx); currEdgeId < adjArray.offsets.at(front.nodeIdx+1); currEdgeId++){
+            uint64_t neighborIdx = adjArray.edges.at(currEdgeId);
+
+            // absolute difference of unsigned int
+            uint64_t idxDiff = neighborIdx<front.nodeIdx ? front.nodeIdx-neighborIdx : neighborIdx-front.nodeIdx;
+
+            // choose length of edge from precalculated lengths
+            //uint64_t edgeDist = (idxDiff < 2) ? constLngDist : constLatDist.at(neighborIdx%adjArray.height);
+            uint64_t edgeDist = adjArray.distances.at(currEdgeId);
 
             uint64_t newNeighborDist = front.heuristic_dist + edgeDist;
             uint64_t oldNeighborDist = distance.at(neighborIdx);

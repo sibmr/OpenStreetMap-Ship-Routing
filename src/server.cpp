@@ -103,7 +103,7 @@ int main(int argc, char** argv)
 
         std::vector<uint64_t> idPath;
         pathAlgorithm.reset();
-        uint64_t distance = pathAlgorithm.calculateDist(sNode, tNode);
+        uint64_t distance = pathAlgorithm.calculateDistSavedEdges(sNode, tNode);
 
         std::vector<double> posPath;
 
