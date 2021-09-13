@@ -12,14 +12,20 @@ struct AdjacencyArray {
     uint64_t width, height;
     std::vector<uint64_t> offsets;
     std::vector<uint64_t> edges;
+    std::vector<uint64_t> distances;
+    std::vector<uint16_t> rank;
     std::vector<bool> nodes;
 
+    /**
+     * @brief Construct a new Adjacency Array object for buildGraph
+     */
+    AdjacencyArray(){};
     /**
      * @brief Construct a new Adjacency Array object
      * 
      * @param path path to input .graph file
      */
-    AdjacencyArray(std::string path) : offsets(), edges(), nodes(){
+    AdjacencyArray(std::string path) : offsets(), edges(), distances(), rank(),  nodes(){
 
         /*
         * input file
@@ -52,7 +58,7 @@ struct AdjacencyArray {
         adjacency_input_file.read(reinterpret_cast<char *>(&width),     sizeof(width));
         adjacency_input_file.read(reinterpret_cast<char *>(&height),     sizeof(height));
 
-        // save offset vectro size
+        // save offset vector size
         uint64_t offset_size;
         adjacency_input_file.read(reinterpret_cast<char *>(&offset_size),     sizeof(offset_size));
         offsets.resize(offset_size);
@@ -71,6 +77,26 @@ struct AdjacencyArray {
         for(uint64_t i = 0; i < edges_size; i++){
             adjacency_input_file.read(reinterpret_cast<char *>(&edges.at(i)), sizeof(edges.at(i)));
         }
+
+
+        uint64_t distances_size;
+        adjacency_input_file.read(reinterpret_cast<char *>(&distances_size),     sizeof(distances_size));
+        distances.resize(distances_size);
+
+
+        for(uint64_t i = 0; i < distances_size; i++){
+            adjacency_input_file.read(reinterpret_cast<char *>(&distances.at(i)), sizeof(distances.at(i)));
+        }
+
+        uint64_t rank_size;
+        adjacency_input_file.read(reinterpret_cast<char *>(&rank_size),     sizeof(rank_size));
+        rank.resize(rank_size);
+
+
+        for(uint64_t i = 0; i < rank_size; i++){
+            adjacency_input_file.read(reinterpret_cast<char *>(&rank.at(i)), sizeof(rank.at(i)));
+        }
+
 
         uint64_t nodes_size = nodes.size();
         adjacency_input_file.read(reinterpret_cast<char *>(&nodes_size), sizeof(nodes_size));
@@ -136,6 +162,16 @@ void nodeIdToLongLat(std::array<double,2> &result, AdjacencyArray &array, uint64
     return;
 
 }
+void nodeIdToLongLat(std::array<double,2> &result, double &longLow, double &latLow, double &longHigh, double &latHigh, uint64_t &width, uint64_t &height, uint64_t id){
+    const double longStep = (longHigh-longLow)/(width+1);
+    const double latStep = (latHigh-latLow)/(height+1);
+
+    result[0] =  longLow + std::floor(id/height) * longStep + longStep/2;
+    result[1] =  latLow + (id%height) * latStep + latStep/2;
+    return;
+
+}
+
 
 /**
  * @brief given (longitude, latitude), get the id of the closest node to that point
@@ -169,6 +205,17 @@ uint64_t nodeDistance(AdjacencyArray &array, uint64_t node1, uint64_t node2){
     std::array<double,2> longLat_2;
     nodeIdToLongLat(longLat_1, array, node1);
     nodeIdToLongLat(longLat_2, array, node2);
+
+    uint64_t result = uint64_t(round(latLongDistance(longLat_1[0], longLat_1[1], longLat_2[0], longLat_2[1])));
+
+    return result;
+}
+uint64_t nodeDistance(double longLow, double latLow, double longHigh, double latHigh, uint64_t width, uint64_t height, uint64_t node1, uint64_t node2){
+    std::array<double,2> longLat_1;
+    std::array<double,2> longLat_2;
+
+    nodeIdToLongLat(longLat_1, longLow, latLow, longHigh, latHigh, width, height, node1);
+    nodeIdToLongLat(longLat_1, longLow, latLow, longHigh, latHigh, width, height, node2);
 
     uint64_t result = uint64_t(round(latLongDistance(longLat_1[0], longLat_1[1], longLat_2[0], longLat_2[1])));
 

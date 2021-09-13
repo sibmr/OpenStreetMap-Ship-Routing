@@ -2,6 +2,11 @@
 # include <fstream>
 # include <string>
 # include <vector>
+# include <array>
+# include <math.h>
+
+#include "shortestPathUtils.cpp"
+
 
 struct GridData {
     double longLow, latLow, longHigh, latHigh;
@@ -10,13 +15,15 @@ struct GridData {
     std::vector<bool> gridDataList; 
 };
 
-struct AdjacencyArray {
-    double longLow, latLow, longHigh, latHigh;
-    uint64_t width, height;
-    std::vector<uint64_t> offsets;
-    std::vector<uint64_t> edges;
-    std::vector<bool> nodes;
-};
+//struct AdjacencyArray {
+//    double longLow, latLow, longHigh, latHigh;
+//    uint64_t width, height;
+//    std::vector<uint64_t> offsets;
+//    std::vector<uint64_t> edges;
+//    std::vector<uint64_t> distances;
+//    std::vector<uint16_t> rank;
+//    std::vector<bool> nodes;
+//};
 
 /**
  * @brief read grid data from disk and store it in struct
@@ -86,7 +93,7 @@ void fillAdjacencyArray(GridData &data, AdjacencyArray &array){
     {
         uint64_t x      = i*data.height + j;
         
-        if(!data.gridDataList.at(x)){
+        if(!data.gridDataList.at(x)){               // if its water
             uint64_t down   = i*data.height + (j-1);
             uint64_t up     = i*data.height + (j+1);
             uint64_t left   = ((data.width+i-1)%data.width)*data.height + j;
@@ -95,18 +102,26 @@ void fillAdjacencyArray(GridData &data, AdjacencyArray &array){
             if(!data.gridDataList.at(left)){
                 offset_step += 1;
                 array.edges.push_back(left);
+                array.distances.push_back(nodeDistance(array, x, left));
+                array.rank.push_back(0);
             }
             if(!data.gridDataList.at(right)){
                 offset_step += 1;
                 array.edges.push_back(right);
+                array.distances.push_back(nodeDistance(array, x, right));
+                array.rank.push_back(0);
             }
             if(j>0              && !data.gridDataList.at(down)){
                 offset_step += 1;
                 array.edges.push_back(down);
+                array.distances.push_back(nodeDistance(array, x, down));
+                array.rank.push_back(0);
             }
             if(j<data.height-1   && !data.gridDataList.at(up)){
                 offset_step += 1;
                 array.edges.push_back(up);
+                array.distances.push_back(nodeDistance(array, x, up));
+                array.rank.push_back(0);
             }
         }
 
@@ -114,6 +129,8 @@ void fillAdjacencyArray(GridData &data, AdjacencyArray &array){
         offset_step = 0;
         array.offsets.push_back(current_offset);
     }
+    std::cout << array.distances.size() << std::endl;
+    std::cout << array.edges.size() << std::endl;
 }
 
 void testLoadFill(GridData &dat, AdjacencyArray &adjArray){
@@ -195,12 +212,39 @@ void saveAdjacencyArray(AdjacencyArray &array, std::string path){
     adjacency_output_file.flush();
 
 
+    // save edges
     uint64_t edges_size = array.edges.size();
     adjacency_output_file.write(reinterpret_cast<const char*>(&edges_size),     sizeof(edges_size));
 
     adjacency_output_file.flush();
     for(uint64_t i = 0; i < edges_size; i++){
         adjacency_output_file.write(reinterpret_cast<const char*>(&array.edges.at(i)), sizeof(array.edges.at(i)));
+        if(i % 20 == 0){
+            adjacency_output_file.flush();
+        }
+    }
+    adjacency_output_file.flush();
+
+    // save distances
+    uint64_t distances_size = array.distances.size();
+    adjacency_output_file.write(reinterpret_cast<const char*>(&distances_size),     sizeof(distances_size));
+
+    adjacency_output_file.flush();
+    for(uint64_t i = 0; i < distances_size; i++){
+        adjacency_output_file.write(reinterpret_cast<const char*>(&array.distances.at(i)), sizeof(array.distances.at(i)));
+        if(i % 20 == 0){
+            adjacency_output_file.flush();
+        }
+    }
+    adjacency_output_file.flush();
+
+    // save rank
+    uint64_t rank_size = array.rank.size();
+    adjacency_output_file.write(reinterpret_cast<const char*>(&rank_size),     sizeof(rank_size));
+
+    adjacency_output_file.flush();
+    for(uint64_t i = 0; i < rank_size; i++){
+        adjacency_output_file.write(reinterpret_cast<const char*>(&array.rank.at(i)), sizeof(array.rank.at(i)));
         if(i % 20 == 0){
             adjacency_output_file.flush();
         }
@@ -252,6 +296,8 @@ int main(int argc, char** argv) {
     // generate input filename
     if(inputFileId == -1){
         inputFileName = "data/planet.grid";
+        inputFileName = "data/planet_2.grid";
+        //inputFileName = "data/antarctica_100K.grid";
         std::cout << "no input file given assume " <<  inputFileName << std::endl;
     }else{
         inputFileName = std::string(argv[inputFileId]);
@@ -266,7 +312,7 @@ int main(int argc, char** argv) {
     }
     size_t lastindex = tmp_oFile.find_last_of(".");
     outputFileName = tmp_oFile.substr(0, lastindex);
-    outputFileName += ".graph";
+    outputFileName += ".graph_2";
 
     GridData dat;
     AdjacencyArray adjArray;
