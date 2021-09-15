@@ -59,7 +59,6 @@ double doubleRand(double doubleMin, double doubleMax){
  * @param latStart 
  * @param longGoal 
  * @param latGoal 
- * @param numAvg 
  * @param numSamplePoints 
  */
 void testDijkstra(PathAlgorithm &pathAlg, PathAlgorithm &pathAlg2,  AdjacencyArray &adjArray,
