@@ -63,7 +63,7 @@ double doubleRand(double doubleMin, double doubleMax){
  * @param numSamplePoints 
  */
 void testDijkstra(PathAlgorithm &pathAlg, PathAlgorithm &pathAlg2,  AdjacencyArray &adjArray,
-    double longStart, double latStart, double longGoal, double latGoal, int numAvg, int numSamplePoints)
+    double longStart, double latStart, double longGoal, double latGoal, int numSamplePoints)
 {
     srand(time(NULL));
 
@@ -146,7 +146,7 @@ void testDijkstra(PathAlgorithm &pathAlg, PathAlgorithm &pathAlg2,  AdjacencyArr
         uint64_t diff = duration-avgTwo;
         stddevTwo += diff*diff;
     }
-    stddevTwo = sqrt(stddevOne)/timingPathAlgTwo.size();
+    stddevTwo = sqrt(stddevTwo)/timingPathAlgTwo.size();
 
     for(int i = 0; i < timingPathAlgOne.size(); i++){
         if(resultPathAlgOne.at(i) != resultPathAlgTwo.at(i)){
@@ -158,6 +158,9 @@ void testDijkstra(PathAlgorithm &pathAlg, PathAlgorithm &pathAlg2,  AdjacencyArr
 
     std::cout << "First alg has from " << timingPathAlgOne.size() << " Queries an Average of " << avgOne << "us and stddev of: "<< stddevOne <<  "us" << std::endl;
     std::cout << "Second alg has from " << timingPathAlgTwo.size() << " Queries an Average of " << avgTwo << "us and stddev of: "<< stddevTwo << "us" <<  std::endl;
+    std::cout << "In average the first algorithm taskes " <<  ((double)((avgOne * 10000)/(avgTwo)) / 10000) << " times longer" << std::endl;
+    std::cout << "In average the second algorithm taskes " <<  ((double)((avgTwo * 10000)/(avgOne)) / 10000) << " times longer" << std::endl;
+
 
 }
 
@@ -185,6 +188,6 @@ int main(int argc, char** argv) {
         PathAlgorithm &paSavedEdges = sdSavedEdges;
         // across atlantic
         //benchmarkDijkstra(pa, adjArray, -62, 40, -14, 53.5, 3);
-        testDijkstra(pa, paSavedEdges, adjArray, -85, -180, 85, 180, 5, 200);
+        testDijkstra(pa, paSavedEdges, adjArray, -85, -180, 85, 180, 200);
     }
 }
