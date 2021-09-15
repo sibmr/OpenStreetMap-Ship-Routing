@@ -45,6 +45,29 @@ class DijkstraImpl: public PathAlgorithm{
         uint64_t startPoint, endPoint, lastCalculatedDistance;
 };
 
+/**
+ * @brief Our more efficient implementation of the dijkstra algorithm
+ * Similar implementation to https://github.com/Lesstat/dijkstra-performance-study/
+ */
+class DijkstraSavedEdges: public PathAlgorithm{
+    public:
+        DijkstraSavedEdges(AdjacencyArray &array);
+        void getPath(std::vector<uint64_t> &path);
+        uint64_t getDist();
+        uint64_t calculateDist(uint64_t startPoint, uint64_t endPoint);
+        void reset();
+    private:
+        uint64_t fillVectors(uint64_t startPoint, uint64_t endPoint);
+        std::vector<uint64_t> distance;
+        std::vector<HeapElement> heap;
+        std::vector<uint64_t> visited;
+        std::vector<uint64_t> prev;
+        AdjacencyArray &adjArray;
+        uint64_t constLngDist;
+        std::vector<uint64_t> constLatDist;
+        uint64_t startPoint, endPoint, lastCalculatedDistance;
+};
+
 
 
 
@@ -135,7 +158,9 @@ uint64_t DijkstraImpl::calculateDist(uint64_t startPoint_, uint64_t endPoint_){
             uint64_t idxDiff = neighborIdx<front.nodeIdx ? front.nodeIdx-neighborIdx : neighborIdx-front.nodeIdx;
 
             // choose length of edge from precalculated lengths
-            uint64_t edgeDist = (idxDiff < 2) ? constLngDist : constLatDist.at(neighborIdx%adjArray.height);
+            // WRONG CALCULATION OF DISTANCE BETWEEN TWO NODES
+            //uint64_t edgeDist = (idxDiff < 2) ? constLngDist : constLatDist.at(neighborIdx%adjArray.height);
+            uint64_t edgeDist = nodeDistance(adjArray, front.nodeIdx, neighborIdx);
 
             uint64_t newNeighborDist = front.heuristic_dist + edgeDist;
             uint64_t oldNeighborDist = distance.at(neighborIdx);
@@ -160,6 +185,83 @@ uint64_t DijkstraImpl::calculateDist(uint64_t startPoint_, uint64_t endPoint_){
 
 
 
+
+
+/**
+ * @brief returns distance of last call to calculateDist
+ * 
+ * @return uint64_t 
+ */
+uint64_t DijkstraImpl::getDist(){
+    return lastCalculatedDistance;
+}
+
+/**
+ * @brief retrieve path calculated by the last call to calculateDist
+ * 
+ * @param path 
+ */
+void DijkstraImpl::getPath(std::vector<uint64_t> &path){
+    if(distance.at(endPoint) < UINT64_MAX){
+        // build up path
+        uint64_t currNode = endPoint;
+        while(currNode != startPoint){
+            currNode = prev.at(currNode);
+            path.push_back(currNode);
+        }
+
+        // print path
+        std::cout << "Path:" << std::endl;
+        for (std::vector<uint64_t>::iterator it = path.begin(); it != path.end(); ++it) {
+            std::cout << *it << " ";
+        }
+        std::cout <<  std::endl;
+        std::cout << "dist: " << distance.at(endPoint)/1000 << "km" << std::endl;
+    }else{
+        std::cout << "no path found" << std::endl;
+        //path.push_back(startPoint);
+        //path.push_back(endPoint);
+    }
+    
+}
+
+
+/**
+ * @brief Construct a new Dijkstra:: DijkstraImpl object
+ * 
+ * Initialize datastructures
+ * Initialize distances between nodes
+ * 
+ * @param array 
+ */
+DijkstraSavedEdges::DijkstraSavedEdges(AdjacencyArray &array) : adjArray(array), prev(array.width*array.height, UINT64_MAX){
+    reset();
+    
+    // calculate distances between nodes:
+    // constLngDist is the distance between nodes with the same longitude but different latitude
+    // constLatDist is the distance between nodes with the same latitude but different logitude
+    // distance between (i,0) and (i,1)
+    constLngDist = nodeDistance(adjArray, 0, 1);
+    // for each constant latitude "ring" around the globe, the distance is different
+    // mirroring is disregarded
+    for(uint64_t i = 0; i<adjArray.height; ++i){
+        // distance between (0,i) and (1,i)
+        constLatDist.push_back(nodeDistance(adjArray, i, adjArray.height+i));
+    }
+}
+
+/**
+ * @brief reset datastructures to prepare for next call to calculateDist
+ */
+void DijkstraSavedEdges::reset(){
+    std::vector<uint64_t> initDist(adjArray.width*adjArray.height, UINT64_MAX);
+    distance = std::move(initDist);
+    // no need to reset prev
+    heap.clear();
+}
+
+
+
 /**
  * @brief efficient dijkstra shortest-path implementation
  * 
@@ -171,7 +273,7 @@ uint64_t DijkstraImpl::calculateDist(uint64_t startPoint_, uint64_t endPoint_){
  * @param endPoint 
  * @return uint64_t 
  */
-uint64_t DijkstraImpl::calculateDistSavedEdges(uint64_t startPoint_, uint64_t endPoint_){
+uint64_t DijkstraSavedEdges::calculateDist(uint64_t startPoint_, uint64_t endPoint_){
 
     startPoint = startPoint_;
     endPoint = endPoint_;
@@ -241,7 +343,7 @@ uint64_t DijkstraImpl::calculateDistSavedEdges(uint64_t startPoint_, uint64_t en
  * 
  * @return uint64_t 
  */
-uint64_t DijkstraImpl::getDist(){
+uint64_t DijkstraSavedEdges::getDist(){
     return lastCalculatedDistance;
 }
 
@@ -250,7 +352,7 @@ uint64_t DijkstraImpl::getDist(){
  * 
  * @param path 
  */
-void DijkstraImpl::getPath(std::vector<uint64_t> &path){
+void DijkstraSavedEdges::getPath(std::vector<uint64_t> &path){
     if(distance.at(endPoint) < UINT64_MAX){
         // build up path
         uint64_t currNode = endPoint;
@@ -273,8 +375,6 @@ void DijkstraImpl::getPath(std::vector<uint64_t> &path){
     }
     
 }
-
-
 
 
 
