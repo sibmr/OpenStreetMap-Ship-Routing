@@ -159,8 +159,8 @@ uint64_t DijkstraImpl::calculateDist(uint64_t startPoint_, uint64_t endPoint_){
 
             // choose length of edge from precalculated lengths
             // WRONG CALCULATION OF DISTANCE BETWEEN TWO NODES
-            //uint64_t edgeDist = (idxDiff < 2) ? constLngDist : constLatDist.at(neighborIdx%adjArray.height);
-            uint64_t edgeDist = nodeDistance(adjArray, front.nodeIdx, neighborIdx);
+            uint64_t edgeDist = (idxDiff < 2) ? constLngDist : constLatDist.at(neighborIdx%adjArray.height);
+            //uint64_t edgeDist = nodeDistance(adjArray, front.nodeIdx, neighborIdx);
 
             uint64_t newNeighborDist = front.heuristic_dist + edgeDist;
             uint64_t oldNeighborDist = distance.at(neighborIdx);
