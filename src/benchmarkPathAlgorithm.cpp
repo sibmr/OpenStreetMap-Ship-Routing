@@ -53,6 +53,28 @@ double doubleRand(double doubleMin, double doubleMax){
  * @brief Test two PathAlgorithms to be identical and test how long each takes
  * 
  * @param pathAlg           first Path Algorith to test
+ * @param adjArray      
+ * @param longStart 
+ * @param latStart 
+ * @param longGoal 
+ * @param latGoal 
+ * @param numSamplePoints 
+ */
+void debugDijkstra(PathAlgorithm &pathAlg,  AdjacencyArray &adjArray,
+    double longStart, double latStart, double longGoal, double latGoal)
+{
+    uint64_t sNode = longLatToNodeId(adjArray, longStart, latStart);
+    uint64_t tNode = longLatToNodeId(adjArray, longGoal, latGoal);
+
+    pathAlg.reset();
+
+    std::cout << pathAlg.calculateDist(sNode, tNode) << std::endl;
+}
+
+/**
+ * @brief Test two PathAlgorithms to be identical and test how long each takes
+ * 
+ * @param pathAlg           first Path Algorith to test
  * @param pathAlg2          second Path Algorith to test
  * @param adjArray      
  * @param longStart 
@@ -183,10 +205,14 @@ int main(int argc, char** argv) {
     {
         DijkstraImpl sd (adjArray);
         DijkstraSavedEdges sdSavedEdges (adjArray);
+        DijkstraBiDirect sdBiDirect (adjArray);
         PathAlgorithm &pa = sd;
         PathAlgorithm &paSavedEdges = sdSavedEdges;
+        PathAlgorithm &paBiDirect = sdBiDirect;
         // across atlantic
         //benchmarkDijkstra(pa, adjArray, -62, 40, -14, 53.5, 3);
-        testDijkstra(pa, paSavedEdges, adjArray, -85, -180, 85, 180, 200);
+        //debugDijkstra(paBiDirect, adjArray, -62, 40, -14, 53.5);
+        testDijkstra(paSavedEdges, paBiDirect, adjArray, -85, -180, 85, 180, 100);
+
     }
 }

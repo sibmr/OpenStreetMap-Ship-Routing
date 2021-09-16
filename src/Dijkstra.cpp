@@ -81,10 +81,14 @@ class DijkstraBiDirect: public PathAlgorithm{
         void reset();
     private:
         uint64_t fillVectors(uint64_t startPoint, uint64_t endPoint);
-        std::vector<uint64_t> distance;
-        std::vector<HeapElement> heap;
-        std::vector<uint64_t> visited;
-        std::vector<uint64_t> prev;
+        std::vector<uint64_t> distanceSource;
+        std::vector<uint64_t> distanceTarget;
+        std::vector<HeapElement> heapSource;
+        std::vector<HeapElement> heapTarget;
+        std::vector<uint64_t> visitedSource;
+        std::vector<uint64_t> visitedTarget;
+        std::vector<uint64_t> prevSource;
+        std::vector<uint64_t> prevTarget;
         AdjacencyArray &adjArray;
         uint64_t constLngDist;
         std::vector<uint64_t> constLatDist;
@@ -332,11 +336,8 @@ uint64_t DijkstraSavedEdges::calculateDist(uint64_t startPoint_, uint64_t endPoi
         for(uint64_t currEdgeId = adjArray.offsets.at(front.nodeIdx); currEdgeId < adjArray.offsets.at(front.nodeIdx+1); currEdgeId++){
             uint64_t neighborIdx = adjArray.edges.at(currEdgeId);
 
-            // absolute difference of unsigned int
-            uint64_t idxDiff = neighborIdx<front.nodeIdx ? front.nodeIdx-neighborIdx : neighborIdx-front.nodeIdx;
 
             // choose length of edge from precalculated lengths
-            //uint64_t edgeDist = (idxDiff < 2) ? constLngDist : constLatDist.at(neighborIdx%adjArray.height);
             uint64_t edgeDist = adjArray.distances.at(currEdgeId);
 
             uint64_t newNeighborDist = front.heuristic_dist + edgeDist;
@@ -396,6 +397,8 @@ void DijkstraSavedEdges::getPath(std::vector<uint64_t> &path){
     }
     
 }
+
+
 /**
  * @brief Construct a new Dijkstra:: DijkstraImpl object from both sides
  * 
@@ -404,7 +407,7 @@ void DijkstraSavedEdges::getPath(std::vector<uint64_t> &path){
  * 
  * @param array 
  */
-DijkstraBiDirect::DijkstraBiDirect(AdjacencyArray &array) : adjArray(array), prev(array.width*array.height, UINT64_MAX){
+DijkstraBiDirect::DijkstraBiDirect(AdjacencyArray &array) : adjArray(array), prevSource(array.width*array.height, UINT64_MAX), prevTarget(array.width*array.height, UINT64_MAX){
     reset();
     
     // calculate distances between nodes:
@@ -425,9 +428,12 @@ DijkstraBiDirect::DijkstraBiDirect(AdjacencyArray &array) : adjArray(array), pre
  */
 void DijkstraBiDirect::reset(){
     std::vector<uint64_t> initDist(adjArray.width*adjArray.height, UINT64_MAX);
-    distance = std::move(initDist);
+    std::vector<uint64_t> initDist2(adjArray.width*adjArray.height, UINT64_MAX);
+    distanceSource = std::move(initDist);
+    distanceTarget = std::move(initDist2);
     // no need to reset prev
-    heap.clear();
+    heapSource.clear();
+    heapTarget.clear();
 }
 
 
@@ -447,61 +453,119 @@ uint64_t DijkstraBiDirect::calculateDist(uint64_t startPoint_, uint64_t endPoint
 
     startPoint = startPoint_;
     endPoint = endPoint_;
+    bool sourceTree = true;
+
+    uint64_t sourceDist = 0;
+    uint64_t targetDist = 0;
+    uint64_t currDist;
+    std::vector<uint64_t> * distancePointer;
 
     // early stop with same start value
-    if(std::find (visited.begin(), visited.end(), endPoint) != visited.end() && distance.at(startPoint) == 0){
-        return distance.at(endPoint);
-    }else{
-        reset();
-    }
+    //if(std::find (visited.begin(), visited.end(), endPoint) != visited.end() && distance.at(startPoint) == 0){
+    //    return distance.at(endPoint);
+    //}else{
+    //    reset();
+    //}
 
-    heap.push_back(HeapElement{startPoint, UINT64_MAX, 0});
+    heapSource.push_back(HeapElement{startPoint, UINT64_MAX, 0});
+    heapTarget.push_back(HeapElement{endPoint, UINT64_MAX, 0});
 
-    std::make_heap(heap.begin(), heap.end());
+    std::make_heap(heapSource.begin(), heapSource.end());
+    std::make_heap(heapTarget.begin(), heapTarget.end());
 
     HeapElement front;
     while(true){
-        if(heap.empty()){
-            return UINT64_MAX;
-        }
+        if(heapSource.empty() && heapTarget.empty()){
 
-        std::pop_heap(heap.begin(), heap.end());
-        front = heap.back();
-        heap.pop_back();
+            std::cout << sourceDist << " " << targetDist << std::endl;
+            std::cout << visitedSource.size() << " " << visitedTarget.size() << std::endl;
 
-        // avoid duplicate nodes
-        if(front.heuristic_dist >= distance.at(front.nodeIdx)){
-            continue;
-        }
-
-        distance.at(front.nodeIdx) = front.heuristic_dist;
-        prev.at(front.nodeIdx) = front.prev;
-        visited.push_back(front.nodeIdx);
-
-        for(uint64_t currEdgeId = adjArray.offsets.at(front.nodeIdx); currEdgeId < adjArray.offsets.at(front.nodeIdx+1); currEdgeId++){
-            uint64_t neighborIdx = adjArray.edges.at(currEdgeId);
-
-            // absolute difference of unsigned int
-            uint64_t idxDiff = neighborIdx<front.nodeIdx ? front.nodeIdx-neighborIdx : neighborIdx-front.nodeIdx;
-
-            // choose length of edge from precalculated lengths
-            //uint64_t edgeDist = (idxDiff < 2) ? constLngDist : constLatDist.at(neighborIdx%adjArray.height);
-            uint64_t edgeDist = adjArray.distances.at(currEdgeId);
-
-            uint64_t newNeighborDist = front.heuristic_dist + edgeDist;
-            uint64_t oldNeighborDist = distance.at(neighborIdx);
-
-            if(newNeighborDist<oldNeighborDist){
-                // do not update distance array: only update for distances that are final
-                // distance.at(neighborIdx) = newNeighborDist;
-                heap.push_back(HeapElement{neighborIdx, front.nodeIdx, newNeighborDist});
-                std::push_heap(heap.begin(), heap.end());
+            //return UINT64_MAX;
+            if(sourceDist != 0 && targetDist != 0){
+                return (sourceDist + targetDist) / 2;
+            }else{
+                return UINT64_MAX;
             }
         }
 
-        if(front.nodeIdx == endPoint){
-            lastCalculatedDistance = distance.at(front.nodeIdx);
-            return lastCalculatedDistance;
+        std::pop_heap(heapSource.begin(), heapSource.end());
+        std::pop_heap(heapTarget.begin(), heapTarget.end());
+
+        // POTENTIAL SOURCE OF FAILURE
+        if(heapTarget.empty() || (!heapSource.empty() && heapSource.back().heuristic_dist <= heapTarget.back().heuristic_dist)){
+            sourceTree = true;
+            front = heapSource.back();
+            heapSource.pop_back();
+        }else{
+            sourceTree = false;
+            front = heapTarget.back();
+            heapTarget.pop_back();
+        }
+
+
+        // original dijkstra
+        if(sourceTree){
+            // avoid duplicate nodes
+            if(front.heuristic_dist >= distanceSource.at(front.nodeIdx)){
+                continue;
+            }
+            distanceSource.at(front.nodeIdx) = front.heuristic_dist;
+            prevSource.at(front.nodeIdx) = front.prev;
+            visitedSource.push_back(front.nodeIdx);
+        
+            for(uint64_t currEdgeId = adjArray.offsets.at(front.nodeIdx); currEdgeId < adjArray.offsets.at(front.nodeIdx+1); currEdgeId++){
+                uint64_t neighborIdx = adjArray.edges.at(currEdgeId);
+
+                // choose length of edge from precalculated lengths
+                uint64_t edgeDist = adjArray.distances.at(currEdgeId);
+
+                uint64_t newNeighborDist = front.heuristic_dist + edgeDist;
+                uint64_t oldNeighborDist = distanceSource.at(neighborIdx);
+
+                if(newNeighborDist<oldNeighborDist){
+                    // do not update distance array: only update for distances that are final
+                    // distance.at(neighborIdx) = newNeighborDist;
+                    heapSource.push_back(HeapElement{neighborIdx, front.nodeIdx, newNeighborDist});
+                    std::push_heap(heapSource.begin(), heapSource.end());
+                }
+            }
+            if(front.nodeIdx == endPoint){
+                lastCalculatedDistance = distanceSource.at(front.nodeIdx);
+                sourceDist = lastCalculatedDistance;
+                heapSource.clear();
+                //return lastCalculatedDistance;
+            }
+        }else{
+            // avoid duplicate nodes
+            if(front.heuristic_dist >= distanceTarget.at(front.nodeIdx)){
+                continue;
+            }
+            distanceTarget.at(front.nodeIdx) = front.heuristic_dist;
+            prevTarget.at(front.nodeIdx) = front.prev;
+            visitedTarget.push_back(front.nodeIdx);
+
+            for(uint64_t currEdgeId = adjArray.offsets.at(front.nodeIdx); currEdgeId < adjArray.offsets.at(front.nodeIdx+1); currEdgeId++){
+                uint64_t neighborIdx = adjArray.edges.at(currEdgeId);
+
+                // choose length of edge from precalculated lengths
+                uint64_t edgeDist = adjArray.distances.at(currEdgeId);
+
+                uint64_t newNeighborDist = front.heuristic_dist + edgeDist;
+                uint64_t oldNeighborDist = distanceTarget.at(neighborIdx);
+
+                if(newNeighborDist<oldNeighborDist){
+                    // do not update distance array: only update for distances that are final
+                    // distance.at(neighborIdx) = newNeighborDist;
+                    heapTarget.push_back(HeapElement{neighborIdx, front.nodeIdx, newNeighborDist});
+                    std::push_heap(heapTarget.begin(), heapTarget.end());
+                }
+            }
+            if(front.nodeIdx == startPoint){
+                lastCalculatedDistance = distanceTarget.at(front.nodeIdx);
+                targetDist = lastCalculatedDistance;
+                heapTarget.clear();
+                //return lastCalculatedDistance;
+            }
         }
 
     }
@@ -523,33 +587,34 @@ uint64_t DijkstraBiDirect::getDist(){
  * @param path 
  */
 void DijkstraBiDirect::getPath(std::vector<uint64_t> &path){
-    if(distance.at(endPoint) < UINT64_MAX){
-        // build up path
-        uint64_t currNode = endPoint;
-        while(currNode != startPoint){
-            currNode = prev.at(currNode);
-            path.push_back(currNode);
-        }
+    return;
+    //if(distance.at(endPoint) < UINT64_MAX){
+    //    // build up path
+    //    uint64_t currNode = endPoint;
+    //    while(currNode != startPoint){
+    //        currNode = prev.at(currNode);
+    //        path.push_back(currNode);
+    //    }
 
-        // print path
-        std::cout << "Path:" << std::endl;
-        for (std::vector<uint64_t>::iterator it = path.begin(); it != path.end(); ++it) {
-            std::cout << *it << " ";
-        }
-        std::cout <<  std::endl;
-        std::cout << "dist: " << distance.at(endPoint)/1000 << "km" << std::endl;
-    }else{
-        std::cout << "no path found" << std::endl;
-        //path.push_back(startPoint);
-        //path.push_back(endPoint);
-    }
+    //    // print path
+    //    std::cout << "Path:" << std::endl;
+    //    for (std::vector<uint64_t>::iterator it = path.begin(); it != path.end(); ++it) {
+    //        std::cout << *it << " ";
+    //    }
+    //    std::cout <<  std::endl;
+    //    std::cout << "dist: " << distance.at(endPoint)/1000 << "km" << std::endl;
+    //}else{
+    //    std::cout << "no path found" << std::endl;
+    //    //path.push_back(startPoint);
+    //    //path.push_back(endPoint);
+    //}
     
 }
 
 
 void test() {
     AdjacencyArray adjArray("data/worldGrid_1415_707.save");
-    DijkstraImpl sd(adjArray);
+    DijkstraBiDirect sd(adjArray);
     PathAlgorithm &pa = sd;
 
     std::vector<uint64_t> path;
