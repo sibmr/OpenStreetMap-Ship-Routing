@@ -1,3 +1,5 @@
+#include <numeric>
+
 #include "shortestPathUtils.cpp"
 #include "PathAlgorithm.cpp"
 
@@ -33,6 +35,10 @@ class A_star: public PathAlgorithm{
         uint64_t getDist();
         uint64_t calculateDist(uint64_t startPoint, uint64_t endPoint);
         void reset();
+        virtual uint64_t getHeuristic(AdjacencyArray &adjArray, uint64_t firstNodeIdx, uint64_t secondNodeIdx);
+
+        uint64_t constLngDist;
+        std::vector<uint64_t> constLatDist;
     private:
         uint64_t fillVectors(uint64_t startPoint, uint64_t endPoint);
         std::vector<uint64_t> distance;
@@ -41,6 +47,7 @@ class A_star: public PathAlgorithm{
         std::vector<uint64_t> prev;
         AdjacencyArray &adjArray;
         uint64_t startPoint, endPoint, lastCalculatedDistance;
+        
 };
 
 
@@ -54,6 +61,18 @@ class A_star: public PathAlgorithm{
  */
 A_star::A_star(AdjacencyArray &array) : adjArray(array), prev(array.width*array.height, UINT64_MAX){
     reset();
+
+    // calculate distances between nodes:
+    // constLngDist is the distance between nodes with the same longitude but different latitude
+    // constLatDist is the distance between nodes with the same latitude but different logitude
+    // distance between (i,0) and (i,1)
+    constLngDist = nodeDistance(adjArray, 0, 1);
+    // for each constant latitude "ring" around the globe, the distance is different
+    // mirroring is disregarded
+    for(uint64_t i = 0; i<adjArray.height; ++i){
+        // distance between (0,i) and (1,i)
+        constLatDist.push_back(nodeDistance(adjArray, i, adjArray.height+i));
+    }
 }
 
 /**
@@ -64,6 +83,10 @@ void A_star::reset(){
     distance = std::move(initDist);
     // no need to reset prev
     heap.clear();
+}
+
+uint64_t A_star::getHeuristic(AdjacencyArray &adjArray, uint64_t firstNodeIdx, uint64_t secondNodeIdx){
+    return nodeDistance(adjArray, firstNodeIdx, secondNodeIdx);
 }
 
 /**
@@ -82,7 +105,7 @@ uint64_t A_star::calculateDist(uint64_t startPoint_, uint64_t endPoint_){
     startPoint = startPoint_;
     endPoint = endPoint_;
 
-    heap.push_back(HeapElement{startPoint, UINT64_MAX, nodeDistance(adjArray, startPoint, endPoint), 0});
+    heap.push_back(HeapElement{startPoint, UINT64_MAX, getHeuristic(adjArray, startPoint, endPoint), 0});
 
     std::make_heap(heap.begin(), heap.end());
 
@@ -131,8 +154,8 @@ uint64_t A_star::calculateDist(uint64_t startPoint_, uint64_t endPoint_){
                     HeapElement{
                         neighborIdx, 
                         front.nodeIdx, 
-                        newNeighborDist + nodeDistance(adjArray, neighborIdx, endPoint), 
-                        newNeighborDist});
+                        newNeighborDist + getHeuristic(adjArray, neighborIdx, endPoint), // f(x) = g(x) + h(x)
+                        newNeighborDist}); // g(x)
                 std::push_heap(heap.begin(), heap.end());
             }
         }
@@ -182,6 +205,42 @@ void A_star::getPath(std::vector<uint64_t> &path){
         //path.push_back(endPoint);
     }
     
+}
+
+
+class A_star_rectangular : public A_star{
+    
+    public:
+        A_star_rectangular(AdjacencyArray &array) : A_star(array) {}
+        uint64_t getHeuristic(AdjacencyArray &adjArray, uint64_t firstNodeIdx, uint64_t secondNodeIdx);
+    
+};
+
+uint64_t A_star_rectangular::getHeuristic(AdjacencyArray &adjArray, uint64_t firstNodeIdx, uint64_t secondNodeIdx){
+    uint64_t lngFirst;
+    uint64_t latFirst;
+    uint64_t lngSecond;
+    uint64_t latSecond;
+
+    nodeIdToArrayIdx(adjArray, firstNodeIdx, lngFirst, latFirst);
+    nodeIdToArrayIdx(adjArray, secondNodeIdx, lngSecond, latSecond);
+
+    if(lngFirst > lngSecond){
+        std::swap(lngFirst, lngSecond);
+    }
+
+    if(latFirst > latSecond){
+        std::swap(latFirst, latSecond);
+    }
+
+    //std::cout << "using rectangular version\n";
+
+    return std::floor(
+        (
+            (latSecond-latFirst)*constLngDist + 
+            std::min((lngSecond-lngFirst), (lngFirst+adjArray.width) - lngSecond) * std::min(constLatDist[latFirst], constLatDist[latSecond])
+        )*0.99
+    );
 }
 
 

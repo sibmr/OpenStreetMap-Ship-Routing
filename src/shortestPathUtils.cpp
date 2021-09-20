@@ -175,6 +175,10 @@ void nodeIdToLongLat(std::array<double,2> &result, double &longLow, double &latL
 
 }
 
+void nodeIdToArrayIdx(AdjacencyArray &array, uint64_t id, uint64_t &lng_out, uint64_t &lat_out){
+    lng_out = std::floor(id/array.height);
+    lat_out = id%array.height;
+}
 
 /**
  * @brief given (longitude, latitude), get the id of the closest node to that point
@@ -218,7 +222,7 @@ uint64_t nodeDistance(double longLow, double latLow, double longHigh, double lat
     std::array<double,2> longLat_2;
 
     nodeIdToLongLat(longLat_1, longLow, latLow, longHigh, latHigh, width, height, node1);
-    nodeIdToLongLat(longLat_1, longLow, latLow, longHigh, latHigh, width, height, node2);
+    nodeIdToLongLat(longLat_2, longLow, latLow, longHigh, latHigh, width, height, node2);
 
     uint64_t result = uint64_t(round(latLongDistance(longLat_1[0], longLat_1[1], longLat_2[0], longLat_2[1])));
 

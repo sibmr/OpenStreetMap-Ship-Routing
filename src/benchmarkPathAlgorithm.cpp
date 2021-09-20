@@ -206,8 +206,9 @@ int main(int argc, char** argv) {
     {
         Dijkstra::Dijkstra dijk (adjArray);
         A_star::A_star astar (adjArray);
+        A_star::A_star_rectangular astar_rect (adjArray);
         PathAlgorithm &pa = dijk;
-        PathAlgorithm &pa_one = astar;
+        PathAlgorithm &pa_one = astar_rect;
         //debugDijkstra(pa, adjArray, 59.5502,80.2847, 81.9907,84.0839);
         //debugDijkstra(pa_one, adjArray, 59.5502,80.2847, 81.9907,84.0839);
         testDijkstra(pa, pa_one, adjArray, -85, -180, 85, 180, 100);
