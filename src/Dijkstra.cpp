@@ -200,6 +200,7 @@ uint64_t DijkstraImpl::calculateDist(uint64_t startPoint_, uint64_t endPoint_){
 
         if(front.nodeIdx == endPoint){
             lastCalculatedDistance = distance.at(front.nodeIdx);
+            std::cout << "Traversed nodes " << visited.size() << std::endl;
             return lastCalculatedDistance;
         }
 
@@ -353,6 +354,7 @@ uint64_t DijkstraSavedEdges::calculateDist(uint64_t startPoint_, uint64_t endPoi
 
         if(front.nodeIdx == endPoint){
             lastCalculatedDistance = distance.at(front.nodeIdx);
+            std::cout << "Traversed nodes " << visited.size() << std::endl;
             return lastCalculatedDistance;
         }
 
@@ -477,8 +479,7 @@ uint64_t DijkstraBiDirect::calculateDist(uint64_t startPoint_, uint64_t endPoint
     while(true){
         if(heapSource.empty() && heapTarget.empty()){
 
-            std::cout << sourceDist << " " << targetDist << std::endl;
-            std::cout << visitedSource.size() << " " << visitedTarget.size() << std::endl;
+            std::cout << "Traversed nodes " << visitedSource.size() << " " << visitedTarget.size() << std::endl;
 
             //return UINT64_MAX;
             if(sourceDist != 0 && targetDist != 0){
