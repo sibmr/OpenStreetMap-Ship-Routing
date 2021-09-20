@@ -6,7 +6,8 @@
 
 #include <time.h>
 
-#include "Dijkstra.cpp"
+#include "Dijkstra_simon.cpp"
+#include "A_star_simon.cpp"
 
 void benchmarkDijkstra(PathAlgorithm &pathAlg, AdjacencyArray &adjArray,
     double longStart, double latStart, double longGoal, double latGoal, int numAvg)
@@ -179,8 +180,8 @@ void testDijkstra(PathAlgorithm &pathAlg, PathAlgorithm &pathAlg2,  AdjacencyArr
 
     std::cout << "First alg has from " << timingPathAlgOne.size() << " Queries an Average of " << avgOne << "us and stddev of: "<< stddevOne <<  "us" << std::endl;
     std::cout << "Second alg has from " << timingPathAlgTwo.size() << " Queries an Average of " << avgTwo << "us and stddev of: "<< stddevTwo << "us" <<  std::endl;
-    std::cout << "In average the first algorithm taskes " <<  ((double)((avgOne * 10000)/(avgTwo)) / 10000) << " times longer" << std::endl;
-    std::cout << "In average the second algorithm taskes " <<  ((double)((avgTwo * 10000)/(avgOne)) / 10000) << " times longer" << std::endl;
+    std::cout << "On average the first algorithm taskes " <<  ((double)((avgOne * 10000)/(avgTwo)) / 10000) << " times longer" << std::endl;
+    std::cout << "On average the second algorithm taskes " <<  ((double)((avgTwo * 10000)/(avgOne)) / 10000) << " times longer" << std::endl;
 
 
 }
@@ -203,14 +204,12 @@ int main(int argc, char** argv) {
 
     AdjacencyArray adjArray(inputFileName);
     {
-        SecondDijkstra sd (adjArray);
-        SecondDijkstra sd_one (adjArray);
-        PathAlgorithm &pa = sd;
-        PathAlgorithm &pa_one = sd_one;
-        //PathAlgorithm &paBiDirect = sd;
-        // across atlantic
-        //benchmarkDijkstra(pa, adjArray, -62, 40, -14, 53.5, 3);
-        //debugDijkstra(paBiDirect, adjArray, -62, 40, -14, 53.5);
+        Dijkstra::Dijkstra dijk (adjArray);
+        A_star::A_star astar (adjArray);
+        PathAlgorithm &pa = dijk;
+        PathAlgorithm &pa_one = astar;
+        //debugDijkstra(pa, adjArray, 59.5502,80.2847, 81.9907,84.0839);
+        //debugDijkstra(pa_one, adjArray, 59.5502,80.2847, 81.9907,84.0839);
         testDijkstra(pa, pa_one, adjArray, -85, -180, 85, 180, 100);
 
     }

@@ -6,7 +6,8 @@
 #include <mutex>
 #include <fstream>
 
-#include "Dijkstra.cpp"
+#include "Dijkstra_simon.cpp"
+#include "A_star_simon.cpp"
 
 /**
  * @brief load static file (html,js,css) from disk
@@ -54,7 +55,7 @@ int main(int argc, char** argv)
     static std::string page;
 
     static AdjacencyArray adjArray(inputFileName);
-    static SecondDijkstra dijkstraImpl(adjArray);
+    static A_star::A_star dijkstraImpl(adjArray);
     static PathAlgorithm &pathAlgorithm = dijkstraImpl;
     
     static std::mutex mutex;
