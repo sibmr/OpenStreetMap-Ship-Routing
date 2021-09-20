@@ -1,3 +1,6 @@
+#ifndef SHORTEST_PATH_UTILS
+#define SHORTEST_PATH_UTILS
+
 # include <iostream>
 # include <fstream>
 # include <string>
@@ -274,4 +277,4 @@ void generateReponse(std::vector<double> &posPath, std::string& response, uint64
     response += "}";
 }
 
-
+#endif
