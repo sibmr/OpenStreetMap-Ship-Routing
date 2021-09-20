@@ -6,7 +6,7 @@
 
 #include <time.h>
 
-#include "Dijkstra_marcel.cpp"
+#include "Dijkstra.cpp"
 
 void benchmarkDijkstra(PathAlgorithm &pathAlg, AdjacencyArray &adjArray,
     double longStart, double latStart, double longGoal, double latGoal, int numAvg)
@@ -203,16 +203,15 @@ int main(int argc, char** argv) {
 
     AdjacencyArray adjArray(inputFileName);
     {
-        DijkstraImpl sd (adjArray);
-        DijkstraSavedEdges sdSavedEdges (adjArray);
-        DijkstraBiDirect sdBiDirect (adjArray);
+        SecondDijkstra sd (adjArray);
+        SecondDijkstra sd_one (adjArray);
         PathAlgorithm &pa = sd;
-        PathAlgorithm &paSavedEdges = sdSavedEdges;
-        PathAlgorithm &paBiDirect = sdBiDirect;
+        PathAlgorithm &pa_one = sd_one;
+        //PathAlgorithm &paBiDirect = sd;
         // across atlantic
         //benchmarkDijkstra(pa, adjArray, -62, 40, -14, 53.5, 3);
         //debugDijkstra(paBiDirect, adjArray, -62, 40, -14, 53.5);
-        testDijkstra(paSavedEdges, paBiDirect, adjArray, -85, -180, 85, 180, 100);
+        testDijkstra(pa, pa_one, adjArray, -85, -180, 85, 180, 100);
 
     }
 }
