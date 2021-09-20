@@ -6,7 +6,7 @@
 
 #include <time.h>
 
-#include "Dijkstra.cpp"
+#include "Dijkstra_marcel.cpp"
 
 void benchmarkDijkstra(PathAlgorithm &pathAlg, AdjacencyArray &adjArray,
     double longStart, double latStart, double longGoal, double latGoal, int numAvg)
