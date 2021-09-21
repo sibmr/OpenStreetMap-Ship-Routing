@@ -240,7 +240,7 @@ void BidirectionalDijkstra::getPath(std::vector<uint64_t> &path){
     if(lastCalculatedDistance < UINT64_MAX){
         // build up path
         uint64_t currNode = forwardMinMeetingNodeId;
-        while(currNode != startPoint && currNode != UINT64_MAX){
+        while(currNode != startPoint){
             std::cout << "p1: " << startPoint << " " << endPoint << "\n";
             std::cout << currNode << "\n";
             currNode = forwardPrev.at(currNode);
