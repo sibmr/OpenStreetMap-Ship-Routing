@@ -7,6 +7,7 @@
 #include <time.h>
 
 #include "Dijkstra_simon.cpp"
+#include "Bidirectional_Dijkstra_simon.cpp"
 #include "A_star_simon.cpp"
 
 void benchmarkDijkstra(PathAlgorithm &pathAlg, AdjacencyArray &adjArray,
@@ -205,10 +206,11 @@ int main(int argc, char** argv) {
     AdjacencyArray adjArray(inputFileName);
     {
         Dijkstra::Dijkstra dijk (adjArray);
+        BidirectionalDijkstra::BidirectionalDijkstra bidijk (adjArray);
         A_star::A_star astar (adjArray);
         A_star::A_star_rectangular astar_rect (adjArray);
         PathAlgorithm &pa = dijk;
-        PathAlgorithm &pa_one = astar_rect;
+        PathAlgorithm &pa_one = bidijk;
         //debugDijkstra(pa, adjArray, 59.5502,80.2847, 81.9907,84.0839);
         //debugDijkstra(pa_one, adjArray, 59.5502,80.2847, 81.9907,84.0839);
         testDijkstra(pa, pa_one, adjArray, -85, -180, 85, 180, 100);

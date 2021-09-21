@@ -7,6 +7,7 @@
 #include <fstream>
 
 #include "Dijkstra_simon.cpp"
+#include "Bidirectional_Dijkstra_simon.cpp"
 #include "A_star_simon.cpp"
 
 /**
@@ -55,7 +56,7 @@ int main(int argc, char** argv)
     static std::string page;
 
     static AdjacencyArray adjArray(inputFileName);
-    static A_star::A_star dijkstraImpl(adjArray);
+    static BidirectionalDijkstra::BidirectionalDijkstra dijkstraImpl(adjArray);
     static PathAlgorithm &pathAlgorithm = dijkstraImpl;
     
     static std::mutex mutex;
