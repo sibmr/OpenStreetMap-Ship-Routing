@@ -16,13 +16,32 @@ struct AdjacencyArray {
     std::vector<uint64_t> offsets;
     std::vector<uint64_t> edges;
     std::vector<uint64_t> distances;
-    std::vector<uint16_t> rank;
+    std::vector<uint64_t> rank;
     std::vector<bool> nodes;
 
     /**
      * @brief Construct a new Adjacency Array object for buildGraph
      */
     AdjacencyArray(){};
+
+    /**
+     * @brief Deep Copy an existing Adjacency Array object
+     * 
+     * @param adjArray 
+     */
+    AdjacencyArray(const AdjacencyArray& adjArray){
+        longLow = adjArray.longLow;     latLow = adjArray.latLow;
+        longHigh = adjArray.longHigh;   latHigh = adjArray.latHigh;
+        width = adjArray.width;         height = adjArray.height;
+        offsets = std::vector<uint64_t>(adjArray.offsets);
+        edges = std::vector<uint64_t>(adjArray.edges);
+        distances = std::vector<uint64_t>(adjArray.distances);
+        rank = std::vector<uint64_t>(adjArray.rank);
+        nodes = std::vector<bool>(nodes);
+    };
+
+
+
     /**
      * @brief Construct a new Adjacency Array object
      * 
