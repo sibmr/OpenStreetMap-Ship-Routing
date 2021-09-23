@@ -36,6 +36,7 @@ class A_star: public PathAlgorithm{
         uint64_t calculateDist(uint64_t startPoint, uint64_t endPoint);
         void reset();
         virtual uint64_t getHeuristic(AdjacencyArray &adjArray, uint64_t firstNodeIdx, uint64_t secondNodeIdx);
+        virtual uint64_t getNumNodesPopped();
 
         uint64_t constLngDist;
         std::vector<uint64_t> constLatDist;
@@ -47,6 +48,7 @@ class A_star: public PathAlgorithm{
         std::vector<uint64_t> prev;
         AdjacencyArray &adjArray;
         uint64_t startPoint, endPoint, lastCalculatedDistance;
+        uint64_t numNodesPopped;
         
 };
 
@@ -83,6 +85,8 @@ void A_star::reset(){
     distance = std::move(initDist);
     // no need to reset prev
     heap.clear();
+    // initially no nodes popped
+    numNodesPopped = 0;
 }
 
 uint64_t A_star::getHeuristic(AdjacencyArray &adjArray, uint64_t firstNodeIdx, uint64_t secondNodeIdx){
@@ -126,6 +130,8 @@ uint64_t A_star::calculateDist(uint64_t startPoint_, uint64_t endPoint_){
         // avoid duplicate nodes (nodes that were already visited, indicated by higher distance)
         if(front.dist >= distance.at(front.nodeIdx)){
             continue;
+        }else{
+            numNodesPopped++;
         }
 
         // update distance and previous node of current node
@@ -164,7 +170,6 @@ uint64_t A_star::calculateDist(uint64_t startPoint_, uint64_t endPoint_){
             lastCalculatedDistance = distance.at(front.nodeIdx);
             return lastCalculatedDistance;
         }
-
     }
 
 }
@@ -205,6 +210,10 @@ void A_star::getPath(std::vector<uint64_t> &path){
         //path.push_back(endPoint);
     }
     
+}
+
+uint64_t A_star::getNumNodesPopped(){
+    return numNodesPopped;
 }
 
 

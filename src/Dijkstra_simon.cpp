@@ -33,6 +33,7 @@ class Dijkstra: public PathAlgorithm{
         uint64_t getDist();
         uint64_t calculateDist(uint64_t startPoint, uint64_t endPoint);
         void reset();
+        uint64_t getNumNodesPopped();
     private:
         uint64_t fillVectors(uint64_t startPoint, uint64_t endPoint);
         std::vector<uint64_t> distance;
@@ -43,6 +44,7 @@ class Dijkstra: public PathAlgorithm{
         uint64_t constLngDist;
         std::vector<uint64_t> constLatDist;
         uint64_t startPoint, endPoint, lastCalculatedDistance;
+        uint64_t numNodesPopped;
 };
 
 
@@ -78,6 +80,8 @@ void Dijkstra::reset(){
     distance = std::move(initDist);
     // no need to reset prev
     heap.clear();
+    // initially no nodes popped
+    numNodesPopped = 0;
 }
 
 /**
@@ -101,6 +105,7 @@ uint64_t Dijkstra::calculateDist(uint64_t startPoint_, uint64_t endPoint_){
     std::make_heap(heap.begin(), heap.end());
 
     HeapElement front;
+    
 
     while(true){
 
@@ -113,10 +118,13 @@ uint64_t Dijkstra::calculateDist(uint64_t startPoint_, uint64_t endPoint_){
         std::pop_heap(heap.begin(), heap.end());
         front = heap.back();
         heap.pop_back();
+       
 
         // avoid duplicate nodes (nodes that were already visited, indicated by higher distance)
         if(front.heuristic_dist >= distance.at(front.nodeIdx)){
             continue;
+        }else{
+            numNodesPopped++;
         }
 
         // update distance and previous node of current node
@@ -194,6 +202,10 @@ void Dijkstra::getPath(std::vector<uint64_t> &path){
         //path.push_back(endPoint);
     }
     
+}
+
+uint64_t Dijkstra::getNumNodesPopped(){
+    return numNodesPopped;
 }
 
 

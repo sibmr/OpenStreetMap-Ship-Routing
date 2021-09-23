@@ -35,6 +35,7 @@ class BidirectionalDijkstra: public PathAlgorithm{
         uint64_t getDist();
         uint64_t calculateDist(uint64_t startPoint, uint64_t endPoint);
         void reset();
+        uint64_t getNumNodesPopped();
     private:
         uint64_t fillVectors(uint64_t startPoint, uint64_t endPoint);
         std::vector<uint64_t> forwardDistance;
@@ -46,6 +47,7 @@ class BidirectionalDijkstra: public PathAlgorithm{
         std::vector<uint64_t> backwardPrev;
         AdjacencyArray &adjArray;
         uint64_t startPoint, endPoint, lastCalculatedDistance, forwardMinMeetingNodeId, backwardMinMeetingNodeId;
+        uint64_t numNodesPopped;
 };
 
 
@@ -77,6 +79,8 @@ void BidirectionalDijkstra::reset(){
     // no need to reset prev
     forwardHeap.clear();
     backwardHeap.clear();
+    // initially no nodes popped
+    numNodesPopped = 0;
 }
 
 /**
@@ -107,8 +111,6 @@ uint64_t BidirectionalDijkstra::calculateDist(uint64_t startPoint_, uint64_t end
     uint64_t minDistance = UINT64_MAX;
 
     while(true){
-        
-        //// forward step ////
 
         // get (non-duplicate) heap front
         // avoid duplicate nodes (nodes that were already visited, indicated by higher distance)
@@ -130,7 +132,9 @@ uint64_t BidirectionalDijkstra::calculateDist(uint64_t startPoint_, uint64_t end
             backwardFront = backwardHeap.back();
             backwardHeap.pop_back();
         }while (backwardFront.heuristic_dist >= backwardDistance.at(backwardFront.nodeIdx));
-
+        
+        numNodesPopped += 2;
+        
         // update distance and previous node of current forward node
         forwardDistance.at(forwardFront.nodeIdx) = forwardFront.heuristic_dist;
         forwardPrev.at(forwardFront.nodeIdx) = forwardFront.prev;
@@ -144,6 +148,7 @@ uint64_t BidirectionalDijkstra::calculateDist(uint64_t startPoint_, uint64_t end
             return lastCalculatedDistance;
         }
 
+        //// forward step ////
         // iterate over edges of current forward node
         for(uint64_t currEdgeId = adjArray.offsets.at(forwardFront.nodeIdx); currEdgeId < adjArray.offsets.at(forwardFront.nodeIdx+1); currEdgeId++){
             
@@ -175,6 +180,7 @@ uint64_t BidirectionalDijkstra::calculateDist(uint64_t startPoint_, uint64_t end
             }
         }
 
+        //// backward step ////
         // iterate over edges of current backward node
         for(uint64_t currEdgeId = adjArray.offsets.at(backwardFront.nodeIdx); currEdgeId < adjArray.offsets.at(backwardFront.nodeIdx+1); currEdgeId++){
             
@@ -205,16 +211,6 @@ uint64_t BidirectionalDijkstra::calculateDist(uint64_t startPoint_, uint64_t end
                 }
             }
         }
-
-
-        // // current node is goal node OR found node visited by other dijkstra
-        // if(front.nodeIdx == endPoint || visited.find(front.nodeIdx) != visited.end()){
-        //     lastCalculatedDistance = distance.at(front.nodeIdx);
-        //     visited.insert(front.nodeIdx);
-        //     return lastCalculatedDistance;
-        // }else{
-        //     visited.insert(front.nodeIdx);
-        // }
 
     }
 
@@ -275,5 +271,8 @@ void BidirectionalDijkstra::getPath(std::vector<uint64_t> &path){
     
 }
 
+uint64_t BidirectionalDijkstra::getNumNodesPopped(){
+    return numNodesPopped;
+}
 
 }
