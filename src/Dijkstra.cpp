@@ -54,6 +54,7 @@ class SecondDijkstra: public PathAlgorithm{
         uint64_t getDist();
         uint64_t calculateDist(uint64_t startPoint, uint64_t endPoint);
         void reset();
+        uint64_t getNumNodesPopped();
     private:
         uint64_t fillVectors(uint64_t startPoint, uint64_t endPoint);
         std::vector<uint64_t> distance;
@@ -64,6 +65,7 @@ class SecondDijkstra: public PathAlgorithm{
         uint64_t constLngDist;
         std::vector<uint64_t> constLatDist;
         uint64_t startPoint, endPoint, lastCalculatedDistance;
+        uint64_t numNodesPopped;
 };
 
 
@@ -209,6 +211,8 @@ void SecondDijkstra::reset(){
     distance = std::move(initDist);
     // no need to reset prev
     heap.clear();
+    // initially no nodes are popped
+    numNodesPopped = 0;
 }
 
 /**
@@ -245,6 +249,8 @@ uint64_t SecondDijkstra::calculateDist(uint64_t startPoint_, uint64_t endPoint_)
         // avoid duplicate nodes
         if(front.heuristic_dist >= distance.at(front.nodeIdx)){
             continue;
+        }else{
+            numNodesPopped++;
         }
 
         distance.at(front.nodeIdx) = front.heuristic_dist;
@@ -318,14 +324,16 @@ void SecondDijkstra::getPath(std::vector<uint64_t> &path){
     
 }
 
-
+uint64_t SecondDijkstra::getNumNodesPopped(){
+    return numNodesPopped;
+}
 
 
 
 void test() {
     AdjacencyArray adjArray("data/worldGrid_1415_707.save");
-    FirstDijkstra fd(adjArray);
-    PathAlgorithm &pa = fd;
+    SecondDijkstra sd(adjArray);
+    PathAlgorithm &pa = sd;
 
     std::vector<uint64_t> path;
     pa.reset();
