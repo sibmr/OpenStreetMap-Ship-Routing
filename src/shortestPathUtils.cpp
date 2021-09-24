@@ -51,7 +51,7 @@ void readEdgeVector(std::ifstream &inputFile, std::vector<Edge> &edgeVector){
     uint64_t edgeVectorSize;
     readSimpleValue(inputFile, edgeVectorSize);
     edgeVector.resize(edgeVectorSize);
-    for(Edge edge : edgeVector){
+    for(Edge &edge : edgeVector){
         readSimpleValue(inputFile, edge.edgeId);
         readSimpleValue(inputFile, edge.v1);
         readSimpleValue(inputFile, edge.v2);
