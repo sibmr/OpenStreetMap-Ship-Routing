@@ -192,6 +192,7 @@ void A_star::getPath(std::vector<uint64_t> &path){
     if(distance.at(endPoint) < UINT64_MAX){
         // build up path
         uint64_t currNode = endPoint;
+        path.push_back(currNode);
         while(currNode != startPoint){
             currNode = prev.at(currNode);
             path.push_back(currNode);
