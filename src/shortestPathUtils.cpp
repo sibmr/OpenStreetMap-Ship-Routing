@@ -15,6 +15,7 @@ struct AdjacencyArray {
     uint64_t width, height;
     std::vector<uint64_t> offsets;
     std::vector<uint64_t> edges;
+    std::vector<uint64_t> edgeIds;
     std::vector<uint64_t> distances;
     std::vector<uint64_t> rank;
     std::vector<bool> nodes;
@@ -35,9 +36,10 @@ struct AdjacencyArray {
         width = adjArray.width;         height = adjArray.height;
         offsets = std::vector<uint64_t>(adjArray.offsets);
         edges = std::vector<uint64_t>(adjArray.edges);
+        edgeIds = std::vector<uint64_t>(adjArray.edgeIds);
         distances = std::vector<uint64_t>(adjArray.distances);
         rank = std::vector<uint64_t>(adjArray.rank);
-        nodes = std::vector<bool>(nodes);
+        nodes = std::vector<bool>(adjArray.nodes);
     };
 
 
