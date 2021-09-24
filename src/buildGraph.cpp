@@ -104,24 +104,28 @@ void fillAdjacencyArray(GridData &data, AdjacencyArray &array){
                 array.edges.push_back(left);
                 array.distances.push_back(nodeDistance(array, x, left));
                 array.rank.push_back(0);
+                array.edgeIds.push_back(current_offset+offset_step-1);
             }
             if(!data.gridDataList.at(right)){
                 offset_step += 1;
                 array.edges.push_back(right);
                 array.distances.push_back(nodeDistance(array, x, right));
                 array.rank.push_back(0);
+                array.edgeIds.push_back(current_offset+offset_step-1);
             }
             if(j>0              && !data.gridDataList.at(down)){
                 offset_step += 1;
                 array.edges.push_back(down);
                 array.distances.push_back(nodeDistance(array, x, down));
                 array.rank.push_back(0);
+                array.edgeIds.push_back(current_offset+offset_step-1);
             }
             if(j<data.height-1   && !data.gridDataList.at(up)){
                 offset_step += 1;
                 array.edges.push_back(up);
                 array.distances.push_back(nodeDistance(array, x, up));
                 array.rank.push_back(0);
+                array.edgeIds.push_back(current_offset+offset_step-1);
             }
         }
 
@@ -158,107 +162,6 @@ void testLoadFill(GridData &dat, AdjacencyArray &adjArray){
         std::cout << adjArray.nodes.at(i) << "  ";
     }
     std::cout << "\n";
-}
-
-/**
- * @brief save adjacency array to disk
- * 
- * @param array AdjacencyArray struct that is stored
- * @param path  path to storage location
- * 
- * output file format
- * longLow       - double
- * latLow        - double
- * longHigh      - double
- * latHigh       - double
- * width         - uint64_t
- * height        - uint64_t
- * offset_size   - uint64_t
- * offsets       - uint64_t     (offset_size many)
- * edges_size    - uint64_t
- * edges         - uint64_t     (edges_size many)
- * nodes_size    - uint64_t
- * nodes          - bool        (nodes_size many)
- */
-void saveAdjacencyArray(AdjacencyArray &array, std::string path){
-    std::ofstream adjacency_output_file;
-
-    adjacency_output_file.open(path, std::ios::out | std::ios::trunc);
-    adjacency_output_file.exceptions(adjacency_output_file.exceptions() | std::ios::failbit | std::ifstream::badbit);
-
-    // write globe size
-    adjacency_output_file.write(reinterpret_cast<const char*>(&array.longLow),     sizeof(array.longLow));
-    adjacency_output_file.write(reinterpret_cast<const char*>(&array.latLow),      sizeof(array.latLow));
-    adjacency_output_file.write(reinterpret_cast<const char*>(&array.longHigh),    sizeof(array.longHigh));
-    adjacency_output_file.write(reinterpret_cast<const char*>(&array.latHigh),     sizeof(array.latHigh));
-    
-
-    // save number of nodes per direction (width, height)
-    adjacency_output_file.write(reinterpret_cast<const char*>(&array.width),     sizeof(array.width));
-    adjacency_output_file.write(reinterpret_cast<const char*>(&array.height),     sizeof(array.height));
-
-    // save offset vectro size
-    uint64_t offset_size = array.offsets.size();
-    adjacency_output_file.write(reinterpret_cast<const char*>(&offset_size),     sizeof(offset_size));
-
-    adjacency_output_file.flush();
-
-    for(uint64_t i = 0; i < offset_size; i++){
-        adjacency_output_file.write(reinterpret_cast<const char*>(&array.offsets.at(i)),     sizeof(array.offsets.at(i)));
-        if(i % 20 == 0){
-            adjacency_output_file.flush();
-        }
-    }
-    adjacency_output_file.flush();
-
-
-    // save edges
-    uint64_t edges_size = array.edges.size();
-    adjacency_output_file.write(reinterpret_cast<const char*>(&edges_size),     sizeof(edges_size));
-
-    adjacency_output_file.flush();
-    for(uint64_t i = 0; i < edges_size; i++){
-        adjacency_output_file.write(reinterpret_cast<const char*>(&array.edges.at(i)), sizeof(array.edges.at(i)));
-        if(i % 20 == 0){
-            adjacency_output_file.flush();
-        }
-    }
-    adjacency_output_file.flush();
-
-    // save distances
-    uint64_t distances_size = array.distances.size();
-    adjacency_output_file.write(reinterpret_cast<const char*>(&distances_size),     sizeof(distances_size));
-
-    adjacency_output_file.flush();
-    for(uint64_t i = 0; i < distances_size; i++){
-        adjacency_output_file.write(reinterpret_cast<const char*>(&array.distances.at(i)), sizeof(array.distances.at(i)));
-        if(i % 20 == 0){
-            adjacency_output_file.flush();
-        }
-    }
-    adjacency_output_file.flush();
-
-    // save rank
-    uint64_t rank_size = array.rank.size();
-    adjacency_output_file.write(reinterpret_cast<const char*>(&rank_size),     sizeof(rank_size));
-
-    adjacency_output_file.flush();
-    for(uint64_t i = 0; i < rank_size; i++){
-        adjacency_output_file.write(reinterpret_cast<const char*>(&array.rank.at(i)), sizeof(array.rank.at(i)));
-        if(i % 20 == 0){
-            adjacency_output_file.flush();
-        }
-    }
-    adjacency_output_file.flush();
-
-    uint64_t nodes_size = array.nodes.size();
-    adjacency_output_file.write(reinterpret_cast<const char*>(&nodes_size), sizeof(nodes_size));
-
-    adjacency_output_file.flush();
-    std::copy(array.nodes.begin(), array.nodes.end(), std::ostreambuf_iterator<char>(adjacency_output_file));
-
-    adjacency_output_file.flush();
-    adjacency_output_file.close();
 }
 
 int main(int argc, char** argv) {
@@ -324,5 +227,6 @@ int main(int argc, char** argv) {
     if(verboseOutput){
         testLoadFill(dat, adjArray);
     }
-    saveAdjacencyArray(adjArray, outputFileName);
+    adjArray.writeToDisk(outputFileName);
+    std::cout << "Wrote AdjacencyArray to " << outputFileName << std::endl;
 }

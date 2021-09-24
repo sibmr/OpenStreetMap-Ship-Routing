@@ -4,28 +4,6 @@
 #include "shortestPathUtils.cpp"
 #include "Dijkstra_simon.cpp"
 
-struct Edge
-{
-    uint64_t edgeId;
-    uint64_t v1;
-    uint64_t v2;
-    uint64_t edgeDistance;
-    std::vector<uint64_t> shortcutPathEdges;
-};
-
-std::vector<Edge> copyEdgeVector(std::vector<Edge> &edgeVector){
-    std::vector<Edge> copy;
-    for (Edge &edge : edgeVector){
-        copy.push_back(Edge{
-            .edgeId = edge.edgeId,
-            .v1 = edge.v1,
-            .v2 = edge.v2,
-            .edgeDistance = edge.edgeDistance,
-            .shortcutPathEdges = std::vector<uint64_t>(edge.shortcutPathEdges)
-        });
-    }
-    return copy;
-}
 
 std::vector<std::vector<uint64_t>> createVectorMatrix(uint64_t size_i, uint64_t size_j){
     std::vector<std::vector<uint64_t>> matrix(size_i);
@@ -51,12 +29,6 @@ int getFilePathInput(int argc, char** argv, std::string &out_path){
         }
     }
     return 1;
-}
-
-void addEdgeIds(AdjacencyArray &adjArray){
-    for(uint64_t edgeId = 0; edgeId<adjArray.edges.size(); ++edgeId){
-        adjArray.edgeIds.push_back(edgeId);
-    }
 }
 
 void nodeToEdgeIdPath(AdjacencyArray &adjArray, std::vector<uint64_t> &in_nodeIdPath, std::vector<uint64_t> &out_edgeIdPath){
@@ -117,14 +89,14 @@ void fillContractionSet(
     std::vector<uint64_t> &out_newContractions
     ){
 
-    uint64_t numDraws = 200000;
-    uint64_t maxNodeId = isContracted.size();
+    uint64_t numDraws = 20000;
+    uint64_t nodeIdLimit = isContracted.size();
     
     uint64_t nodeIdx = 0;
     for(int i = 0; i<numDraws; ++i){
         
         // random position
-        uint64_t draw = std::rand() % maxNodeId;
+        uint64_t draw = std::rand() % nodeIdLimit;
         
         // check if node is in water and not already in contraction set
         if(!isContracted.at(draw) && !adjArray.nodes.at(draw)){
@@ -152,7 +124,6 @@ int main(int argc, char** argv){
     std::srand(std::time(nullptr));
     
     AdjacencyArray adjArray(path);
-    addEdgeIds(adjArray);
 
     std::vector<bool> isContracted(adjArray.width*adjArray.height, false);
     std::vector<uint64_t> contractedNodeIds;
@@ -172,7 +143,7 @@ int main(int argc, char** argv){
     //for(uint64_t round = 0; round<5; ++round){
     uint64_t round = 0;
     std::cout << workArray.width*workArray.height - std::accumulate(workArray.nodes.begin(), workArray.nodes.end(), 0) << "\n";
-    while((workArray.width*workArray.height - std::accumulate(workArray.nodes.begin(), workArray.nodes.end(), 0)) > 20000){
+    while((workArray.width*workArray.height - std::accumulate(workArray.nodes.begin(), workArray.nodes.end(), 0)) > 640000){
         std::cout << "round " << round++ << "\n";
 
         Dijkstra::Dijkstra dijkstra(workArray);
@@ -362,11 +333,20 @@ int main(int argc, char** argv){
 
         // print round stats
         std::cout << "number of edges: " << workArray.edges.size() << "\n";
+        std::cout << "total number of edges: " << allEdges.size() << "\n";
         std::cout << "number of offsets: " << workArray.offsets.size() << "\n";
-        std::cout << "number of offsets: " << workArray.height*workArray.width << "\n";
         std::cout << "number of shortcuts: " << shortcutEdges.size() << "\n";
         std::cout << "number of removed edges: " << removedEdgeIndices.size() << "\n";
         std::cout << "remaining nodes: " << workArray.width*workArray.height - std::accumulate(workArray.nodes.begin(), workArray.nodes.end(), 0) << "\n";
     }
+    
+    // TODO: implement last step
     // finally: G'' = (V, E u E')
+    // finalArray = AdjacenyArray(adjArray);
+    // ...
+    // finalArray.writeToDisk("data/CHAdjArray.graph_2")
+
+    workArray.allEdgeInfo = allEdges;
+    workArray.writeToDisk("data/CHAdjArray.graph_2");
+
 }
