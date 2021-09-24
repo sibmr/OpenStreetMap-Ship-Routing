@@ -32,14 +32,19 @@ class Dijkstra: public PathAlgorithm{
         void getPath(std::vector<uint64_t> &path);
         uint64_t getDist();
         uint64_t calculateDist(uint64_t startPoint, uint64_t endPoint);
+        uint64_t calculateDist(uint64_t endPoint);
         void reset();
         uint64_t getNumNodesPopped();
+        void disableNode(uint64_t disabledNode);
+        void resetDisabledNodes();
     private:
         uint64_t fillVectors(uint64_t startPoint, uint64_t endPoint);
+        uint64_t mainCalculationLoop();
         std::vector<uint64_t> distance;
         std::vector<HeapElement> heap;
         std::vector<uint64_t> visited;
         std::vector<uint64_t> prev;
+        std::vector<bool> disabledNodes;
         AdjacencyArray &adjArray;
         uint64_t constLngDist;
         std::vector<uint64_t> constLatDist;
@@ -82,6 +87,8 @@ void Dijkstra::reset(){
     heap.clear();
     // initially no nodes popped
     numNodesPopped = 0;
+    // no nodes are disabled after reset
+    resetDisabledNodes();
 }
 
 /**
@@ -103,10 +110,23 @@ uint64_t Dijkstra::calculateDist(uint64_t startPoint_, uint64_t endPoint_){
     heap.push_back(HeapElement{startPoint, UINT64_MAX, 0});
 
     std::make_heap(heap.begin(), heap.end());
-
-    HeapElement front;
     
+    return mainCalculationLoop();
+}
 
+uint64_t Dijkstra::calculateDist(uint64_t endPoint_){
+    endPoint = endPoint_;
+    // if node is already settled, then return distance directly
+    
+    if(distance.at(endPoint) != UINT64_MAX){
+        return distance.at(endPoint);
+    }
+
+    return mainCalculationLoop();
+}
+
+uint64_t Dijkstra::mainCalculationLoop(){
+    HeapElement front;
     while(true){
 
         // no path found
@@ -134,12 +154,12 @@ uint64_t Dijkstra::calculateDist(uint64_t startPoint_, uint64_t endPoint_){
 
         // iterate over edges of current node
         for(uint64_t currEdgeId = adjArray.offsets.at(front.nodeIdx); currEdgeId < adjArray.offsets.at(front.nodeIdx+1); currEdgeId++){
-            
+
             // get id of adjacent node for current edge (neighboring node)
             uint64_t neighborIdx = adjArray.edges.at(currEdgeId);
 
-            // absolute difference of unsigned int
-            // uint64_t idxDiff = neighborIdx<front.nodeIdx ? front.nodeIdx-neighborIdx : neighborIdx-front.nodeIdx;
+            // ignore disabled nodes
+            if(disabledNodes.at(neighborIdx)){ continue; }
 
             // choose length of edge from precalculated lengths
             uint64_t edgeDist = adjArray.distances.at(currEdgeId);
@@ -163,7 +183,6 @@ uint64_t Dijkstra::calculateDist(uint64_t startPoint_, uint64_t endPoint_){
         }
 
     }
-
 }
 
 /**
@@ -190,12 +209,12 @@ void Dijkstra::getPath(std::vector<uint64_t> &path){
         }
 
         // print path
-        std::cout << "Path:" << std::endl;
-        for (std::vector<uint64_t>::iterator it = path.begin(); it != path.end(); ++it) {
-            std::cout << *it << " ";
-        }
-        std::cout <<  std::endl;
-        std::cout << "dist: " << distance.at(endPoint)/1000 << "km" << std::endl;
+        // std::cout << "Path:" << std::endl;
+        // for (std::vector<uint64_t>::iterator it = path.begin(); it != path.end(); ++it) {
+        //     std::cout << *it << " ";
+        // }
+        // std::cout <<  std::endl;
+        // std::cout << "dist: " << distance.at(endPoint)/1000 << "km" << std::endl;
     }else{
         std::cout << "no path found" << std::endl;
         //path.push_back(startPoint);
@@ -206,6 +225,14 @@ void Dijkstra::getPath(std::vector<uint64_t> &path){
 
 uint64_t Dijkstra::getNumNodesPopped(){
     return numNodesPopped;
+}
+
+void Dijkstra::disableNode(uint64_t nodeId){
+    disabledNodes.at(nodeId) = true;
+}
+
+void Dijkstra::resetDisabledNodes(){
+    disabledNodes = std::vector<bool>(adjArray.width*adjArray.height, false);
 }
 
 
