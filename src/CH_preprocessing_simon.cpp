@@ -31,7 +31,7 @@ int getFilePathInput(int argc, char** argv, std::string &out_path){
     return 1;
 }
 
-void nodeToEdgeIdPath(AdjacencyArray &adjArray, std::vector<uint64_t> &in_nodeIdPath, std::vector<uint64_t> &out_edgeIdPath){
+void nodeToEdgeIdPathForward(AdjacencyArray &adjArray, std::vector<uint64_t> &in_nodeIdPath, std::vector<uint64_t> &out_edgeIdPath){
     uint64_t prev_nodeId = in_nodeIdPath.at(0);
     for(uint64_t nodeIndex = 1; nodeIndex<in_nodeIdPath.size(); ++nodeIndex){
         uint64_t nodeId = in_nodeIdPath.at(nodeIndex);
@@ -41,6 +41,21 @@ void nodeToEdgeIdPath(AdjacencyArray &adjArray, std::vector<uint64_t> &in_nodeId
                 out_edgeIdPath.push_back(adjArray.edgeIds.at(currEdgeIndex));
             }
         }
+        prev_nodeId = nodeId;
+    }
+}
+
+void nodeToEdgeIdPathBackward(AdjacencyArray &adjArray, std::vector<uint64_t> &in_nodeIdPath, std::vector<uint64_t> &out_edgeIdPath){
+    uint64_t prev_nodeId = in_nodeIdPath.at(in_nodeIdPath.size()-1);
+    for(uint64_t nodeIndex = in_nodeIdPath.size()-2; nodeIndex>=0 && nodeIndex < in_nodeIdPath.size(); --nodeIndex){
+        uint64_t nodeId = in_nodeIdPath.at(nodeIndex);
+        for(uint64_t currEdgeIndex = adjArray.offsets.at(prev_nodeId); currEdgeIndex < adjArray.offsets.at(prev_nodeId+1); ++currEdgeIndex){
+            uint64_t nextNode = adjArray.edges.at(currEdgeIndex);
+            if(nextNode == nodeId){
+                out_edgeIdPath.push_back(adjArray.edgeIds.at(currEdgeIndex));
+            }
+        }
+        prev_nodeId = nodeId;
     }
 }
 
@@ -82,7 +97,17 @@ bool isNodeAdjacentToSet(AdjacencyArray &adjArray, uint64_t idToCheck, std::vect
     return false;
 }
 
-void fillContractionSet(
+bool isNodeAdjacentToSet(AdjacencyArray &adjArray, uint64_t idToCheck, std::vector<bool> &isIdInSet){
+    for(uint64_t currEdgeIndex = adjArray.offsets.at(idToCheck); currEdgeIndex < adjArray.offsets.at(idToCheck+1); ++currEdgeIndex){
+        uint64_t adjacentId = adjArray.edges.at(currEdgeIndex);
+        if(isIdInSet.at(adjacentId)){
+            return true;
+        }
+    }
+    return false;
+}
+
+void randomFillContractionSet(
     AdjacencyArray &adjArray, 
     std::vector<uint64_t> &allContractedIds, 
     std::vector<bool> &isContracted, 
@@ -115,6 +140,60 @@ void fillContractionSet(
     }
 }
 
+void numEdgeFillContractionSet(
+    AdjacencyArray &adjArray, 
+    std::vector<uint64_t> &allContractedIds, 
+    std::vector<bool> &isContracted, 
+    std::vector<uint64_t> &out_newContractions
+    ){
+
+    uint64_t numDraws = 20000;
+    uint64_t nodeIdLimit = isContracted.size();
+    
+    // pick first node
+    uint64_t initialId = std::rand() % nodeIdLimit;
+    std::vector<bool> isInIndependentSet(adjArray.width*adjArray.height, false);
+    std::vector<std::pair<uint64_t,uint64_t>> independentSetWithCost;
+    do{
+        initialId = std::rand() % nodeIdLimit;
+    }while(isContracted.at(initialId) || adjArray.nodes.at(initialId));
+    isInIndependentSet.at(initialId) = true;
+    independentSetWithCost.push_back(
+        std::pair<uint64_t, uint64_t>(initialId, adjArray.offsets.at(initialId+1) - adjArray.offsets.at(initialId))
+    );
+    
+    for(uint64_t nodeId=0; nodeId<adjArray.width*adjArray.height; ++nodeId){
+        
+        // check if node is in water and not already in contraction set
+        if(!isContracted.at(nodeId) && !adjArray.nodes.at(nodeId)){
+            
+            // check if node is not adjacent to nodes in contraction set
+            bool isAdjacent = isNodeAdjacentToSet(adjArray, nodeId, isInIndependentSet);
+
+            // calculate num edges
+            uint64_t numEdges = adjArray.offsets.at(nodeId+1) - adjArray.offsets.at(nodeId);
+
+            // if node is not adjacent, add to independent set
+            if(!isAdjacent){
+                independentSetWithCost.push_back(std::pair<uint64_t, uint64_t>(nodeId, numEdges));
+                isInIndependentSet.at(nodeId) = true;
+            }
+        }
+    }
+
+    std::sort(  independentSetWithCost.begin(), independentSetWithCost.end(),
+                [](std::pair<uint64_t,uint64_t> &p1, std::pair<uint64_t,uint64_t> &p2){ return p1.second < p2.second; });
+    
+    for(uint64_t nodeIndex=0; nodeIndex<independentSetWithCost.size()/4; ++nodeIndex){
+        uint64_t nodeId = independentSetWithCost.at(nodeIndex).first;
+        uint64_t cost = independentSetWithCost.at(nodeIndex).second;
+        out_newContractions.push_back(nodeId);
+        allContractedIds.push_back(nodeId);
+        isContracted.at(nodeId) = true;
+    }
+    std::cout << "num nodes contracted: " << out_newContractions.size() << "\n";
+}
+
 int main(int argc, char** argv){
     std::string path;
     if(getFilePathInput(argc, argv, path)==0){
@@ -129,7 +208,7 @@ int main(int argc, char** argv){
     std::vector<uint64_t> contractedNodeIds;
     std::vector<Edge> allEdges;
     extractAllEdges(adjArray, allEdges);
-    uint64_t currentRank = 0;
+    uint64_t currentRank = 1;
 
     uint64_t numWaterNodes = 0;
     for(bool onLand : adjArray.nodes){
@@ -141,9 +220,9 @@ int main(int argc, char** argv){
 
     // while there are still uncontracted nodes
     //for(uint64_t round = 0; round<5; ++round){
-    uint64_t round = 0;
+    uint64_t round = 1;
     std::cout << workArray.width*workArray.height - std::accumulate(workArray.nodes.begin(), workArray.nodes.end(), 0) << "\n";
-    while((workArray.width*workArray.height - std::accumulate(workArray.nodes.begin(), workArray.nodes.end(), 0)) > 640000){
+    while((workArray.width*workArray.height - std::accumulate(workArray.nodes.begin(), workArray.nodes.end(), 0)) > 40000){
         std::cout << "round " << round++ << "\n";
 
         Dijkstra::Dijkstra dijkstra(workArray);
@@ -154,11 +233,18 @@ int main(int argc, char** argv){
 
         // select set of independent nodes for contraction
         std::vector<uint64_t> newContractions;
-        fillContractionSet(workArray, contractedNodeIds, isContracted, newContractions);
+        numEdgeFillContractionSet(workArray, contractedNodeIds, isContracted, newContractions);
+
+        uint64_t roundProgress = 0;
 
         // create shortcuts to replace edges of nodes to contract/remove
         for(uint64_t contractedNodeId : newContractions){
             
+            if(roundProgress++%16384){
+                std::cout << "round " << round-1 << " progress " << ((double)roundProgress)/newContractions.size()  << "\t\r" << std::flush;
+            }
+            
+
             // set the rank of contractedNodes to current rank
             workArray.rank.at(contractedNodeId) = currentRank;
 
@@ -204,7 +290,8 @@ int main(int argc, char** argv){
             }
             std::vector<uint64_t> distanceUV(adjacentIds.size()); // for calculating uvw
             std::vector<uint64_t> shortcutPathPart;
-            std::vector<std::vector<uint64_t>> shortcutEdgePathPart(adjacentIds.size());
+            std::vector<std::vector<uint64_t>> shortcutEdgePathPartForward(adjacentIds.size());
+            std::vector<std::vector<uint64_t>> shortcutEdgePathPartBackward(adjacentIds.size());
             if(adjacentIds.size() > 0){
                 dijkstra.reset();
                 dijkstra.calculateDist(contractedNodeId, adjacentIds.at(0)); // set correct start point
@@ -213,12 +300,13 @@ int main(int argc, char** argv){
                     uint64_t distance = dijkstra.calculateDist(uId); // only query with end point (one-to-many)
                     distanceUV.at(uIndex) = distance;
                     shortcutPathPart.clear();
-                    dijkstra.getPath(shortcutPathPart); // get shortest path from v to u
-                    nodeToEdgeIdPath(workArray, shortcutPathPart, shortcutEdgePathPart.at(uIndex));
+                    dijkstra.getPath(shortcutPathPart); // get shortest path from v to u ( but returns u to v )
+                    nodeToEdgeIdPathForward(workArray, shortcutPathPart, shortcutEdgePathPartForward.at(uIndex)); // u to v 
+                    nodeToEdgeIdPathBackward(workArray, shortcutPathPart, shortcutEdgePathPartBackward.at(uIndex)); // v to u
                 }
             }
             else{
-                std::cout << "empty node: " << contractedNodeId << "\n";
+                //std::cout << "empty node: " << contractedNodeId << "\n";
             }
             
             
@@ -241,14 +329,15 @@ int main(int argc, char** argv){
                         uint64_t edgeDistance = distanceUVW;
                         uint64_t shortcutId = allEdges.size();
                         std::vector<uint64_t> edgePathUVW;
-                        std::vector<uint64_t> edgePathVU = shortcutEdgePathPart.at(i);
-                        std::vector<uint64_t> edgePathVW = shortcutEdgePathPart.at(j);
-                        for(uint64_t pathIndex = edgePathVU.size()-1; pathIndex >= 0 && pathIndex < edgePathVU.size(); --pathIndex){
-                            edgePathUVW.push_back(edgePathVU.at(pathIndex));
+                        std::vector<uint64_t> edgePathUV = shortcutEdgePathPartForward.at(i);
+                        std::vector<uint64_t> edgePathVW = shortcutEdgePathPartBackward.at(j);
+                        for(uint64_t edgeId : edgePathUV){
+                            edgePathUVW.push_back(edgeId);
                         }
-                        for(uint64_t pathIndex = 0; pathIndex < edgePathVW.size(); --pathIndex){
-                            edgePathUVW.push_back(edgePathVW.at(pathIndex));
+                        for(uint64_t edgeId : edgePathVW){
+                            edgePathUVW.push_back(edgeId);
                         }
+                        //if(edgePathUVW.size() != 2){std::cout << "edge path size: " << edgePathUVW.size() << "\n";}  
                         Edge newEdge{
                             .edgeId=shortcutId,
                             .v1=startNode, 
@@ -338,15 +427,46 @@ int main(int argc, char** argv){
         std::cout << "number of shortcuts: " << shortcutEdges.size() << "\n";
         std::cout << "number of removed edges: " << removedEdgeIndices.size() << "\n";
         std::cout << "remaining nodes: " << workArray.width*workArray.height - std::accumulate(workArray.nodes.begin(), workArray.nodes.end(), 0) << "\n";
+        std::cout << "current rank: " << currentRank << "\n";
     }
     
     // TODO: implement last step
     // finally: G'' = (V, E u E')
-    // finalArray = AdjacenyArray(adjArray);
-    // ...
-    // finalArray.writeToDisk("data/CHAdjArray.graph_2")
+    
+    // prepare array
+    AdjacencyArray finalArray = AdjacencyArray(adjArray);
+    finalArray.edges.clear();
+    finalArray.edgeIds.clear();
+    finalArray.distances.clear();
+    finalArray.offsets.clear();
+    finalArray.offsets.push_back(0);
+    finalArray.allEdgeInfo = allEdges;
+    finalArray.rank = workArray.rank;
+    
+    // sort edges
+    std::vector<Edge> allEdgesSortedV1 = std::vector<Edge>(allEdges); // shallow copy only
+    std::sort(  
+        allEdgesSortedV1.begin(), allEdgesSortedV1.end(), 
+        [](Edge& a, Edge& b) {return a.v1 < b.v1; });
+    
+    // add normal and shortcut edges to final adjacency array
+    uint64_t currentOffsetIndex = 0;
+    for(uint64_t nodeId = 0; nodeId<adjArray.width*adjArray.height; ++nodeId){
+        auto resV1 = std::lower_bound(
+            allEdgesSortedV1.begin(), allEdgesSortedV1.end(), 
+            nodeId, [](Edge& e1, uint64_t targetId){return e1.v1 < targetId;});
 
-    workArray.allEdgeInfo = allEdges;
-    workArray.writeToDisk("data/CHAdjArray.graph_2");
+        for(auto edgeIt = resV1; (*edgeIt).v1 <= nodeId && edgeIt<allEdgesSortedV1.end(); ++edgeIt){
+            finalArray.edges.push_back(edgeIt->v2);
+            finalArray.edgeIds.push_back(edgeIt->edgeId);
+            finalArray.distances.push_back(edgeIt->edgeDistance);
+            currentOffsetIndex++;
+        }
+        finalArray.offsets.push_back(currentOffsetIndex);
+    }
+    finalArray.writeToDisk("data/CHAdjArray.graph_2");
+
+    // workArray.allEdgeInfo = allEdges;
+    // workArray.writeToDisk("data/CHAdjArray.graph_2");
 
 }
