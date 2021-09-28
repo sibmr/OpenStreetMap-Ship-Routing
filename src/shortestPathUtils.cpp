@@ -1,3 +1,6 @@
+#ifndef SHORTEST_PATH_UTILS
+#define SHORTEST_PATH_UTILS
+
 # include <iostream>
 # include <fstream>
 # include <string>
@@ -13,13 +16,30 @@ struct AdjacencyArray {
     std::vector<uint64_t> offsets;
     std::vector<uint64_t> edges;
     std::vector<uint64_t> distances;
-    std::vector<uint16_t> rank;
+    std::vector<uint64_t> rank;
     std::vector<bool> nodes;
 
     /**
      * @brief Construct a new Adjacency Array object for buildGraph
      */
     AdjacencyArray(){};
+
+     /**
+     * @brief Deep Copy an existing Adjacency Array object
+     * 
+     * @param adjArray 
+     */
+    AdjacencyArray(const AdjacencyArray& adjArray){
+        longLow = adjArray.longLow;     latLow = adjArray.latLow;
+        longHigh = adjArray.longHigh;   latHigh = adjArray.latHigh;
+        width = adjArray.width;         height = adjArray.height;
+        offsets = std::vector<uint64_t>(adjArray.offsets);
+        edges = std::vector<uint64_t>(adjArray.edges);
+        distances = std::vector<uint64_t>(adjArray.distances);
+        rank = std::vector<uint64_t>(adjArray.rank);
+        nodes = std::vector<bool>(nodes);
+    };
+
     /**
      * @brief Construct a new Adjacency Array object
      * 
@@ -215,7 +235,7 @@ uint64_t nodeDistance(double longLow, double latLow, double longHigh, double lat
     std::array<double,2> longLat_2;
 
     nodeIdToLongLat(longLat_1, longLow, latLow, longHigh, latHigh, width, height, node1);
-    nodeIdToLongLat(longLat_1, longLow, latLow, longHigh, latHigh, width, height, node2);
+    nodeIdToLongLat(longLat_2, longLow, latLow, longHigh, latHigh, width, height, node2);
 
     uint64_t result = uint64_t(round(latLongDistance(longLat_1[0], longLat_1[1], longLat_2[0], longLat_2[1])));
 
@@ -274,4 +294,4 @@ void generateReponse(std::vector<double> &posPath, std::string& response, uint64
     response += "}";
 }
 
-
+#endif

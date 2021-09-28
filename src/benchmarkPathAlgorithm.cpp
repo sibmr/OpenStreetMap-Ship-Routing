@@ -6,7 +6,27 @@
 
 #include <time.h>
 
+#include "Dijkstra.cpp"
 #include "Dijkstra_marcel.cpp"
+
+double doubleRand(double doubleMin, double doubleMax){
+    double d = ((double) rand() / (double) RAND_MAX);
+    return doubleMin + d * (doubleMax - doubleMin);
+}
+
+uint64_t computeAverage(std::vector<uint64_t> &data){
+    return std::accumulate(data.begin(), data.end(), 0) / data.size();
+}
+
+uint64_t computeStdDev(std::vector<uint64_t> &data, uint64_t dataAvg){
+    uint64_t stddev = 0;
+    for(uint64_t value : data){
+        uint64_t diff = value-dataAvg;
+        stddev += diff*diff;
+    }
+    stddev = sqrt(stddev)/data.size(); 
+    return stddev;
+}
 
 void benchmarkDijkstra(PathAlgorithm &pathAlg, AdjacencyArray &adjArray,
     double longStart, double latStart, double longGoal, double latGoal, int numAvg)
@@ -44,10 +64,7 @@ void benchmarkDijkstra(PathAlgorithm &pathAlg, AdjacencyArray &adjArray,
     std::cout << "Duration: " << avg << " +/- " << stddev << "us\n";
 }
 
-double doubleRand(double doubleMin, double doubleMax){
-    double d = ((double) rand() / (double) RAND_MAX);
-    return doubleMin + d * (doubleMax - doubleMin);
-}
+
 
 /**
  * @brief Test two PathAlgorithms to be identical and test how long each takes
@@ -93,6 +110,9 @@ void testDijkstra(PathAlgorithm &pathAlg, PathAlgorithm &pathAlg2,  AdjacencyArr
 
     std::vector<uint64_t> timingPathAlgOne;
     std::vector<uint64_t> timingPathAlgTwo;
+
+    std::vector<uint64_t> numNodesPoppedPathAlgOne;
+    std::vector<uint64_t> numNodesPoppedPathAlgTwo;    
 
     std::vector<std::array<double,4>> coordinates;
 
@@ -149,25 +169,16 @@ void testDijkstra(PathAlgorithm &pathAlg, PathAlgorithm &pathAlg2,  AdjacencyArr
 
     }
 
-    uint64_t stddevOne = 0; 
-    uint64_t avgOne = std::accumulate(timingPathAlgOne.begin(), timingPathAlgOne.end(), 0) / timingPathAlgOne.size();
+    uint64_t avgOne = computeAverage(timingPathAlgOne);
+    uint64_t stddevOne = computeStdDev(timingPathAlgOne, avgOne);
+    uint64_t avgPoppedOne = computeAverage(numNodesPoppedPathAlgOne);
 
-    stddevOne = 0;
-    for(uint64_t duration : timingPathAlgOne){
-        uint64_t diff = duration-avgOne;
-        stddevOne += diff*diff;
-    }
-    stddevOne = sqrt(stddevOne)/timingPathAlgOne.size();
+     
+    uint64_t avgTwo = computeAverage(timingPathAlgTwo);
+    uint64_t stddevTwo = computeStdDev(timingPathAlgTwo, avgTwo);
+    uint64_t avgPoppedTwo = computeAverage(numNodesPoppedPathAlgTwo);
 
-    uint64_t stddevTwo = 0; 
-    uint64_t avgTwo = std::accumulate(timingPathAlgTwo.begin(), timingPathAlgTwo.end(), 0) / timingPathAlgTwo.size();
-
-    stddevTwo = 0;
-    for(uint64_t duration : timingPathAlgTwo){
-        uint64_t diff = duration-avgTwo;
-        stddevTwo += diff*diff;
-    }
-    stddevTwo = sqrt(stddevTwo)/timingPathAlgTwo.size();
+    
 
     for(int i = 0; i < timingPathAlgOne.size(); i++){
         if(resultPathAlgOne.at(i) != resultPathAlgTwo.at(i)){
@@ -177,10 +188,14 @@ void testDijkstra(PathAlgorithm &pathAlg, PathAlgorithm &pathAlg2,  AdjacencyArr
         }
     }
 
-    std::cout << "First alg has from " << timingPathAlgOne.size() << " Queries an Average of " << avgOne << "us and stddev of: "<< stddevOne <<  "us" << std::endl;
+;   std::cout << "First alg has from  " << timingPathAlgOne.size() << " Queries an Average of " << avgOne << "us and stddev of: "<< stddevOne <<  "us" << std::endl;
     std::cout << "Second alg has from " << timingPathAlgTwo.size() << " Queries an Average of " << avgTwo << "us and stddev of: "<< stddevTwo << "us" <<  std::endl;
-    std::cout << "In average the first algorithm taskes " <<  ((double)((avgOne * 10000)/(avgTwo)) / 10000) << " times longer" << std::endl;
-    std::cout << "In average the second algorithm taskes " <<  ((double)((avgTwo * 10000)/(avgOne)) / 10000) << " times longer" << std::endl;
+    std::cout << "On average the first algorithm takes  " <<  ((double)((avgOne * 10000)/(avgTwo)) / 10000) << " times longer" << std::endl;
+    std::cout << "On average the second algorithm takes " <<  ((double)((avgTwo * 10000)/(avgOne)) / 10000) << " times longer" << std::endl;
+    std::cout << "First alg has from  " << numNodesPoppedPathAlgOne.size() << " Queries an Average of " << avgPoppedOne << "nodes\n";
+    std::cout << "Second alg has from " << numNodesPoppedPathAlgTwo.size() << " Queries an Average of " << avgPoppedTwo << "nodes\n";
+    std::cout << "On average the first algorithm pops  " <<  ((double)((avgPoppedOne * 10000)/(avgPoppedTwo)) / 10000) << " times more nodes" << std::endl;
+    std::cout << "On average the second algorithm pops " <<  ((double)((avgPoppedTwo * 10000)/(avgPoppedOne)) / 10000) << " times more nodes" << std::endl;
 
 
 }
@@ -203,16 +218,14 @@ int main(int argc, char** argv) {
 
     AdjacencyArray adjArray(inputFileName);
     {
-        DijkstraImpl sd (adjArray);
-        DijkstraSavedEdges sdSavedEdges (adjArray);
-        DijkstraBiDirect sdBiDirect (adjArray);
+        SecondDijkstra sd (adjArray);
+        SecondDijkstra sd2 (adjArray);
         PathAlgorithm &pa = sd;
-        PathAlgorithm &paSavedEdges = sdSavedEdges;
-        PathAlgorithm &paBiDirect = sdBiDirect;
+        PathAlgorithm &pa2 = sd2;
         // across atlantic
         //benchmarkDijkstra(pa, adjArray, -62, 40, -14, 53.5, 3);
         //debugDijkstra(paBiDirect, adjArray, -62, 40, -14, 53.5);
-        testDijkstra(paSavedEdges, paBiDirect, adjArray, -85, -180, 85, 180, 100);
+        testDijkstra(sd, sd2, adjArray, -85, -180, 85, 180, 100);
 
     }
 }
