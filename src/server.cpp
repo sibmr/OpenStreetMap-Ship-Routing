@@ -6,7 +6,8 @@
 #include <mutex>
 #include <fstream>
 
-#include "Dijkstra_marcel.cpp"
+#include "Dijkstra.cpp"
+#include "BiDirectDijkstra_marcel.cpp"
 
 /**
  * @brief load static file (html,js,css) from disk
@@ -54,7 +55,7 @@ int main(int argc, char** argv)
     static std::string page;
 
     static AdjacencyArray adjArray(inputFileName);
-    static DijkstraSavedEdges dijkstraImpl(adjArray);
+    static SecondDijkstra dijkstraImpl(adjArray);
     static PathAlgorithm &pathAlgorithm = dijkstraImpl;
     
     static std::mutex mutex;

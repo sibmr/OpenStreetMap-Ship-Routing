@@ -7,7 +7,7 @@
 #include <time.h>
 
 #include "Dijkstra.cpp"
-#include "Dijkstra_marcel.cpp"
+#include "BiDirectDijkstra_marcel.cpp"
 
 double doubleRand(double doubleMin, double doubleMax){
     double d = ((double) rand() / (double) RAND_MAX);
@@ -15,17 +15,26 @@ double doubleRand(double doubleMin, double doubleMax){
 }
 
 uint64_t computeAverage(std::vector<uint64_t> &data){
-    return std::accumulate(data.begin(), data.end(), 0) / data.size();
+    if(data.size() > 0){
+        return std::accumulate(data.begin(), data.end(), 0) / data.size();
+    }else{
+        return 1;
+    }
 }
 
 uint64_t computeStdDev(std::vector<uint64_t> &data, uint64_t dataAvg){
-    uint64_t stddev = 0;
-    for(uint64_t value : data){
-        uint64_t diff = value-dataAvg;
-        stddev += diff*diff;
+    if(data.size() > 0){
+        uint64_t stddev = 0;
+        for(uint64_t value : data){
+            uint64_t diff = value-dataAvg;
+            stddev += diff*diff;
+        }
+        stddev = sqrt(stddev)/data.size(); 
+        return stddev;
     }
-    stddev = sqrt(stddev)/data.size(); 
-    return stddev;
+    else{
+        return 1;
+    }
 }
 
 void benchmarkDijkstra(PathAlgorithm &pathAlg, AdjacencyArray &adjArray,
@@ -155,6 +164,7 @@ void testDijkstra(PathAlgorithm &pathAlg, PathAlgorithm &pathAlg2,  AdjacencyArr
         endQuery = std::chrono::high_resolution_clock::now();
         resultPathAlgOne.push_back(temp_result);
         timingPathAlgOne.push_back(std::chrono::duration_cast<std::chrono::microseconds>(endQuery - startQuery).count());
+        numNodesPoppedPathAlgOne.push_back(pathAlg.getNumNodesPopped());
 
 
         startQuery = std::chrono::high_resolution_clock::now();
@@ -165,6 +175,7 @@ void testDijkstra(PathAlgorithm &pathAlg, PathAlgorithm &pathAlg2,  AdjacencyArr
         endQuery = std::chrono::high_resolution_clock::now();
         resultPathAlgTwo.push_back(temp_result);
         timingPathAlgTwo.push_back(std::chrono::duration_cast<std::chrono::microseconds>(endQuery - startQuery).count());
+        numNodesPoppedPathAlgTwo.push_back(pathAlg2.getNumNodesPopped());
 
 
     }
@@ -188,12 +199,12 @@ void testDijkstra(PathAlgorithm &pathAlg, PathAlgorithm &pathAlg2,  AdjacencyArr
         }
     }
 
-;   std::cout << "First alg has from  " << timingPathAlgOne.size() << " Queries an Average of " << avgOne << "us and stddev of: "<< stddevOne <<  "us" << std::endl;
+    std::cout << "First alg has from  " << timingPathAlgOne.size() << " Queries an Average of " << avgOne << "us and stddev of: "<< stddevOne <<  "us" << std::endl;
     std::cout << "Second alg has from " << timingPathAlgTwo.size() << " Queries an Average of " << avgTwo << "us and stddev of: "<< stddevTwo << "us" <<  std::endl;
     std::cout << "On average the first algorithm takes  " <<  ((double)((avgOne * 10000)/(avgTwo)) / 10000) << " times longer" << std::endl;
     std::cout << "On average the second algorithm takes " <<  ((double)((avgTwo * 10000)/(avgOne)) / 10000) << " times longer" << std::endl;
-    std::cout << "First alg has from  " << numNodesPoppedPathAlgOne.size() << " Queries an Average of " << avgPoppedOne << "nodes\n";
-    std::cout << "Second alg has from " << numNodesPoppedPathAlgTwo.size() << " Queries an Average of " << avgPoppedTwo << "nodes\n";
+    std::cout << "First alg has from  " << numNodesPoppedPathAlgOne.size() << " Queries an Average of " << avgPoppedOne << " nodes\n";
+    std::cout << "Second alg has from " << numNodesPoppedPathAlgTwo.size() << " Queries an Average of " << avgPoppedTwo << " nodes\n";
     std::cout << "On average the first algorithm pops  " <<  ((double)((avgPoppedOne * 10000)/(avgPoppedTwo)) / 10000) << " times more nodes" << std::endl;
     std::cout << "On average the second algorithm pops " <<  ((double)((avgPoppedTwo * 10000)/(avgPoppedOne)) / 10000) << " times more nodes" << std::endl;
 
@@ -219,13 +230,13 @@ int main(int argc, char** argv) {
     AdjacencyArray adjArray(inputFileName);
     {
         SecondDijkstra sd (adjArray);
-        SecondDijkstra sd2 (adjArray);
+        BiDirectDijkstra::BiDirectDijkstra sd2 (adjArray);
         PathAlgorithm &pa = sd;
         PathAlgorithm &pa2 = sd2;
         // across atlantic
         //benchmarkDijkstra(pa, adjArray, -62, 40, -14, 53.5, 3);
-        //debugDijkstra(paBiDirect, adjArray, -62, 40, -14, 53.5);
-        testDijkstra(sd, sd2, adjArray, -85, -180, 85, 180, 100);
+        //debugDijkstra(sd, adjArray, -62, 40, -14, 53.5);
+        testDijkstra(sd, sd2, adjArray, -85, -180, 85, 180, 50);
 
     }
 }
