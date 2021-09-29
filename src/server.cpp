@@ -55,7 +55,8 @@ int main(int argc, char** argv)
     static std::string page;
 
     static AdjacencyArray adjArray(inputFileName);
-    static SecondDijkstra dijkstraImpl(adjArray);
+    //static SecondDijkstra dijkstraImpl(adjArray);
+    static BiDirectDijkstra::BiDirectDijkstra dijkstraImpl(adjArray);
     static PathAlgorithm &pathAlgorithm = dijkstraImpl;
     
     static std::mutex mutex;
@@ -105,6 +106,7 @@ int main(int argc, char** argv)
         std::vector<uint64_t> idPath;
         pathAlgorithm.reset();
         uint64_t distance = pathAlgorithm.calculateDist(sNode, tNode);
+        std::cout << distance << std::endl;
 
         std::vector<double> posPath;
 
