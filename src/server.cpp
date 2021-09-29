@@ -9,6 +9,7 @@
 #include "Dijkstra_simon.cpp"
 #include "Bidirectional_Dijkstra_simon.cpp"
 #include "A_star_simon.cpp"
+#include "CH_query_simon.cpp"
 
 /**
  * @brief load static file (html,js,css) from disk
@@ -56,7 +57,7 @@ int main(int argc, char** argv)
     static std::string page;
 
     static AdjacencyArray adjArray(inputFileName);
-    static BidirectionalDijkstra::BidirectionalDijkstra dijkstraImpl(adjArray);
+    static CH_query::CH_query dijkstraImpl(adjArray);
     static PathAlgorithm &pathAlgorithm = dijkstraImpl;
     
     static std::mutex mutex;

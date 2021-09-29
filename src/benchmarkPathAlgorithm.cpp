@@ -9,6 +9,7 @@
 #include "Dijkstra_simon.cpp"
 #include "Bidirectional_Dijkstra_simon.cpp"
 #include "A_star_simon.cpp"
+#include "CH_query_simon.cpp"
 
 void benchmarkDijkstra(PathAlgorithm &pathAlg, AdjacencyArray &adjArray,
     double longStart, double latStart, double longGoal, double latGoal, int numAvg)
@@ -125,43 +126,52 @@ void testDijkstra(PathAlgorithm &pathAlg, PathAlgorithm &pathAlg2,  AdjacencyArr
     auto startQuery = std::chrono::high_resolution_clock::now();
     auto endQuery = std::chrono::high_resolution_clock::now();
 
+    uint64_t sNode = UINT64_MAX;
+    uint64_t tNode = UINT64_MAX;
+
     for (int sampleId = 0; sampleId < numSamplePoints; sampleId++){
 
         std::vector<uint64_t> timings;
-        
-        // get two random samplepoints and check if there exists a path
-        currLongStart = doubleRand(longStart, longGoal);
-        currLongEnd = doubleRand(longStart, longGoal);
-        currLatStart = doubleRand(latStart, latGoal);
-        currLatEnd = doubleRand(latStart, latGoal);
+        bool found_two_nodes;
 
-        uint64_t sNode = longLatToNodeId(adjArray, currLongStart, currLatStart);
-        uint64_t tNode = longLatToNodeId(adjArray, currLongEnd, currLatEnd);
-        pathAlg.reset();        
-        temp_result = pathAlg.calculateDist(sNode, tNode);
-        if(temp_result == UINT64_MAX){
-            continue;
-        }
+        // get two random samplepoints and check if there exists a path
+        do{
+            currLongStart = doubleRand(longStart, longGoal);
+            currLongEnd = doubleRand(longStart, longGoal);
+            currLatStart = doubleRand(latStart, latGoal);
+            currLatEnd = doubleRand(latStart, latGoal);
+
+            sNode = longLatToNodeId(adjArray, currLongStart, currLatStart);
+            tNode = longLatToNodeId(adjArray, currLongEnd, currLatEnd);
+            pathAlg.reset();        
+            temp_result = pathAlg.calculateDist(sNode, tNode);
+        }while(temp_result == UINT64_MAX);
 
 
         coordinates.push_back(std::array<double,4> {currLongStart, currLatStart, currLongEnd, currLatEnd});
 
+        // benchmark first algorithm
+        pathAlg.reset();
+        
         startQuery = std::chrono::high_resolution_clock::now();
-
-        pathAlg.reset();        
+        
         temp_result = pathAlg.calculateDist(sNode, tNode);
 
         endQuery = std::chrono::high_resolution_clock::now();
+        
         resultPathAlgOne.push_back(temp_result);
         timingPathAlgOne.push_back(std::chrono::duration_cast<std::chrono::microseconds>(endQuery - startQuery).count());
         numNodesPoppedPathAlgOne.push_back(pathAlg.getNumNodesPopped());
 
+        // benchmark second algorithm
+        pathAlg2.reset();
+        
         startQuery = std::chrono::high_resolution_clock::now();
-
-        pathAlg2.reset();        
+                
         temp_result = pathAlg2.calculateDist(sNode, tNode);
 
         endQuery = std::chrono::high_resolution_clock::now();
+        
         resultPathAlgTwo.push_back(temp_result);
         timingPathAlgTwo.push_back(std::chrono::duration_cast<std::chrono::microseconds>(endQuery - startQuery).count());
         numNodesPoppedPathAlgTwo.push_back(pathAlg2.getNumNodesPopped());
@@ -207,18 +217,21 @@ int main(int argc, char** argv) {
         inputFileName = std::string(argv[1]);
     }
     else{
-        inputFileName = "data/planet_2.graph_2";
+        inputFileName = "data/planet.graph_2";
     }
+    std::string filenameCH = "data/CHAdjArray.graph_2";
 
 
     AdjacencyArray adjArray(inputFileName);
+    AdjacencyArray adjArrayCH(filenameCH);
     {
         Dijkstra::Dijkstra dijk (adjArray);
         BidirectionalDijkstra::BidirectionalDijkstra bidijk (adjArray);
         A_star::A_star astar (adjArray);
         A_star::A_star_rectangular astar_rect (adjArray);
+        CH_query::CH_query chquery (adjArrayCH);
         PathAlgorithm &pa = dijk;
-        PathAlgorithm &pa_one = astar_rect;
+        PathAlgorithm &pa_one = chquery;
         //debugDijkstra(pa, adjArray, 59.5502,80.2847, 81.9907,84.0839);
         //debugDijkstra(pa_one, adjArray, 59.5502,80.2847, 81.9907,84.0839);
         testDijkstra(pa, pa_one, adjArray, -85, -180, 85, 180, 100);

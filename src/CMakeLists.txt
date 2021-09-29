@@ -1,3 +1,6 @@
+add_executable(test test.cpp)
+set_target_properties(test PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+
 add_executable(CH_preprocessing_simon CH_preprocessing_simon.cpp)
 set_target_properties(CH_preprocessing_simon PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 
