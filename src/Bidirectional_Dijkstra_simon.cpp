@@ -122,6 +122,7 @@ uint64_t BidirectionalDijkstra::calculateDist(uint64_t startPoint_, uint64_t end
             std::pop_heap(forwardHeap.begin(), forwardHeap.end());
             forwardFront = forwardHeap.back();
             forwardHeap.pop_back();
+            numNodesPopped++;
         }while (forwardFront.heuristic_dist >= forwardDistance.at(forwardFront.nodeIdx));
         do{
             // no path found
@@ -131,9 +132,8 @@ uint64_t BidirectionalDijkstra::calculateDist(uint64_t startPoint_, uint64_t end
             std::pop_heap(backwardHeap.begin(), backwardHeap.end());
             backwardFront = backwardHeap.back();
             backwardHeap.pop_back();
+            numNodesPopped++;
         }while (backwardFront.heuristic_dist >= backwardDistance.at(backwardFront.nodeIdx));
-        
-        numNodesPopped += 2;
         
         // update distance and previous node of current forward node
         forwardDistance.at(forwardFront.nodeIdx) = forwardFront.heuristic_dist;

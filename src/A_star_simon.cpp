@@ -126,12 +126,11 @@ uint64_t A_star::calculateDist(uint64_t startPoint_, uint64_t endPoint_){
         std::pop_heap(heap.begin(), heap.end());
         front = heap.back();
         heap.pop_back();
+        numNodesPopped++;
 
         // avoid duplicate nodes (nodes that were already visited, indicated by higher distance)
         if(front.dist >= distance.at(front.nodeIdx)){
             continue;
-        }else{
-            numNodesPopped++;
         }
 
         // update distance and previous node of current node
