@@ -1086,3 +1086,5 @@ include/cpp-httplib
 *.coastline
 *.grid
 *.graph
+todo.txt
+speedups.txt
