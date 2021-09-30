@@ -5,7 +5,8 @@
 # include <array>
 # include <math.h>
 
-#include "shortestPathUtils.cpp"
+# include "shortestPathUtils.cpp"
+# include "ContractionHierachies_marcel.cpp"
 
 
 struct GridData {
@@ -88,10 +89,15 @@ void fillAdjacencyArray(GridData &data, AdjacencyArray &array){
     uint64_t current_offset = 0;
     uint64_t offset_step    = 0;
     array.offsets.push_back(0);
+
+    std::cout << "nodes: "  << data.gridDataList.size() << std::endl;
+
+
     for(uint64_t i = 0; i<data.width; ++i)
     for(uint64_t j = 0; j<data.height; ++j)
     {
         uint64_t x      = i*data.height + j;
+
         
         if(!data.gridDataList.at(x)){               // if its water
             uint64_t down   = i*data.height + (j-1);
@@ -103,31 +109,29 @@ void fillAdjacencyArray(GridData &data, AdjacencyArray &array){
                 offset_step += 1;
                 array.edges.push_back(left);
                 array.distances.push_back(nodeDistance(array, x, left));
-                array.rank.push_back(0);
             }
             if(!data.gridDataList.at(right)){
                 offset_step += 1;
                 array.edges.push_back(right);
                 array.distances.push_back(nodeDistance(array, x, right));
-                array.rank.push_back(0);
             }
             if(j>0              && !data.gridDataList.at(down)){
                 offset_step += 1;
                 array.edges.push_back(down);
                 array.distances.push_back(nodeDistance(array, x, down));
-                array.rank.push_back(0);
             }
             if(j<data.height-1   && !data.gridDataList.at(up)){
                 offset_step += 1;
                 array.edges.push_back(up);
                 array.distances.push_back(nodeDistance(array, x, up));
-                array.rank.push_back(0);
             }
         }
+
 
         current_offset += offset_step;
         offset_step = 0;
         array.offsets.push_back(current_offset);
+        array.rank.push_back(0);
     }
     std::cout << array.distances.size() << std::endl;
     std::cout << array.edges.size() << std::endl;
@@ -197,7 +201,7 @@ void saveAdjacencyArray(AdjacencyArray &array, std::string path){
     adjacency_output_file.write(reinterpret_cast<const char*>(&array.width),     sizeof(array.width));
     adjacency_output_file.write(reinterpret_cast<const char*>(&array.height),     sizeof(array.height));
 
-    // save offset vectro size
+    // save offset vector size
     uint64_t offset_size = array.offsets.size();
     adjacency_output_file.write(reinterpret_cast<const char*>(&offset_size),     sizeof(offset_size));
 
@@ -269,6 +273,9 @@ int main(int argc, char** argv) {
     int outputFileId = -1;
 
     bool verboseOutput = false;
+    bool ch = false;
+    // always go in contract mode
+    ch = true;
 
     // check input parameter
     if(argc < 1 || argc > 4){
@@ -284,7 +291,16 @@ int main(int argc, char** argv) {
             if(argc > 3){
                 outputFileId = 3;
             }
-        }else{
+        }else if(std::string(argv[1]) == "-ch"){
+            ch = true;
+            if(argc > 2){
+                inputFileId = 2;
+            }
+            if(argc > 3){
+                outputFileId = 3;
+            }
+        }
+        else{
             if(argc > 1){
                 inputFileId = 1;
             }if(argc > 2){
@@ -312,13 +328,21 @@ int main(int argc, char** argv) {
     }
     size_t lastindex = tmp_oFile.find_last_of(".");
     outputFileName = tmp_oFile.substr(0, lastindex);
-    outputFileName += ".graph_2";
+    // distinguish between graphs
+    outputFileName += ".graph_3";
 
     GridData dat;
     AdjacencyArray adjArray;
 
     loadGridPoints(dat, inputFileName);
     fillAdjacencyArray(dat, adjArray);
+
+    if(ch){
+        contract(adjArray, 0.9);
+    }
+
+
+
     // save
     std::cout << dat.height << std::endl;
     if(verboseOutput){
