@@ -63,10 +63,10 @@ void loadGridPoints(GridData &gridData, std::string path){
 
     std::cout << width << std::endl;
     std::cout << height << std::endl;
-    std::cout << gridData.gridDataList.at(0) << std::endl;
-    std::cout << gridData.gridDataList.at(1) << std::endl;
-    std::cout << gridData.gridDataList.at(2) << std::endl;
-    std::cout << latLow << std::endl;
+    //std::cout << gridData.gridDataList.at(0) << std::endl;
+    //std::cout << gridData.gridDataList.at(1) << std::endl;
+    //std::cout << gridData.gridDataList.at(2) << std::endl;
+    //std::cout << latLow << std::endl;
 }
 
 /**
@@ -90,7 +90,7 @@ void fillAdjacencyArray(GridData &data, AdjacencyArray &array){
     uint64_t offset_step    = 0;
     array.offsets.push_back(0);
 
-    std::cout << "nodes: "  << data.gridDataList.size() << std::endl;
+    //std::cout << "nodes: "  << data.gridDataList.size() << std::endl;
 
 
     for(uint64_t i = 0; i<data.width; ++i)
@@ -133,8 +133,8 @@ void fillAdjacencyArray(GridData &data, AdjacencyArray &array){
         array.offsets.push_back(current_offset);
         array.rank.push_back(0);
     }
-    std::cout << array.distances.size() << std::endl;
-    std::cout << array.edges.size() << std::endl;
+    //std::cout << array.distances.size() << std::endl;
+    //std::cout << array.edges.size() << std::endl;
 }
 
 void testLoadFill(GridData &dat, AdjacencyArray &adjArray){
@@ -344,7 +344,7 @@ int main(int argc, char** argv) {
 
 
     // save
-    std::cout << dat.height << std::endl;
+    //std::cout << dat.height << std::endl;
     if(verboseOutput){
         testLoadFill(dat, adjArray);
     }
