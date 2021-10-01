@@ -37,7 +37,7 @@ struct AdjacencyArray {
         edges = std::vector<uint64_t>(adjArray.edges);
         distances = std::vector<uint64_t>(adjArray.distances);
         rank = std::vector<uint64_t>(adjArray.rank);
-        nodes = std::vector<bool>(nodes);
+        nodes = std::vector<bool>(adjArray.nodes);
     };
 
     /**
