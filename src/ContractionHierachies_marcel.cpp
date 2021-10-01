@@ -4,6 +4,7 @@
 # include <math.h>
 
 # include "shortestPathUtils.cpp"
+# include "Dijkstra.cpp"
 
 /**
  * @brief contraction hierachies preprocessing
@@ -12,13 +13,48 @@
  * @param percentage percentage of how many nodes are part of uncontracted core
  */
 void contract(AdjacencyArray &array, double percentage){
-    std::cout << "contract method" << std::endl;
+    std::cout << "--- BEGIN CONTRACH HIERACHIES ---" << std::endl;
+    std::cout << "initial number of edges: " << array.edges.size() << std::endl;
 
-    std::cout << array.nodes.size() << std::endl;
-    std::cout << array.rank.size() << std::endl;
-    std::cout << array.offsets.at(array.offsets.size()-1) << std::endl;
-    std::cout << array.nodes.at(0) << " ";
-    std::cout << array.nodes.at(array.offsets.size()-1) << std::endl;
 
+
+
+
+    AdjacencyArray workArray (array);
+
+    while (workArray.nodes.size() > (1 - percentage) * array.nodes.size()){   
+
+        // SELECT INDEPENDENT SET OF NODES  C <= V
+
+
+        // CREATE SET OF OF SHORTCUTS 
+
+
+        // REMOVE DUPLICATE SHORTCUTS
+
+
+        // ASSIGN CURRENT RANK TO NODES
+
+
+        // MARK ADJACENT EDGES FOR REMOVAL 
+
+
+        // BUILD NEW WORKARRAY G' = (V \ C, E u S \ A)
+
+
+
+    }
+
+    // BUILD FINAL GRAPH G'' = (V; E u E')
+    
+    
+
+
+
+
+
+    std::cout << "workarray " << workArray.width << std::endl;
+
+    std::cout << "--- END CONTRACH HIERACHIES ---" << std::endl;
 
 }
