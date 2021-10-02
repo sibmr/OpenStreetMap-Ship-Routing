@@ -68,6 +68,7 @@ void removeRedundantEdges(AdjacencyArray &adjArray){
     adjArray.edges.clear();
     adjArray.edgeIds.clear();
     adjArray.offsets.clear();
+    adjArray.offsets.push_back(0);
     adjArray.distances.clear();
 
     uint64_t currentOffset = 0;
@@ -86,6 +87,7 @@ void removeRedundantEdges(AdjacencyArray &adjArray){
                     currentOffset++;
                 }
             }
+            adjArray.offsets.push_back(currentOffset);
         }
     }
 }
@@ -106,6 +108,14 @@ void checkUndirectedness(AdjacencyArray &adjArray){
                     std::cout << "did not find backedge\n";
                 }
             }
+        }
+    }
+}
+
+void checkEdgeIdSorted(AdjacencyArray &adjArray){
+    for(uint64_t edgeId = 0; edgeId < adjArray.allEdgeInfo.size(); ++edgeId){
+        if(adjArray.allEdgeInfo.at(edgeId).edgeId != edgeId){
+            std::cout << "differs: " << edgeId << " " << adjArray.allEdgeInfo.at(edgeId).edgeId << "\n";
         }
     }
 }
@@ -141,5 +151,6 @@ int main(){
 
     checkUndirectedness(adjArray);
 
+    checkEdgeIdSorted(adjArray);
     
 }

@@ -1,7 +1,9 @@
 add_executable(test test.cpp)
 set_target_properties(test PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 
+find_package(OpenMP REQUIRED)
 add_executable(CH_preprocessing_simon CH_preprocessing_simon.cpp)
+target_link_libraries(CH_preprocessing_simon PRIVATE OpenMP::OpenMP_CXX)
 set_target_properties(CH_preprocessing_simon PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 
 add_executable(server server.cpp)

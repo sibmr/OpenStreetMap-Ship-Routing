@@ -219,7 +219,7 @@ int main(int argc, char** argv) {
     else{
         inputFileName = "data/planet.graph_2";
     }
-    std::string filenameCH = "data/CHAdjArray.graph_2";
+    std::string filenameCH = "data/CHAdjArray_40.graph_2";
 
 
     AdjacencyArray adjArray(inputFileName);

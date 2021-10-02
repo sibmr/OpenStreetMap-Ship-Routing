@@ -35,6 +35,8 @@ class CH_query: public PathAlgorithm{
         uint64_t getNumNodesPopped();
     private:
         uint64_t fillVectors(uint64_t startPoint, uint64_t endPoint);
+        void recursiveUnpackEdge(uint64_t edgeId, std::vector<uint64_t> &unpackedEdges);
+        uint64_t getEdgeIdBetween(uint64_t nodeId1, uint64_t nodeId2);
         std::vector<uint64_t> forwardDistance;
         std::vector<uint64_t> backwardDistance;
         std::vector<HeapElement> forwardHeap;
@@ -108,9 +110,6 @@ uint64_t CH_query::calculateDist(uint64_t startPoint_, uint64_t endPoint_){
     HeapElement newForwardFront;
     HeapElement newBackwardFront;
 
-    uint64_t forwardRank = 0;
-    uint64_t backwardRank = 0;
-
     uint64_t minDistance = UINT64_MAX;
 
     bool forwardStuck = false;
@@ -129,102 +128,119 @@ uint64_t CH_query::calculateDist(uint64_t startPoint_, uint64_t endPoint_){
             // no path found
             if(forwardHeap.empty()){
                 forwardStuck = true;
+            }else{
+                std::pop_heap(forwardHeap.begin(), forwardHeap.end());
+                newForwardFront = forwardHeap.back();
+                forwardHeap.pop_back();
+                numNodesPopped++;
             }
-            std::pop_heap(forwardHeap.begin(), forwardHeap.end());
-            newForwardFront = forwardHeap.back();
-            forwardHeap.pop_back();
-            numNodesPopped++;
-        }while (newForwardFront.heuristic_dist >= forwardDistance.at(newForwardFront.nodeIdx));
+        }while (newForwardFront.heuristic_dist >= forwardDistance.at(newForwardFront.nodeIdx) && !forwardStuck);
         do{
             // no path found
             if(backwardHeap.empty()){
                 backwardStuck = true;
+            }else{
+                std::pop_heap(backwardHeap.begin(), backwardHeap.end());
+                newBackwardFront = backwardHeap.back();
+                backwardHeap.pop_back();
+                numNodesPopped++;
             }
-            std::pop_heap(backwardHeap.begin(), backwardHeap.end());
-            newBackwardFront = backwardHeap.back();
-            backwardHeap.pop_back();
-            numNodesPopped++;
-        }while (newBackwardFront.heuristic_dist >= backwardDistance.at(newBackwardFront.nodeIdx));
+        }while (newBackwardFront.heuristic_dist >= backwardDistance.at(newBackwardFront.nodeIdx) && !backwardStuck);
         
         if(forwardStuck && backwardStuck){
             return UINT64_MAX;
         }
+        
+        //std::cout << "heap size: " << forwardHeap.size() << " " << backwardHeap.size() << "\n";
 
         // settle heap fronts
+        // if(!forwardStuck){
+        //     forwardFront = newForwardFront;
+            
+        //     uint64_t stallingDistance = UINT64_MAX;
+        //     uint64_t stallingPredecessor = UINT64_MAX;
+
+        //     // stall on demand
+        //     for(uint64_t currEdgeId = adjArray.offsets.at(forwardFront.nodeIdx); currEdgeId < adjArray.offsets.at(forwardFront.nodeIdx+1); ++currEdgeId){
+        //         // get id of adjacent node for current edge (neighboring node)
+        //         uint64_t neighborIdx = adjArray.edges.at(currEdgeId);
+        //         if(adjArray.rank.at(neighborIdx) < adjArray.rank.at(forwardFront.nodeIdx)){
+                    
+        //             if(forwardDistance.at(neighborIdx)==UINT64_MAX){ continue; }
+                    
+        //             stallingDistance = forwardDistance.at(neighborIdx) + adjArray.distances.at(currEdgeId);
+        //             stallingPredecessor = neighborIdx;
+
+        //             if(stallingDistance < forwardFront.dist){
+        //                 forwardStalled = true;
+        //                 break;    
+        //             }
+        //         }
+        //     }
+
+        //     if(!forwardStalled){
+        //         // update distance and previous node of current forward node
+        //         forwardDistance.at(forwardFront.nodeIdx) = forwardFront.heuristic_dist;
+        //         forwardPrev.at(forwardFront.nodeIdx) = forwardFront.prev;
+        //     }
+        //     else{
+        //         forwardDistance.at(forwardFront.nodeIdx) = stallingDistance;
+        //         forwardDistance.at(forwardFront.nodeIdx) = stallingPredecessor;
+        //     }
+        //     //forwardStalled = false;
+        // }
+        // if(!backwardStuck){
+        //     backwardFront = newBackwardFront;
+
+        //     uint64_t stallingDistance = UINT64_MAX;
+        //     uint64_t stallingPredecessor = UINT64_MAX;
+
+        //     // stall on demand
+        //     for(uint64_t currEdgeId = adjArray.offsets.at(backwardFront.nodeIdx); currEdgeId < adjArray.offsets.at(backwardFront.nodeIdx+1); ++currEdgeId){
+        //         // get id of adjacent node for current edge (neighboring node)
+        //         uint64_t neighborIdx = adjArray.edges.at(currEdgeId);
+        //         if(adjArray.rank.at(neighborIdx) < adjArray.rank.at(backwardFront.nodeIdx)){
+                    
+        //             if(backwardDistance.at(neighborIdx)==UINT64_MAX){ continue; }
+                    
+        //             stallingDistance = backwardDistance.at(neighborIdx) + adjArray.distances.at(currEdgeId);
+        //             stallingPredecessor = neighborIdx;
+                    
+        //             if(stallingDistance < backwardFront.dist){
+        //                 backwardStalled = true;
+        //                 break;    
+        //             }
+        //         }
+        //     }
+            
+        //     if(!backwardStalled){
+        //         // update distance and previous node of current backward node
+        //         backwardDistance.at(backwardFront.nodeIdx) = backwardFront.heuristic_dist;
+        //         backwardPrev.at(backwardFront.nodeIdx) = backwardFront.prev;
+        //     }
+        //     else{
+        //         backwardDistance.at(backwardFront.nodeIdx) = stallingDistance;
+        //         backwardPrev.at(backwardFront.nodeIdx) = stallingPredecessor;
+        //     }
+        //     // backwardStalled = false;
+        // }
+
         if(!forwardStuck){
             forwardFront = newForwardFront;
             
-            uint64_t stallingDistance = UINT64_MAX;
-            uint64_t stallingPredecessor = UINT64_MAX;
-
-            // stall on demand
-            for(uint64_t currEdgeId = adjArray.offsets.at(forwardFront.nodeIdx); currEdgeId < adjArray.offsets.at(forwardFront.nodeIdx+1); ++currEdgeId){
-                // get id of adjacent node for current edge (neighboring node)
-                uint64_t neighborIdx = adjArray.edges.at(currEdgeId);
-                if(adjArray.rank.at(neighborIdx) < adjArray.rank.at(forwardFront.nodeIdx)){
-                    
-                    if(forwardDistance.at(neighborIdx)==UINT64_MAX){ continue; }
-                    
-                    stallingDistance = forwardDistance.at(neighborIdx) + adjArray.distances.at(currEdgeId);
-                    stallingPredecessor = neighborIdx;
-
-                    if(stallingDistance < forwardFront.dist){
-                        forwardStalled = true;
-                        break;    
-                    }
-                }
-            }
-
-            //if(!forwardStalled){
-                // update distance and previous node of current forward node
-                forwardDistance.at(forwardFront.nodeIdx) = forwardFront.heuristic_dist;
-                forwardPrev.at(forwardFront.nodeIdx) = forwardFront.prev;
-            //}
-            /**
-            else{
-                forwardDistance.at(forwardFront.nodeIdx) = stallingDistance;
-                forwardDistance.at(forwardFront.nodeIdx) = stallingPredecessor;
-            }
-            */
-            forwardStalled = false;
+            // update distance and previous node of current forward node
+            forwardDistance.at(forwardFront.nodeIdx) = forwardFront.heuristic_dist;
+            forwardPrev.at(forwardFront.nodeIdx) = forwardFront.prev;
         }
         if(!backwardStuck){
             backwardFront = newBackwardFront;
-
-            uint64_t stallingDistance = UINT64_MAX;
-            uint64_t stallingPredecessor = UINT64_MAX;
-
-            // stall on demand
-            for(uint64_t currEdgeId = adjArray.offsets.at(backwardFront.nodeIdx); currEdgeId < adjArray.offsets.at(backwardFront.nodeIdx+1); ++currEdgeId){
-                // get id of adjacent node for current edge (neighboring node)
-                uint64_t neighborIdx = adjArray.edges.at(currEdgeId);
-                if(adjArray.rank.at(neighborIdx) < adjArray.rank.at(backwardFront.nodeIdx)){
-                    
-                    if(backwardDistance.at(neighborIdx)==UINT64_MAX){ continue; }
-                    
-                    stallingDistance = backwardDistance.at(neighborIdx) + adjArray.distances.at(currEdgeId);
-                    stallingPredecessor = neighborIdx;
-                    
-                    if(stallingDistance < backwardFront.dist){
-                        backwardStalled = true;
-                        break;    
-                    }
-                }
-            }
             
-            //if(!backwardStalled){
-                // update distance and previous node of current backward node
-                backwardDistance.at(backwardFront.nodeIdx) = backwardFront.heuristic_dist;
-                backwardPrev.at(backwardFront.nodeIdx) = backwardFront.prev;
-            //}
-            /**
-            else{
-                backwardDistance.at(backwardFront.nodeIdx) = stallingDistance;
-                backwardPrev.at(backwardFront.nodeIdx) = stallingPredecessor;
-            }
-            */
-           backwardStalled = false;
+            // update distance and previous node of current forward node
+            backwardDistance.at(backwardFront.nodeIdx) = backwardFront.heuristic_dist;
+            backwardPrev.at(backwardFront.nodeIdx) = backwardFront.prev;
         }
+        forwardStalled = false;
+        backwardStalled = false;
 
         // termination criterion for bidirectional dijkstra
         if(forwardFront.heuristic_dist + backwardFront.heuristic_dist >= minDistance){
@@ -325,6 +341,30 @@ uint64_t CH_query::getDist(){
     return lastCalculatedDistance;
 }
 
+void CH_query::recursiveUnpackEdge(uint64_t edgeId, std::vector<uint64_t> &unpackedNodes){
+    Edge &edge = adjArray.allEdgeInfo.at(edgeId);
+    std::cout << "num shortcut edges: " << edge.shortcutPathEdges.size() << ", v1: " <<  edge.v1 << ", v2: " <<  edge.v2 << "\n";
+    if(edge.shortcutPathEdges.size() > 0){
+        for(uint64_t edgeId : edge.shortcutPathEdges){
+            recursiveUnpackEdge(edgeId, unpackedNodes);
+        }
+    }else{
+        unpackedNodes.push_back(edge.v1);
+        unpackedNodes.push_back(edge.v2);
+        std::cout << edge.v1 << ", rank " << adjArray.rank.at(edge.v1) << " -> " << edge.v2 << ", rank " << adjArray.rank.at(edge.v2) << "\n"; 
+    }
+}
+
+uint64_t CH_query::getEdgeIdBetween(uint64_t nodeId1, uint64_t nodeId2){
+    for(uint64_t currEdgeIndex = adjArray.offsets.at(nodeId1); currEdgeIndex < adjArray.offsets.at(nodeId1+1); ++currEdgeIndex){
+        uint64_t adjacentNodeId = adjArray.edges.at(currEdgeIndex);
+        if(adjacentNodeId == nodeId2){
+            return adjArray.edgeIds.at(currEdgeIndex);
+        }
+    }
+    return UINT64_MAX;
+}
+
 /**
  * @brief retrieve path calculated by the last call to calculateDist
  * 
@@ -335,23 +375,55 @@ void CH_query::getPath(std::vector<uint64_t> &path){
     std::vector<uint64_t> backwardPath;
     if(lastCalculatedDistance < UINT64_MAX){
         // build up path
-        uint64_t currNode = forwardMinMeetingNodeId;
+        uint64_t prevNode = forwardMinMeetingNodeId;
+        uint64_t currNode = UINT64_MAX;
         while(currNode != startPoint){
+            currNode = forwardPrev.at(prevNode);
+            
             std::cout << "p1: " << startPoint << " " << endPoint << "\n";
             std::cout << currNode << "\n";
-            currNode = forwardPrev.at(currNode);
-            forwardPath.push_back(currNode);
+            
+            uint64_t currEdgeId = getEdgeIdBetween(prevNode, currNode);
+            std::vector<uint64_t> unpackedNodeIds;
+            recursiveUnpackEdge(currEdgeId, unpackedNodeIds);
+            for(uint64_t i = 0; i<unpackedNodeIds.size(); i+=2){
+                forwardPath.push_back(unpackedNodeIds.at(i));
+            }
+            forwardPath.push_back(unpackedNodeIds.at(unpackedNodeIds.size()-1));
+            
+            prevNode = currNode;
         }
-        currNode = backwardMinMeetingNodeId;
+        prevNode = backwardMinMeetingNodeId;
+        currNode = UINT64_MAX;
         while(currNode != endPoint){
+            currNode = backwardPrev.at(prevNode);
+            
             std::cout << "p2: " << startPoint << " " << endPoint << "\n";
             std::cout << currNode << "\n";
-            currNode = backwardPrev.at(currNode);
-            backwardPath.push_back(currNode);
+            
+            uint64_t currEdgeId = getEdgeIdBetween(prevNode, currNode);
+            std::vector<uint64_t> unpackedNodeIds;
+            recursiveUnpackEdge(currEdgeId, unpackedNodeIds);
+            for(uint64_t i = 0; i<unpackedNodeIds.size(); i+=2){
+                backwardPath.push_back(unpackedNodeIds.at(i));
+            }
+            backwardPath.push_back(unpackedNodeIds.at(unpackedNodeIds.size()-1));
+            
+            prevNode = currNode;
         }
+        
         for(int i = forwardPath.size()-1; i>=0; --i){
             path.push_back(forwardPath.at(i));
         }
+
+        std::vector<uint64_t> unpackedNodeIds;
+        uint64_t edgeId = getEdgeIdBetween(forwardMinMeetingNodeId, backwardMinMeetingNodeId);
+        recursiveUnpackEdge(edgeId, unpackedNodeIds);
+        for(uint64_t i = 0; i<unpackedNodeIds.size(); i+=2){
+                path.push_back(unpackedNodeIds.at(i));
+        }
+        path.push_back(unpackedNodeIds.at(unpackedNodeIds.size()-1));
+
         for(int i = 0; i<backwardPath.size(); ++i){
             path.push_back(backwardPath.at(i));
         }
