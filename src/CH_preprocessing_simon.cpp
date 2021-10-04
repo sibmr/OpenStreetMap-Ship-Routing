@@ -149,7 +149,6 @@ void numEdgeFillContractionSet(
     std::vector<uint64_t> &out_newContractions
     ){
 
-    uint64_t numDraws = 20000;
     uint64_t nodeIdLimit = in_out_isContracted.size();
     
     // pick first node
@@ -281,11 +280,14 @@ void contractNode(  uint64_t contractedNodeId, AdjacencyArray &workArray, uint64
                 // use distances of edges (contractedNodeId, otherNodeId) - instead of (otherNodeId, contractedNodeId)
                 uint64_t edgeDistance = distanceUVW;
                 uint64_t shortcutId = out_allEdges.size();
+                /*
                 std::vector<uint64_t> edgePathUVW;
-                std::vector<uint64_t> edgePathUV = {reverseEdgeIds.at(i)};
-                std::vector<uint64_t> edgePathVW = {forwardEdgeIds.at(j)};
+                std::vector<uint64_t> edgePathUV {reverseEdgeIds.at(i)};
+                std::vector<uint64_t> edgePathVW {forwardEdgeIds.at(j)};
                 edgePathUVW.insert(edgePathUVW.end(), edgePathUV.begin(), edgePathUV.end());
                 edgePathUVW.insert(edgePathUVW.end(), edgePathVW.begin(), edgePathVW.end());
+                */
+               std::vector<uint64_t> edgePathUVW {reverseEdgeIds.at(i), forwardEdgeIds.at(j)};
 
                 Edge newEdge{
                     .edgeId=shortcutId,
@@ -304,6 +306,65 @@ void contractNode(  uint64_t contractedNodeId, AdjacencyArray &workArray, uint64
     out_removedEdgeIndices.insert(out_removedEdgeIndices.end(), edgeIndices.begin(), edgeIndices.end());
 }
 
+void edgeDifferenceFillContractionSet(
+    AdjacencyArray &adjArray,
+    double fraction, 
+    std::vector<uint64_t> &in_out_allContractedIds, 
+    std::vector<bool> &in_out_isContracted, 
+    std::vector<uint64_t> &out_newContractions
+    ){
+
+    uint64_t numDraws = 20000;
+    uint64_t nodeIdLimit = in_out_isContracted.size();
+    
+    std::vector<std::pair<uint64_t, int>> nodeWithCost;
+    Dijkstra::Dijkstra dijkstra(adjArray);
+
+    std::vector<uint64_t> independentSet;
+    std::vector<bool> isInIndependentSet(adjArray.width*adjArray.height, false);
+
+    for(uint64_t nodeId=0; nodeId<adjArray.width*adjArray.height; ++nodeId){
+        
+        // check if node is in water and not already in contraction set
+        if(!in_out_isContracted.at(nodeId) && !adjArray.nodes.at(nodeId)){
+
+            // calculate criterion
+            std::vector<bool> isEdgeRemoved(adjArray.edges.size(), false);
+            std::vector<uint64_t> removedEdgeIndices;
+            std::vector<Edge> allEdges;
+            std::vector<Edge> shortcutEdges;
+            contractNode(nodeId, adjArray, adjArray.rank.at(nodeId), dijkstra, isEdgeRemoved, removedEdgeIndices, allEdges, shortcutEdges);
+            int criterion = shortcutEdges.size() - removedEdgeIndices.size();
+
+            std::cout << nodeId << "  " << criterion << "\n";
+
+            // add to list
+            nodeWithCost.push_back(std::pair<uint64_t, uint64_t>(nodeId, criterion));
+        }
+    }
+
+    std::cout << "contraction candidates: " << nodeWithCost.size() << "\n";
+
+    std::sort(  nodeWithCost.begin(), nodeWithCost.end(),
+                [](std::pair<uint64_t,int> &p1, std::pair<uint64_t,int> &p2){ return p1.second < p2.second; });
+    
+
+    for(auto nodeCriterionPair : nodeWithCost){
+        bool isAdjacent = isNodeAdjacentToSet(adjArray, nodeCriterionPair.first, isInIndependentSet);
+        if(!isAdjacent){
+            independentSet.push_back(nodeCriterionPair.first);
+            isInIndependentSet.at(nodeCriterionPair.first) = true;
+        }
+    }
+
+    for(uint64_t nodeIndex=0; nodeIndex<((uint64_t)(independentSet.size()*fraction)); ++nodeIndex){
+        uint64_t nodeId = independentSet.at(nodeIndex);
+        out_newContractions.push_back(nodeId);
+        in_out_allContractedIds.push_back(nodeId);
+        in_out_isContracted.at(nodeId) = true;
+    }
+    std::cout << "num nodes contracted: " << out_newContractions.size() << "\n";
+}
 
 int main(int argc, char** argv){
     std::string path;
@@ -335,7 +396,7 @@ int main(int argc, char** argv){
     //for(uint64_t round = 0; round<5; ++round){
     uint64_t round = 1;
     std::cout << workArray.width*workArray.height - std::accumulate(workArray.nodes.begin(), workArray.nodes.end(), 0) << "\n";
-    while((workArray.width*workArray.height - std::accumulate(workArray.nodes.begin(), workArray.nodes.end(), 0)) > 7000){
+    while((workArray.width*workArray.height - std::accumulate(workArray.nodes.begin(), workArray.nodes.end(), 0)) > 550){
         std::cout << "round " << round++ << "\n";
 
         Dijkstra::Dijkstra dijkstra(workArray);
@@ -346,7 +407,7 @@ int main(int argc, char** argv){
 
         // select set of independent nodes for contraction
         std::vector<uint64_t> newContractions;
-        numEdgeFillContractionSet(workArray, 0.5, contractedNodeIds, isContracted, newContractions);
+        edgeDifferenceFillContractionSet(workArray, 0.5, contractedNodeIds, isContracted, newContractions);
 
         uint64_t roundProgress = 0;
 
