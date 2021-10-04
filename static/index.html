@@ -173,6 +173,12 @@
 		requestNode();
 	}
 
+	function setLocation(lng, lat){
+		testLocation = [lng, lat];
+		testLocationInv = [lat, lng];
+		requestNode();
+	}
+
 	mymap.on('click', onMapClick);
 
 </script>
