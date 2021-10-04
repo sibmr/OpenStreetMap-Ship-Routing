@@ -10,6 +10,23 @@
 # include <queue>
 # include <algorithm>
 
+
+struct ChEdge {
+    uint64_t startNode, targetNode, distance, inEdge, outEdge;
+
+    ChEdge(){};
+
+    ChEdge(uint64_t startNode, uint64_t targetNode, uint64_t distance, uint64_t inEdge, uint64_t outEdge){
+        this->startNode = startNode;
+        this->targetNode = targetNode;
+        this->distance = distance;
+        this->inEdge = inEdge;
+        this->outEdge = outEdge;
+       }
+
+};
+
+
 struct AdjacencyArray {
     double longLow, latLow, longHigh, latHigh;
     uint64_t width, height;

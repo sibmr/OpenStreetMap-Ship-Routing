@@ -338,7 +338,7 @@ int main(int argc, char** argv) {
     fillAdjacencyArray(dat, adjArray);
 
     if(ch){
-        contract(adjArray, 0.9);
+        contract(adjArray, 0.94);
     }
 
 
