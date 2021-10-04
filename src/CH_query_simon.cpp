@@ -31,6 +31,7 @@ class CH_query: public PathAlgorithm{
         void getPath(std::vector<uint64_t> &path);
         uint64_t getDist();
         uint64_t calculateDist(uint64_t startPoint, uint64_t endPoint);
+        uint64_t calculateDist1(uint64_t startPoint_, uint64_t endPoint_);
         void reset();
         uint64_t getNumNodesPopped();
     private:
@@ -272,15 +273,16 @@ uint64_t CH_query::calculateDist(uint64_t startPoint_, uint64_t endPoint_){
                     forwardHeap.push_back(HeapElement{neighborIdx, forwardFront.nodeIdx, newNeighborDist});
                     std::push_heap(forwardHeap.begin(), forwardHeap.end());
                 
-                    // if neighbor has been discovered in "backward" dijkstra then check if min distance improves
-                    uint64_t neighborGoalDistance = backwardDistance.at(neighborIdx);
-                    if(neighborGoalDistance < UINT64_MAX){
-                        uint64_t joinDistance = forwardFront.heuristic_dist + edgeDist + neighborGoalDistance;
-                        if(joinDistance < minDistance){
-                            minDistance = joinDistance;
-                            forwardMinMeetingNodeId = forwardFront.nodeIdx;
-                            backwardMinMeetingNodeId = neighborIdx;
-                        }
+                }
+
+                // if neighbor has been discovered in "backward" dijkstra then check if min distance improves
+                uint64_t neighborGoalDistance = backwardDistance.at(neighborIdx);
+                if(neighborGoalDistance < UINT64_MAX){
+                    uint64_t joinDistance = newNeighborDist + neighborGoalDistance;
+                    if(joinDistance < minDistance){
+                        minDistance = joinDistance;
+                        forwardMinMeetingNodeId = forwardFront.nodeIdx;
+                        backwardMinMeetingNodeId = neighborIdx;
                     }
                 }
 
@@ -311,25 +313,167 @@ uint64_t CH_query::calculateDist(uint64_t startPoint_, uint64_t endPoint_){
                 if(newNeighborDist<oldNeighborDist && neighborRank >= currentRank){
                     backwardHeap.push_back(HeapElement{neighborIdx, backwardFront.nodeIdx, newNeighborDist});
                     std::push_heap(backwardHeap.begin(), backwardHeap.end());    
-                
-                    // if neighbor has been discovered in "backward" dijkstra then check if min distance improves
-                    uint64_t neighborStartDistance = forwardDistance.at(neighborIdx);
-                    if(neighborStartDistance < UINT64_MAX){
-                        uint64_t joinDistance = backwardFront.heuristic_dist + edgeDist + neighborStartDistance;
-                        if(joinDistance < minDistance){
-                            minDistance = joinDistance;
-                            forwardMinMeetingNodeId = neighborIdx;
-                            backwardMinMeetingNodeId = backwardFront.nodeIdx;
-                        }
-                    }
+            
                 }
 
+                // if neighbor has been discovered in "forward" dijkstra then check if min distance improves
+                uint64_t neighborStartDistance = forwardDistance.at(neighborIdx);
+                if(neighborStartDistance < UINT64_MAX){
+                    uint64_t joinDistance = newNeighborDist + neighborStartDistance;
+                    if(joinDistance < minDistance){
+                        minDistance = joinDistance;
+                        forwardMinMeetingNodeId = neighborIdx;
+                        backwardMinMeetingNodeId = backwardFront.nodeIdx;
+                    }
+                }
                 
             }
         }
 
     }
 
+}
+
+uint64_t CH_query::calculateDist1(uint64_t startPoint_, uint64_t endPoint_){
+
+    startPoint = startPoint_;
+    endPoint = endPoint_;
+
+    forwardHeap.push_back(HeapElement{startPoint, UINT64_MAX, 0});
+    backwardHeap.push_back(HeapElement{endPoint, UINT64_MAX, 0});
+
+    std::make_heap(forwardHeap.begin(), forwardHeap.end());
+    std::make_heap(backwardHeap.begin(), backwardHeap.end());
+
+    HeapElement forwardFront;
+    HeapElement backwardFront;
+
+    HeapElement newForwardFront;
+    HeapElement newBackwardFront;
+
+    uint64_t forwardRank = 0;
+    uint64_t backwardRank = 0;
+
+    uint64_t minDistance = UINT64_MAX;
+
+    while(true){
+        //std::cout << "forward heap " << forwardHeap.size() << "\n";
+        if(forwardHeap.empty()){
+            break;
+        }
+        std::pop_heap(forwardHeap.begin(), forwardHeap.end());
+        newForwardFront = forwardHeap.back();
+        forwardHeap.pop_back();
+        forwardFront = newForwardFront;
+
+        if(forwardFront.heuristic_dist >= forwardDistance.at(forwardFront.nodeIdx)){
+            continue;
+        }else{
+            numNodesPopped++;
+        }
+
+        // update distance and previous node of current forward node
+        forwardDistance.at(forwardFront.nodeIdx) = forwardFront.heuristic_dist;
+        forwardPrev.at(forwardFront.nodeIdx) = forwardFront.prev;
+
+        //// forward step ////
+        // iterate over edges of current forward node
+        for(uint64_t currEdgeId = adjArray.offsets.at(forwardFront.nodeIdx); currEdgeId < adjArray.offsets.at(forwardFront.nodeIdx+1); ++currEdgeId){
+            //std::cout << currEdgeId << " " << adjArray.offsets.at(forwardFront.nodeIdx) << " " << adjArray.offsets.at(forwardFront.nodeIdx+1) << "\n";
+            // get id of adjacent node for current edge (neighboring node)
+            uint64_t neighborIdx = adjArray.edges.at(currEdgeId);
+
+            // choose length of edge from precalculated lengths
+            uint64_t edgeDist = adjArray.distances.at(currEdgeId);
+
+            // calculate new distances
+            uint64_t newNeighborDist = forwardFront.heuristic_dist + edgeDist;
+            uint64_t oldNeighborDist = forwardDistance.at(neighborIdx);
+            uint64_t neighborRank = adjArray.rank.at(neighborIdx);
+            uint64_t currentRank = adjArray.rank.at(forwardFront.nodeIdx);
+            if(neighborRank == 0){ neighborRank = 1000; }
+            if(currentRank == 0){ currentRank = 1000; }
+
+            // update node distance if it improves (in this case: push new heap node with better distance)
+            if(newNeighborDist<oldNeighborDist && neighborRank >= currentRank){
+                forwardHeap.push_back(HeapElement{neighborIdx, forwardFront.nodeIdx, newNeighborDist});
+                std::push_heap(forwardHeap.begin(), forwardHeap.end());
+            }   
+        }
+    }
+
+    std::vector<uint64_t> backwardSettledNodes;
+    while(true){
+        //std::cout << "backward heap " << backwardHeap.size() << "\n";
+        if(backwardHeap.empty()){
+            break;
+        }
+        std::pop_heap(backwardHeap.begin(), backwardHeap.end());
+        newBackwardFront = backwardHeap.back();
+        backwardHeap.pop_back();
+        backwardFront = newBackwardFront;
+
+        if(backwardFront.heuristic_dist >= backwardDistance.at(backwardFront.nodeIdx)){
+            continue;
+        }else{
+            numNodesPopped++;
+        }
+
+
+        // update distance and previous node of current forward node
+        backwardDistance.at(backwardFront.nodeIdx) = backwardFront.heuristic_dist;
+        backwardPrev.at(backwardFront.nodeIdx) = backwardFront.prev;
+        backwardSettledNodes.push_back(backwardFront.nodeIdx);
+
+        //// forward step ////
+        // iterate over edges of current forward node
+        for(uint64_t currEdgeId = adjArray.offsets.at(backwardFront.nodeIdx); currEdgeId < adjArray.offsets.at(backwardFront.nodeIdx+1); ++currEdgeId){
+
+            // get id of adjacent node for current edge (neighboring node)
+            uint64_t neighborIdx = adjArray.edges.at(currEdgeId);
+
+            // choose length of edge from precalculated lengths
+            uint64_t edgeDist = adjArray.distances.at(currEdgeId);
+
+            // calculate new distances
+            uint64_t newNeighborDist = backwardFront.heuristic_dist + edgeDist;
+            uint64_t oldNeighborDist = backwardDistance.at(neighborIdx);
+            uint64_t neighborRank = adjArray.rank.at(neighborIdx);
+            uint64_t currentRank = adjArray.rank.at(backwardFront.nodeIdx);
+            if(neighborRank == 0){ neighborRank = 1000; }
+            if(currentRank == 0){ currentRank = 1000; }
+
+            // update node distance if it improves (in this case: push new heap node with better distance)
+            if(newNeighborDist<oldNeighborDist && neighborRank >= currentRank){
+                backwardHeap.push_back(HeapElement{neighborIdx, backwardFront.nodeIdx, newNeighborDist});
+                std::push_heap(backwardHeap.begin(), backwardHeap.end());
+            }
+
+
+        }
+
+
+    }
+
+    minDistance = UINT64_MAX;
+    uint64_t meetingNode = UINT64_MAX;
+    for(uint64_t nodeId : backwardSettledNodes){
+        uint64_t bwdist = backwardDistance.at(nodeId);
+        uint64_t fwdist = forwardDistance.at(nodeId);
+        if(bwdist < UINT64_MAX && fwdist < UINT64_MAX){
+            if(minDistance > fwdist + bwdist){
+                minDistance = fwdist + bwdist;
+                meetingNode = nodeId;
+            }
+        }
+    }
+
+    forwardMinMeetingNodeId = meetingNode;
+    backwardMinMeetingNodeId = meetingNode;
+
+    lastCalculatedDistance = minDistance;
+    //std::cout << lastCalculatedDistance << "\n";
+    return lastCalculatedDistance;
 }
 
 /**
@@ -343,7 +487,7 @@ uint64_t CH_query::getDist(){
 
 void CH_query::recursiveUnpackEdge(uint64_t edgeId, std::vector<uint64_t> &unpackedNodes){
     Edge &edge = adjArray.allEdgeInfo.at(edgeId);
-    std::cout << "num shortcut edges: " << edge.shortcutPathEdges.size() << ", v1: " <<  edge.v1 << ", v2: " <<  edge.v2 << "\n";
+    //std::cout << "num shortcut edges: " << edge.shortcutPathEdges.size() << ", v1: " <<  edge.v1 << ", v2: " <<  edge.v2 << "\n";
     if(edge.shortcutPathEdges.size() > 0){
         for(uint64_t edgeId : edge.shortcutPathEdges){
             recursiveUnpackEdge(edgeId, unpackedNodes);
@@ -351,7 +495,7 @@ void CH_query::recursiveUnpackEdge(uint64_t edgeId, std::vector<uint64_t> &unpac
     }else{
         unpackedNodes.push_back(edge.v1);
         unpackedNodes.push_back(edge.v2);
-        std::cout << edge.v1 << ", rank " << adjArray.rank.at(edge.v1) << " -> " << edge.v2 << ", rank " << adjArray.rank.at(edge.v2) << "\n"; 
+        //std::cout << edge.v1 << ", rank " << adjArray.rank.at(edge.v1) << " -> " << edge.v2 << ", rank " << adjArray.rank.at(edge.v2) << "\n"; 
     }
 }
 
@@ -416,13 +560,21 @@ void CH_query::getPath(std::vector<uint64_t> &path){
             path.push_back(forwardPath.at(i));
         }
 
-        std::vector<uint64_t> unpackedNodeIds;
-        uint64_t edgeId = getEdgeIdBetween(forwardMinMeetingNodeId, backwardMinMeetingNodeId);
-        recursiveUnpackEdge(edgeId, unpackedNodeIds);
-        for(uint64_t i = 0; i<unpackedNodeIds.size(); i+=2){
-                path.push_back(unpackedNodeIds.at(i));
+        std::cout << "forward path end: " << path.size();
+
+        if(forwardMinMeetingNodeId != backwardMinMeetingNodeId){
+            std::vector<uint64_t> unpackedNodeIds;
+            uint64_t edgeId = getEdgeIdBetween(forwardMinMeetingNodeId, backwardMinMeetingNodeId);
+            recursiveUnpackEdge(edgeId, unpackedNodeIds);
+            for(uint64_t i = 0; i<unpackedNodeIds.size(); i+=2){
+                    path.push_back(unpackedNodeIds.at(i));
+            }
+
+            path.push_back(unpackedNodeIds.at(unpackedNodeIds.size()-1));
+
+            std::cout << "intermediate path end: " << path.size() << "\n";
         }
-        path.push_back(unpackedNodeIds.at(unpackedNodeIds.size()-1));
+       
 
         for(int i = 0; i<backwardPath.size(); ++i){
             path.push_back(backwardPath.at(i));
