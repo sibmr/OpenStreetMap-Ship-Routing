@@ -73,13 +73,13 @@ void removeRedundantEdges(AdjacencyArray &adjArray){
 
     uint64_t currentOffset = 0;
     for(uint64_t nodeId = 0; nodeId<adjArray.width*adjArray.height; ++nodeId){
-        bool activeNode = !adjArray.nodes.at(nodeId);
+        bool activeNode = !original.nodes.at(nodeId);
         
         if(activeNode){
             // insert old edges (except for removed ones)
             for(uint64_t currEdgeIndex = original.offsets.at(nodeId); currEdgeIndex < original.offsets.at(nodeId+1); currEdgeIndex++){
                 // check if edge was removed
-                if(!isEdgeRedundant.at(currEdgeIndex)){
+                if(!isEdgeRedundant.at(original.edgeIds.at(currEdgeIndex))){
                     adjArray.edges.push_back(original.edges.at(currEdgeIndex));
                     adjArray.edgeIds.push_back(original.edgeIds.at(currEdgeIndex));
                     adjArray.distances.push_back(original.distances.at(currEdgeIndex));
@@ -87,8 +87,8 @@ void removeRedundantEdges(AdjacencyArray &adjArray){
                     currentOffset++;
                 }
             }
-            adjArray.offsets.push_back(currentOffset);
         }
+        adjArray.offsets.push_back(currentOffset);
     }
 }
 
@@ -121,7 +121,7 @@ void checkEdgeIdSorted(AdjacencyArray &adjArray){
 }
 
 int main(){
-    AdjacencyArray adjArray("data/CHAdjArray_40.graph_2");
+    AdjacencyArray adjArray("data/CHAdjArray_54.graph_2");
     std::cout << "Number of edges: " << adjArray.allEdgeInfo.size() << "\n";
     for(uint64_t i = 0; i<adjArray.allEdgeInfo.size(); ++i){
         uint64_t v1 = adjArray.allEdgeInfo.at(i).v1;
@@ -152,5 +152,15 @@ int main(){
     checkUndirectedness(adjArray);
 
     checkEdgeIdSorted(adjArray);
+
+    removeRedundantEdges(adjArray);
+
+    checkRedundantEdges(adjArray);
+
+    checkUndirectedness(adjArray);
+
+    checkEdgeIdSorted(adjArray);
+
+    adjArray.writeToDisk("data/CHAdjArray_smallNoDuplicate.graph_2");
     
 }
