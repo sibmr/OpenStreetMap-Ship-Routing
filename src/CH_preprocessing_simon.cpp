@@ -336,7 +336,7 @@ void edgeDifferenceFillContractionSet(
             contractNode(nodeId, adjArray, adjArray.rank.at(nodeId), dijkstra, isEdgeRemoved, removedEdgeIndices, allEdges, shortcutEdges);
             int criterion = shortcutEdges.size() - removedEdgeIndices.size();
 
-            std::cout << nodeId << "  " << criterion << "\n";
+            //std::cout << nodeId << "  " << criterion << "\n";
 
             // add to list
             nodeWithCost.push_back(std::pair<uint64_t, uint64_t>(nodeId, criterion));

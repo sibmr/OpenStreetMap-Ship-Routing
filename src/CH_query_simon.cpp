@@ -10,8 +10,8 @@ namespace CH_query{
  * @brief HeapElement for Dijkstra implementation
  */
 struct HeapElement {
-    // for normal dijkstra, heuristic_dist is the current distance to this node
-    uint64_t nodeIdx, prev, heuristic_dist, dist;
+    // for normal dijkstra, dist is the current distance to this node
+    uint64_t nodeIdx, prev, dist;
     
     /**
      * @brief "reverse" comparison function turning max-heap into min-heap 
@@ -21,7 +21,7 @@ struct HeapElement {
      * @return false    otherwise
      */
     bool operator<(const HeapElement &a){
-        return heuristic_dist > a.heuristic_dist;
+        return dist > a.dist;
     }
 };
 
@@ -135,7 +135,7 @@ uint64_t CH_query::calculateDist(uint64_t startPoint_, uint64_t endPoint_){
                 forwardHeap.pop_back();
                 numNodesPopped++;
             }
-        }while (newForwardFront.heuristic_dist >= forwardDistance.at(newForwardFront.nodeIdx) && !forwardStuck);
+        }while ((newForwardFront.dist >= forwardDistance.at(newForwardFront.nodeIdx) || newForwardFront.dist >= minDistance) && !forwardStuck);
         do{
             // no path found
             if(backwardHeap.empty()){
@@ -146,10 +146,11 @@ uint64_t CH_query::calculateDist(uint64_t startPoint_, uint64_t endPoint_){
                 backwardHeap.pop_back();
                 numNodesPopped++;
             }
-        }while (newBackwardFront.heuristic_dist >= backwardDistance.at(newBackwardFront.nodeIdx) && !backwardStuck);
+        }while ((newBackwardFront.dist >= backwardDistance.at(newBackwardFront.nodeIdx) || newBackwardFront.dist >= minDistance) && !backwardStuck);
         
         if(forwardStuck && backwardStuck){
-            return UINT64_MAX;
+            lastCalculatedDistance = minDistance;
+            return minDistance;
         }
         
         //std::cout << "heap size: " << forwardHeap.size() << " " << backwardHeap.size() << "\n";
@@ -181,7 +182,7 @@ uint64_t CH_query::calculateDist(uint64_t startPoint_, uint64_t endPoint_){
 
         //     if(!forwardStalled){
         //         // update distance and previous node of current forward node
-        //         forwardDistance.at(forwardFront.nodeIdx) = forwardFront.heuristic_dist;
+        //         forwardDistance.at(forwardFront.nodeIdx) = forwardFront.dist;
         //         forwardPrev.at(forwardFront.nodeIdx) = forwardFront.prev;
         //     }
         //     else{
@@ -216,7 +217,7 @@ uint64_t CH_query::calculateDist(uint64_t startPoint_, uint64_t endPoint_){
             
         //     if(!backwardStalled){
         //         // update distance and previous node of current backward node
-        //         backwardDistance.at(backwardFront.nodeIdx) = backwardFront.heuristic_dist;
+        //         backwardDistance.at(backwardFront.nodeIdx) = backwardFront.dist;
         //         backwardPrev.at(backwardFront.nodeIdx) = backwardFront.prev;
         //     }
         //     else{
@@ -230,23 +231,32 @@ uint64_t CH_query::calculateDist(uint64_t startPoint_, uint64_t endPoint_){
             forwardFront = newForwardFront;
             
             // update distance and previous node of current forward node
-            forwardDistance.at(forwardFront.nodeIdx) = forwardFront.heuristic_dist;
+            forwardDistance.at(forwardFront.nodeIdx) = forwardFront.dist;
             forwardPrev.at(forwardFront.nodeIdx) = forwardFront.prev;
         }
         if(!backwardStuck){
             backwardFront = newBackwardFront;
             
             // update distance and previous node of current forward node
-            backwardDistance.at(backwardFront.nodeIdx) = backwardFront.heuristic_dist;
+            backwardDistance.at(backwardFront.nodeIdx) = backwardFront.dist;
             backwardPrev.at(backwardFront.nodeIdx) = backwardFront.prev;
         }
         forwardStalled = false;
         backwardStalled = false;
 
         // termination criterion for bidirectional dijkstra
-        if(forwardFront.heuristic_dist + backwardFront.heuristic_dist >= minDistance){
+        if(forwardFront.dist + backwardFront.dist >= minDistance){
             lastCalculatedDistance = minDistance;
             return lastCalculatedDistance;
+        }
+
+        if(forwardFront.nodeIdx == backwardFront.nodeIdx){
+            uint64_t joinDistance = forwardFront.dist + backwardFront.dist;
+            if(joinDistance < minDistance){
+                minDistance = joinDistance;
+                forwardMinMeetingNodeId = forwardFront.nodeIdx;
+                backwardMinMeetingNodeId = backwardFront.nodeIdx;
+            }
         }
 
         //// forward step ////
@@ -261,7 +271,7 @@ uint64_t CH_query::calculateDist(uint64_t startPoint_, uint64_t endPoint_){
                 uint64_t edgeDist = adjArray.distances.at(currEdgeId);
 
                 // calculate new distances
-                uint64_t newNeighborDist = forwardFront.heuristic_dist + edgeDist;
+                uint64_t newNeighborDist = forwardFront.dist + edgeDist;
                 uint64_t oldNeighborDist = forwardDistance.at(neighborIdx);
                 uint64_t neighborRank = adjArray.rank.at(neighborIdx);
                 uint64_t currentRank = adjArray.rank.at(forwardFront.nodeIdx);
@@ -302,7 +312,7 @@ uint64_t CH_query::calculateDist(uint64_t startPoint_, uint64_t endPoint_){
                 uint64_t edgeDist = adjArray.distances.at(currEdgeId);
 
                 // calculate new distances
-                uint64_t newNeighborDist = backwardFront.heuristic_dist + edgeDist;
+                uint64_t newNeighborDist = backwardFront.dist + edgeDist;
                 uint64_t oldNeighborDist = backwardDistance.at(neighborIdx);
                 uint64_t neighborRank = adjArray.rank.at(neighborIdx);
                 uint64_t currentRank = adjArray.rank.at(backwardFront.nodeIdx);
@@ -366,14 +376,14 @@ uint64_t CH_query::calculateDist1(uint64_t startPoint_, uint64_t endPoint_){
         forwardHeap.pop_back();
         forwardFront = newForwardFront;
 
-        if(forwardFront.heuristic_dist >= forwardDistance.at(forwardFront.nodeIdx)){
+        if(forwardFront.dist >= forwardDistance.at(forwardFront.nodeIdx)){
             continue;
         }else{
             numNodesPopped++;
         }
 
         // update distance and previous node of current forward node
-        forwardDistance.at(forwardFront.nodeIdx) = forwardFront.heuristic_dist;
+        forwardDistance.at(forwardFront.nodeIdx) = forwardFront.dist;
         forwardPrev.at(forwardFront.nodeIdx) = forwardFront.prev;
 
         //// forward step ////
@@ -387,7 +397,7 @@ uint64_t CH_query::calculateDist1(uint64_t startPoint_, uint64_t endPoint_){
             uint64_t edgeDist = adjArray.distances.at(currEdgeId);
 
             // calculate new distances
-            uint64_t newNeighborDist = forwardFront.heuristic_dist + edgeDist;
+            uint64_t newNeighborDist = forwardFront.dist + edgeDist;
             uint64_t oldNeighborDist = forwardDistance.at(neighborIdx);
             uint64_t neighborRank = adjArray.rank.at(neighborIdx);
             uint64_t currentRank = adjArray.rank.at(forwardFront.nodeIdx);
@@ -413,7 +423,7 @@ uint64_t CH_query::calculateDist1(uint64_t startPoint_, uint64_t endPoint_){
         backwardHeap.pop_back();
         backwardFront = newBackwardFront;
 
-        if(backwardFront.heuristic_dist >= backwardDistance.at(backwardFront.nodeIdx)){
+        if(backwardFront.dist >= backwardDistance.at(backwardFront.nodeIdx)){
             continue;
         }else{
             numNodesPopped++;
@@ -421,7 +431,7 @@ uint64_t CH_query::calculateDist1(uint64_t startPoint_, uint64_t endPoint_){
 
 
         // update distance and previous node of current forward node
-        backwardDistance.at(backwardFront.nodeIdx) = backwardFront.heuristic_dist;
+        backwardDistance.at(backwardFront.nodeIdx) = backwardFront.dist;
         backwardPrev.at(backwardFront.nodeIdx) = backwardFront.prev;
         backwardSettledNodes.push_back(backwardFront.nodeIdx);
 
@@ -436,7 +446,7 @@ uint64_t CH_query::calculateDist1(uint64_t startPoint_, uint64_t endPoint_){
             uint64_t edgeDist = adjArray.distances.at(currEdgeId);
 
             // calculate new distances
-            uint64_t newNeighborDist = backwardFront.heuristic_dist + edgeDist;
+            uint64_t newNeighborDist = backwardFront.dist + edgeDist;
             uint64_t oldNeighborDist = backwardDistance.at(neighborIdx);
             uint64_t neighborRank = adjArray.rank.at(neighborIdx);
             uint64_t currentRank = adjArray.rank.at(backwardFront.nodeIdx);
