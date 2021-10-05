@@ -329,7 +329,7 @@ int main(int argc, char** argv) {
     size_t lastindex = tmp_oFile.find_last_of(".");
     outputFileName = tmp_oFile.substr(0, lastindex);
     // distinguish between graphs
-    outputFileName += ".graph_3";
+    outputFileName += ".graph_3_70p_updateDijk_setbreakfixed";
 
     GridData dat;
     AdjacencyArray adjArray;
@@ -338,7 +338,7 @@ int main(int argc, char** argv) {
     fillAdjacencyArray(dat, adjArray);
 
     if(ch){
-        contract(adjArray, 0.94);
+        contract(adjArray, 0.7);
     }
 
 
