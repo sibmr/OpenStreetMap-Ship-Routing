@@ -313,6 +313,7 @@ int main(int argc, char** argv) {
     if(inputFileId == -1){
         inputFileName = "data/planet.grid";
         inputFileName = "data/planet_2.grid";
+        //inputFileName = "data/planet_coastlines_100K.grid";
         //inputFileName = "data/antarctica_100K.grid";
         std::cout << "no input file given assume " <<  inputFileName << std::endl;
     }else{
@@ -329,7 +330,8 @@ int main(int argc, char** argv) {
     size_t lastindex = tmp_oFile.find_last_of(".");
     outputFileName = tmp_oFile.substr(0, lastindex);
     // distinguish between graphs
-    outputFileName += ".graph_3_70p_updateDijk_setbreakfixed";
+    //outputFileName += ".graph_3_100K_997p_updateDijk_bigswap";
+    outputFileName += ".graph_3_997p_invT";
 
     GridData dat;
     AdjacencyArray adjArray;
@@ -338,8 +340,15 @@ int main(int argc, char** argv) {
     fillAdjacencyArray(dat, adjArray);
 
     if(ch){
-        contract(adjArray, 0.7);
+        contract(adjArray, 0.997);
     }
+
+    //for(uint64_t wi = 0; wi < adjArray.width; wi++){
+    //    for(uint64_t hi = 0; hi < adjArray.height; hi++){
+    //        std::cout << adjArray.rank.at(wi * adjArray.height + hi) <<  "\t";
+    //    }
+    //    std::cout << std::endl;
+    //}
 
 
 

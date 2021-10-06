@@ -158,6 +158,7 @@ void contract(AdjacencyArray &array, double percentage){
         //}
 
         SecondDijkstra dijkstra(workArray);
+        //dijkstra.removeContractedNodes();
 
         // CREATE SET OF OF SHORTCUTS 
         uint64_t dijkstraDistance = UINT64_MAX;
@@ -179,16 +180,17 @@ void contract(AdjacencyArray &array, double percentage){
 
                 for(uint64_t currEdgeId1 = workArray.offsets.at(nodeInIndependentSet); currEdgeId1 < workArray.offsets.at(nodeInIndependentSet+1); currEdgeId1++){
                     uint64_t sourceNeighbor = workArray.edges.at(currEdgeId1);
-                    for(uint64_t currEdgeId2 = workArray.offsets.at(nodeInIndependentSet); currEdgeId2 < workArray.offsets.at(nodeInIndependentSet+1); currEdgeId2++){
+                    for(uint64_t currEdgeId2 = workArray.offsets.at(nodeInIndependentSet); currEdgeId2 < currEdgeId1; currEdgeId2++){
                         uint64_t targetNeighbor = workArray.edges.at(currEdgeId2);
                         if(sourceNeighbor != targetNeighbor){
 
                             dijkstraDistance = dijkstra.calculateDist(sourceNeighbor, targetNeighbor);
                             arrayDistance = workArray.distances.at(currEdgeId1) + workArray.distances.at(currEdgeId2);
 
-                            if(dijkstraDistance <= arrayDistance){
+                            if(dijkstraDistance >= arrayDistance){
                               // add shortcut edge
                               roundEdges.push_back(ChEdge(sourceNeighbor, targetNeighbor, dijkstraDistance, currEdgeId1, currEdgeId2));
+                              roundEdges.push_back(ChEdge(targetNeighbor, sourceNeighbor, dijkstraDistance, currEdgeId2, currEdgeId1));
                               //std::cout << "dij step: " << counter << " of " << independentSet.size() * 0.7 <<  std::endl;
                               //counter++;
                             }
@@ -277,6 +279,8 @@ void contract(AdjacencyArray &array, double percentage){
 
         // BUILD NEW WORKARRAY G' = (V \ C, E u S \ A)
 
+        // V \ C are all verticies with rank == 0
+
 
         workArrayNew.longLow = workArray.longLow;     
         workArrayNew.latLow = workArray.latLow;
@@ -298,7 +302,7 @@ void contract(AdjacencyArray &array, double percentage){
             
             if(roundEdges.size() > 0){
                 bool whileAlive = true;
-                while(roundEdges.at(roundEdgeIndex).startNode == nodeId && whileAlive){
+                while(whileAlive && roundEdges.at(roundEdgeIndex).startNode == nodeId){
                     // only add shortcut if there is no identical other one
                     if(!removeShortcut.at(roundEdgeIndex)){
                         workArrayNew.edges.push_back(roundEdges.at(roundEdgeIndex).targetNode);
@@ -373,9 +377,12 @@ void contract(AdjacencyArray &array, double percentage){
 
     for(uint64_t currNode = 0; currNode < finalGraph.rank.size(); currNode++){
         if(finalGraph.rank.at(currNode) == 0){
-            finalGraph.rank.at(currNode) == currentRank;
+            finalGraph.rank.at(currNode) = currentRank;
         }
     }
+
+
+    std::cout << "end" << std::endl;
 
     uint64_t allShortcutId = 0;
     uint64_t oldEdgesIndex = 0;

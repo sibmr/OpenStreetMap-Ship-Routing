@@ -8,6 +8,7 @@
 
 #include "Dijkstra.cpp"
 #include "BiDirectDijkstra_marcel.cpp"
+#include "ChQuery_marcel.cpp"
 
 double doubleRand(double doubleMin, double doubleMax){
     double d = ((double) rand() / (double) RAND_MAX);
@@ -134,8 +135,13 @@ void testDijkstra(PathAlgorithm &pathAlg, PathAlgorithm &pathAlg2,  AdjacencyArr
     double currLongStart, currLatStart, currLongEnd, currLatEnd;
     auto startQuery = std::chrono::high_resolution_clock::now();
     auto endQuery = std::chrono::high_resolution_clock::now();
+    
+    int currSample = 0;
 
-    for (int sampleId = 0; sampleId < numSamplePoints; sampleId++){
+    while(currSample < numSamplePoints){
+
+
+    //for (int sampleId = 0; sampleId < numSamplePoints; sampleId++){
 
         std::vector<uint64_t> timings;
         
@@ -152,6 +158,7 @@ void testDijkstra(PathAlgorithm &pathAlg, PathAlgorithm &pathAlg2,  AdjacencyArr
         if(temp_result == UINT64_MAX){
             continue;
         }
+        currSample++;
 
 
         coordinates.push_back(std::array<double,4> {currLongStart, currLatStart, currLongEnd, currLatEnd});
@@ -213,6 +220,7 @@ void testDijkstra(PathAlgorithm &pathAlg, PathAlgorithm &pathAlg2,  AdjacencyArr
 
 int main(int argc, char** argv) {
     std::string inputFileName;
+    std::string inputFileName2;
 
     // check input parameter
     if(argc < 1 || argc > 2){
@@ -225,18 +233,36 @@ int main(int argc, char** argv) {
     else{
         inputFileName = "data/planet_2.graph_2";
     }
+    inputFileName2 = "data/planet_2.graph_3_80p_invT";
 
 
     AdjacencyArray adjArray(inputFileName);
+    AdjacencyArray chArray(inputFileName2);
     {
         SecondDijkstra sd (adjArray);
         BiDirectDijkstra::BiDirectDijkstra sd2 (adjArray);
+
+        ChQuery::ChQuery chQuery (chArray);
+        
         PathAlgorithm &pa = sd;
         PathAlgorithm &pa2 = sd2;
+        PathAlgorithm &ca = chQuery;
+        //for(uint64_t wi = 0; wi < chArray.width; wi++){
+        //    for(uint64_t hi = 0; hi < chArray.height; hi++){
+
+        //        if(chArray.rank.at(wi * chArray.height + hi) == 0){
+        //            std::cout << "fail" << std::endl;
+        //        }
+        //        //std::cout << chArray.rank.at(wi * chArray.height + hi) <<  "\t";
+        //    }
+        //    //std::cout << std::endl;
+        //}
         // across atlantic
         //benchmarkDijkstra(pa, adjArray, -62, 40, -14, 53.5, 3);
         //debugDijkstra(sd, adjArray, -62, 40, -14, 53.5);
-        testDijkstra(sd, sd2, adjArray, -85, -180, 85, 180, 50);
+
+        std::cout << chArray.edges.size() << std::endl;
+        testDijkstra(pa, ca, adjArray, -85, -180, 85, 180, 10);
 
     }
 }
