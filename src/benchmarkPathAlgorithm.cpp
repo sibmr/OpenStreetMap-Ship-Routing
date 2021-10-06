@@ -233,7 +233,7 @@ int main(int argc, char** argv) {
         A_star::A_star astar (adjArray);
         A_star::A_star_rectangular astar_rect (adjArray);
         CH_query::CH_query chquery (adjArrayCH);
-        CH_Astar::A_star chqueryStar (adjArrayCH);
+        CH_Astar::A_star_rectangular chqueryStar (adjArrayCH);
         PathAlgorithm &pa = dijk;
         PathAlgorithm &pa_one = chqueryStar;
         //debugDijkstra(pa, adjArray, 59.5502,80.2847, 81.9907,84.0839);

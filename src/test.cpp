@@ -74,19 +74,15 @@ void removeRedundantEdges(AdjacencyArray &adjArray){
 
     uint64_t currentOffset = 0;
     for(uint64_t nodeId = 0; nodeId<adjArray.width*adjArray.height; ++nodeId){
-        bool activeNode = !original.nodes.at(nodeId);
-        
-        if(activeNode){
-            // insert old edges (except for removed ones)
-            for(uint64_t currEdgeIndex = original.offsets.at(nodeId); currEdgeIndex < original.offsets.at(nodeId+1); currEdgeIndex++){
-                // check if edge was removed
-                if(!isEdgeRedundant.at(original.edgeIds.at(currEdgeIndex))){
-                    adjArray.edges.push_back(original.edges.at(currEdgeIndex));
-                    adjArray.edgeIds.push_back(original.edgeIds.at(currEdgeIndex));
-                    adjArray.distances.push_back(original.distances.at(currEdgeIndex));
-                    
-                    currentOffset++;
-                }
+        // insert old edges (except for removed ones)
+        for(uint64_t currEdgeIndex = original.offsets.at(nodeId); currEdgeIndex < original.offsets.at(nodeId+1); currEdgeIndex++){
+            // check if edge was removed
+            if(!isEdgeRedundant.at(original.edgeIds.at(currEdgeIndex))){
+                adjArray.edges.push_back(original.edges.at(currEdgeIndex));
+                adjArray.edgeIds.push_back(original.edgeIds.at(currEdgeIndex));
+                adjArray.distances.push_back(original.distances.at(currEdgeIndex));
+                
+                currentOffset++;
             }
         }
         adjArray.offsets.push_back(currentOffset);

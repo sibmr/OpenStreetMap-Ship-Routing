@@ -87,16 +87,51 @@ void extractAllEdges(AdjacencyArray &adjArray, std::vector<Edge> &out_allEdges){
     std::cout << "Number of active nodes without edges: " << noEdgesCounter << "\n";
 }
 
-bool isNodeAdjacentToSet(AdjacencyArray &adjArray, uint64_t idToCheck, std::vector<uint64_t> &idSet){
-    for(uint64_t currentIdx : idSet){
-        for(uint64_t currEdgeIndex = adjArray.offsets.at(idToCheck); currEdgeIndex < adjArray.offsets.at(idToCheck+1); currEdgeIndex++){
-            uint64_t adjacentId = adjArray.edges.at(currEdgeIndex);
-            if(adjacentId == currentIdx){
-                return true;
+void checkRedundantEdges(AdjacencyArray &adjArray, std::vector<bool> isEdgeRemoved){
+    uint64_t numRemoved = 0;
+    
+    if(adjArray.allEdgeInfo.size() < 1){
+        std::cout << "reduced function since edge info not filled\n";
+    }
+    
+    for(uint64_t nodeId = 0; nodeId < adjArray.width * adjArray.height; ++nodeId){
+        std::map<uint64_t, std::vector<uint64_t>> nodesTo;
+        for(uint64_t currEdgeIndex = adjArray.offsets.at(nodeId); currEdgeIndex < adjArray.offsets.at(nodeId+1); ++currEdgeIndex){
+            uint64_t adjacentNode = adjArray.edges.at(currEdgeIndex);
+            uint64_t edgeId = adjArray.edgeIds.at(currEdgeIndex);
+            auto entry = nodesTo.find(adjacentNode);
+            if(entry == nodesTo.end()){
+                nodesTo.insert(std::pair<uint64_t, std::vector<uint64_t>>(adjacentNode, {edgeId}));
+            }else{
+                entry->second.push_back(edgeId);
+            }
+        }
+        for(auto pair : nodesTo){
+            uint64_t lowestDist = UINT64_MAX;
+            uint64_t lowestEdgeId = UINT64_MAX;
+            for(auto edgeId : pair.second){
+                uint64_t edgeDist = UINT64_MAX;
+                if(adjArray.allEdgeInfo.size() > 0){
+                    edgeDist = adjArray.allEdgeInfo.at(edgeId).edgeDistance;
+                }else{
+                    edgeDist = 0;
+                }
+                
+                
+                if(edgeDist < lowestDist){
+                    lowestDist = edgeDist;
+                    lowestEdgeId = edgeId;
+                }
+            }
+            for(auto edgeId : pair.second){
+                if(edgeId != lowestEdgeId){
+                    isEdgeRemoved.at(edgeId) = true;
+                    numRemoved++;
+                }
             }
         }
     }
-    return false;
+    std::cout << numRemoved << " additional redundant edges removed\n";
 }
 
 bool isNodeAdjacentToSet(AdjacencyArray &adjArray, uint64_t idToCheck, std::vector<bool> &isIdInSet){
@@ -129,7 +164,7 @@ void randomFillContractionSet(
         if(!isContracted.at(draw) && !adjArray.nodes.at(draw)){
             
             // check if node is not adjacent to nodes in contraction set
-            bool isAdjacent = isNodeAdjacentToSet(adjArray, draw, out_newContractions);
+            bool isAdjacent = isNodeAdjacentToSet(adjArray, draw, isContracted);
 
             // if node is not adjacent, add to contraction set
             if(!isAdjacent){
@@ -287,7 +322,8 @@ void contractNode(  uint64_t contractedNodeId, AdjacencyArray &workArray, uint64
             //                       there is a shorter path   OR  there exist shortest paths besides UVW 
             bool noShortcutNeeded = (distanceUW < distanceUVW) || multipleShortestPaths;
 
-            if(!(distanceUW < distanceUVW) && multipleShortestPaths){std::cout << "shortcut saved\n";}
+            if((!(distanceUW < distanceUVW)) && multipleShortestPaths){std::cout << "shortcut saved\n";}
+            // if(multipleShortestPaths){ std::cout << "multiple paths\n"; }
 
             // if deleted edges are potentially part of a shortest path, then add shortcut edge
             if(!noShortcutNeeded){
@@ -366,6 +402,11 @@ void edgeDifferenceFillContractionSet(
     {
         MultiDijkstra::Dijkstra multiDijkstra(adjArray);
         multiDijkstra.stepLimit = 0;
+        std::vector<bool> isNodeInSet(adjArray.width*adjArray.height, true); // no additional shortcuts check (dont know other nodes in final indep set)
+        std::vector<bool> isEdgeRemoved(adjArray.edges.size(), false); // this is not read in contract node
+        std::vector<uint64_t> removedEdgeIndices;
+        std::vector<Edge> allEdges;
+        std::vector<Edge> shortcutEdges;
         Dijkstra::Dijkstra dijkstra(adjArray);
         #pragma omp for
         for(uint64_t nodeIndex=0; nodeIndex<independentSet.size(); ++nodeIndex){
@@ -376,11 +417,9 @@ void edgeDifferenceFillContractionSet(
             if(!in_out_isContracted.at(nodeId) && !adjArray.nodes.at(nodeId)){
 
                 // calculate criterion
-                std::vector<bool> isEdgeRemoved(adjArray.edges.size(), false);
-                std::vector<uint64_t> removedEdgeIndices;
-                std::vector<Edge> allEdges;
-                std::vector<Edge> shortcutEdges;
-                std::vector<bool> isNodeInSet(adjArray.width*adjArray.height, true); // no additional shortcuts check (dont know other nodes in final indep set)
+                removedEdgeIndices.clear();
+                allEdges.clear();
+                shortcutEdges.clear();
                 contractNode(nodeId, adjArray, adjArray.rank.at(nodeId), dijkstra, multiDijkstra, isNodeInSet, isEdgeRemoved, removedEdgeIndices, allEdges, shortcutEdges);
                 int criterion = shortcutEdges.size() - removedEdgeIndices.size();
 
@@ -469,6 +508,9 @@ int main(int argc, char** argv){
                             dijkstra, multiDijkstra, isContracted, isEdgeRemoved, removedEdgeIndices, allEdges, shortcutEdges);
         }
 
+        isEdgeRemoved.resize(allEdges.size(), false);
+        checkRedundantEdges(adjArray, isEdgeRemoved); // isEdgeRemoved array is too small
+        
         // parallel version
         // uint64_t edgeCount = allEdges.size();
         // #pragma omp parallel num_threads(8)
@@ -543,14 +585,13 @@ int main(int argc, char** argv){
                 for(auto shortcutEdgeIt = resV1; (*shortcutEdgeIt).v1 <= nodeId && shortcutEdgeIt<shortcutSortedV1.end(); ++shortcutEdgeIt){
                     
                     if(nodeId != shortcutEdgeIt->v1){ std::cout << "nodeID!=shortcutEdge.v1"  << "\n"; }
-                    
-                    tempArray.edges.push_back(shortcutEdgeIt->v2);
-                    tempArray.edgeIds.push_back(shortcutEdgeIt->edgeId);
-                    tempArray.distances.push_back(shortcutEdgeIt->edgeDistance);
-                    currentOffset++;
+                    if(!isEdgeRemoved.at(shortcutEdgeIt->edgeId)){
+                        tempArray.edges.push_back(shortcutEdgeIt->v2);
+                        tempArray.edgeIds.push_back(shortcutEdgeIt->edgeId);
+                        tempArray.distances.push_back(shortcutEdgeIt->edgeDistance);
+                        currentOffset++;
+                    }
                 }
-
-
             }
 
             // finalize AdjacencyArray node entry by adding right offset border
