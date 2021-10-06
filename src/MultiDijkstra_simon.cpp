@@ -1,7 +1,7 @@
 #include "shortestPathUtils.cpp"
 #include "PathAlgorithm.cpp"
 
-namespace Dijkstra{
+namespace MultiDijkstra{
 
 /**
  * @brief HeapElement for Dijkstra implementation
@@ -30,6 +30,7 @@ class Dijkstra: public PathAlgorithm{
     public:
         Dijkstra(AdjacencyArray &array);
         void getPath(std::vector<uint64_t> &path);
+        bool checkMultipleShortestPath(std::vector<bool> &isNodeInIndepententSet);
         uint64_t getDist();
         uint64_t calculateDist(uint64_t startPoint, uint64_t endPoint);
         uint64_t calculateDist(uint64_t endPoint);
@@ -37,13 +38,14 @@ class Dijkstra: public PathAlgorithm{
         uint64_t getNumNodesPopped();
         void disableNode(uint64_t disabledNode);
         void resetDisabledNodes();
+        uint64_t stepLimit;
     private:
         uint64_t fillVectors(uint64_t startPoint, uint64_t endPoint);
         uint64_t mainCalculationLoop();
         std::vector<uint64_t> distance;
         std::vector<HeapElement> heap;
         std::vector<uint64_t> visited;
-        std::vector<uint64_t> prev;
+        std::vector<std::vector<uint64_t>> prev;
         std::vector<bool> disabledNodes;
         AdjacencyArray &adjArray;
         uint64_t constLngDist;
@@ -61,29 +63,30 @@ class Dijkstra: public PathAlgorithm{
  * 
  * @param array 
  */
-Dijkstra::Dijkstra(AdjacencyArray &array) : adjArray(array), prev(array.width*array.height, UINT64_MAX){
+Dijkstra::Dijkstra(AdjacencyArray &array) : adjArray(array){
     reset();
-    
-    // calculate distances between nodes:
-    // constLngDist is the distance between nodes with the same longitude but different latitude
-    // constLatDist is the distance between nodes with the same latitude but different logitude
-    // distance between (i,0) and (i,1)
-    constLngDist = nodeDistance(adjArray, 0, 1);
-    // for each constant latitude "ring" around the globe, the distance is different
-    // mirroring is disregarded
-    for(uint64_t i = 0; i<adjArray.height; ++i){
-        // distance between (0,i) and (1,i)
-        constLatDist.push_back(nodeDistance(adjArray, i, adjArray.height+i));
-    }
+    stepLimit = UINT64_MAX;
+    // // calculate distances between nodes:
+    // // constLngDist is the distance between nodes with the same longitude but different latitude
+    // // constLatDist is the distance between nodes with the same latitude but different logitude
+    // // distance between (i,0) and (i,1)
+    // constLngDist = nodeDistance(adjArray, 0, 1);
+    // // for each constant latitude "ring" around the globe, the distance is different
+    // // mirroring is disregarded
+    // for(uint64_t i = 0; i<adjArray.height; ++i){
+    //     // distance between (0,i) and (1,i)
+    //     constLatDist.push_back(nodeDistance(adjArray, i, adjArray.height+i));
+    // }
 }
 
 /**
  * @brief reset datastructures to prepare for next call to calculateDist
  */
 void Dijkstra::reset(){
+    prev = std::vector<std::vector<uint64_t>>();
+    prev.resize(adjArray.width*adjArray.height);
     std::vector<uint64_t> initDist(adjArray.width*adjArray.height, UINT64_MAX);
     distance = std::move(initDist);
-    // no need to reset prev
     heap.clear();
     // initially no nodes popped
     numNodesPopped = 0;
@@ -130,7 +133,7 @@ uint64_t Dijkstra::mainCalculationLoop(){
     while(true){
 
         // no path found
-        if(heap.empty()){
+        if(heap.empty() || numNodesPopped > stepLimit){
             return UINT64_MAX;
         }
 
@@ -141,13 +144,17 @@ uint64_t Dijkstra::mainCalculationLoop(){
         numNodesPopped++;
 
         // avoid duplicate nodes (nodes that were already visited, indicated by higher distance)
-        if(front.heuristic_dist >= distance.at(front.nodeIdx)){
+        if(front.heuristic_dist > distance.at(front.nodeIdx)){
             continue;
         }
-
+        else if(front.heuristic_dist == distance.at(front.nodeIdx)){
+            prev.at(front.nodeIdx).push_back(front.prev);
+            continue;
+        }
         // update distance and previous node of current node
         distance.at(front.nodeIdx) = front.heuristic_dist;
-        prev.at(front.nodeIdx) = front.prev;
+        prev.at(front.nodeIdx).clear();
+        prev.at(front.nodeIdx).push_back(front.prev);
         visited.push_back(front.nodeIdx);
 
         // iterate over edges of current node
@@ -171,12 +178,20 @@ uint64_t Dijkstra::mainCalculationLoop(){
                 heap.push_back(HeapElement{neighborIdx, front.nodeIdx, newNeighborDist});
                 std::push_heap(heap.begin(), heap.end());
             }
+            else if(newNeighborDist == oldNeighborDist){
+                prev.at(neighborIdx).push_back(front.nodeIdx);
+            }
         }
 
         if(front.nodeIdx == endPoint){
             lastCalculatedDistance = distance.at(front.nodeIdx);
+        }
+
+        if(front.dist > lastCalculatedDistance){
             return lastCalculatedDistance;
         }
+
+
 
     }
 }
@@ -201,7 +216,7 @@ void Dijkstra::getPath(std::vector<uint64_t> &path){
         uint64_t currNode = endPoint;
         path.push_back(currNode);
         while(currNode != startPoint){
-            currNode = prev.at(currNode);
+            currNode = prev.at(currNode).at(0);
             path.push_back(currNode);
         }
 
@@ -217,8 +232,44 @@ void Dijkstra::getPath(std::vector<uint64_t> &path){
         //path.push_back(startPoint);
         //path.push_back(endPoint);
     }
+    std::vector<bool> isNodeInIndependentSet(adjArray.width*adjArray.height, false);
     
 }
+
+bool Dijkstra::checkMultipleShortestPath(std::vector<bool> &isNodeInIndepententSet){
+    // check if shortest path exists with no nodes in independent set
+    uint64_t depth = 0;
+    uint64_t numShortestPaths = 0;
+    std::vector<uint64_t> stack;
+    stack.push_back(endPoint);
+
+    while(!stack.empty()){
+        
+        uint64_t currNode = stack.back();
+        stack.pop_back();
+
+        if(currNode == UINT64_MAX){
+            continue;
+        }
+
+        for(uint64_t nextNode : prev.at(currNode)){
+            if(nextNode == UINT64_MAX){
+                continue;
+            }
+            if(nextNode != startPoint && !isNodeInIndepententSet.at(nextNode)){
+                stack.push_back(nextNode);
+            }
+            else if(nextNode == startPoint){
+                numShortestPaths++;
+                if(numShortestPaths>1){
+                    return true;
+                }
+            }
+        }
+    }
+    // std::cout << "num shortest paths " << numShortestPaths << "\n";
+    return false;
+};
 
 uint64_t Dijkstra::getNumNodesPopped(){
     return numNodesPopped;

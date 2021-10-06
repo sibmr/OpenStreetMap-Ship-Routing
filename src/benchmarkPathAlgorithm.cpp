@@ -10,6 +10,7 @@
 #include "Bidirectional_Dijkstra_simon.cpp"
 #include "A_star_simon.cpp"
 #include "CH_query_simon.cpp"
+#include "CH_Astar_simon.cpp"
 
 void benchmarkDijkstra(PathAlgorithm &pathAlg, AdjacencyArray &adjArray,
     double longStart, double latStart, double longGoal, double latGoal, int numAvg)
@@ -207,19 +208,21 @@ void testDijkstra(PathAlgorithm &pathAlg, PathAlgorithm &pathAlg2,  AdjacencyArr
 
 int main(int argc, char** argv) {
     std::string inputFileName;
-
+    std::string filenameCH;
     // check input parameter
-    if(argc < 1 || argc > 2){
-        std::cout << "Usage: " << argv[0] << " file_to_read.graph" << std::endl;
+    if(argc < 1 || argc > 3){
+        std::cout << "Usage: " << argv[0] << " file_to_read.graph ch_file_to_read.graph" << std::endl;
         return 1;
     }
-    if(argc > 1){
+    if(argc > 2){
         inputFileName = std::string(argv[1]);
+        filenameCH =std::string(argv[2]);
     }
     else{
         inputFileName = "data/planet.graph_2";
+        filenameCH = "data/CHAdjArray_54.graph_2";
     }
-    std::string filenameCH = "data/CHAdjArray_40.graph_2";
+    
 
 
     AdjacencyArray adjArray(inputFileName);
@@ -230,8 +233,9 @@ int main(int argc, char** argv) {
         A_star::A_star astar (adjArray);
         A_star::A_star_rectangular astar_rect (adjArray);
         CH_query::CH_query chquery (adjArrayCH);
+        CH_Astar::A_star chqueryStar (adjArrayCH);
         PathAlgorithm &pa = dijk;
-        PathAlgorithm &pa_one = chquery;
+        PathAlgorithm &pa_one = chqueryStar;
         //debugDijkstra(pa, adjArray, 59.5502,80.2847, 81.9907,84.0839);
         //debugDijkstra(pa_one, adjArray, 59.5502,80.2847, 81.9907,84.0839);
         testDijkstra(pa, pa_one, adjArray, -85, -180, 85, 180, 100);

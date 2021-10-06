@@ -1,3 +1,6 @@
+add_executable(test_single_query test_single_query.cpp)
+set_target_properties(test_single_query PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+
 add_executable(test test.cpp)
 set_target_properties(test PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 

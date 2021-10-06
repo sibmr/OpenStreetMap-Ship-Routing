@@ -4,10 +4,11 @@
 
 #include "shortestPathUtils.cpp"
 #include "Dijkstra_simon.cpp"
+#include "MultiDijkstra_simon.cpp"
 
-
-std::vector<std::vector<uint64_t>> createVectorMatrix(uint64_t size_i, uint64_t size_j){
-    std::vector<std::vector<uint64_t>> matrix(size_i);
+template <typename T>
+std::vector<std::vector<T>> createVectorMatrix(uint64_t size_i, uint64_t size_j){
+    std::vector<std::vector<T>> matrix(size_i);
     for(uint64_t i = 0; i<size_i; ++i){
         matrix.at(i).resize(size_j);
     }
@@ -196,7 +197,8 @@ void numEdgeFillContractionSet(
 }
 
 
-void contractNode(  uint64_t contractedNodeId, AdjacencyArray &workArray, uint64_t currentRank, Dijkstra::Dijkstra &dijkstra,
+void contractNode(  uint64_t contractedNodeId, AdjacencyArray &workArray, uint64_t currentRank, 
+                    Dijkstra::Dijkstra &dijkstra, MultiDijkstra::Dijkstra &multiDijkstra, std::vector<bool> &isNodeContracted,
                     std::vector<bool> &out_isEdgeRemoved, std::vector<uint64_t> &out_removedEdgeIndices,
                     std::vector<Edge> &out_allEdges, std::vector<Edge> &out_shortcutEdges){
 
@@ -245,18 +247,25 @@ void contractNode(  uint64_t contractedNodeId, AdjacencyArray &workArray, uint64
     if(edgeIds.size() != 2*adjacentIds.size()){ std::cout << "more/less edges" << edgeIds.size() << " " << adjacentIds.size() << "\n"; }
 
     //calculate distances
-    std::vector<std::vector<uint64_t>> distanceUWMatrix = createVectorMatrix(adjacentIds.size(), adjacentIds.size());
+    std::vector<std::vector<uint64_t>> distanceUWMatrix = createVectorMatrix<uint64_t>(adjacentIds.size(), adjacentIds.size());
+    std::vector<std::vector<bool>> multipleShortcutsMatrix = createVectorMatrix<bool>(adjacentIds.size(), adjacentIds.size());
     for(uint64_t uIndex = 0; uIndex<adjacentIds.size(); ++uIndex){
         uint64_t uId = adjacentIds.at(uIndex);
         dijkstra.reset(); // do not disable any nodes
+        multiDijkstra.reset();
         if(uIndex+1<adjacentIds.size()){
             dijkstra.calculateDist(uId, adjacentIds.at(uIndex+1)); // set correct start point
+            multiDijkstra.calculateDist(uId, adjacentIds.at(uIndex+1));
         } 
         for(uint64_t wIndex = uIndex+1; wIndex<adjacentIds.size(); ++wIndex){
             uint64_t wId = adjacentIds.at(wIndex);
             uint64_t distance = dijkstra.calculateDist(wId); // only query with end point (one-to-many)
+            multiDijkstra.calculateDist(wId);
+            bool multipleShortcuts = multiDijkstra.checkMultipleShortestPath(isNodeContracted);
             distanceUWMatrix.at(uIndex).at(wIndex) = distance;
             distanceUWMatrix.at(wIndex).at(uIndex) = distance;
+            multipleShortcutsMatrix.at(uIndex).at(wIndex) = multipleShortcuts;
+            multipleShortcutsMatrix.at(wIndex).at(uIndex) = multipleShortcuts;
         }
     }
     
@@ -274,8 +283,14 @@ void contractNode(  uint64_t contractedNodeId, AdjacencyArray &workArray, uint64
             uint64_t distanceUW = distanceUWMatrix.at(i).at(j);
             uint64_t distanceUVW = workArray.distances.at(startNodeEdgeIndex) + workArray.distances.at(endNodeEdgeIndex);
 
+            bool multipleShortestPaths = multipleShortcutsMatrix.at(i).at(j); //md.checkMultipleShortestPath(con);
+            //                       there is a shorter path   OR  there exist shortest paths besides UVW 
+            bool noShortcutNeeded = (distanceUW < distanceUVW) || multipleShortestPaths;
+
+            if(!(distanceUW < distanceUVW) && multipleShortestPaths){std::cout << "shortcut saved\n";}
+
             // if deleted edges are potentially part of a shortest path, then add shortcut edge
-            if(distanceUW >= distanceUVW){
+            if(!noShortcutNeeded){
                 // add shortcut to list
                 // use distances of edges (contractedNodeId, otherNodeId) - instead of (otherNodeId, contractedNodeId)
                 uint64_t edgeDistance = distanceUVW;
@@ -314,34 +329,66 @@ void edgeDifferenceFillContractionSet(
     std::vector<uint64_t> &out_newContractions
     ){
 
-    uint64_t numDraws = 20000;
     uint64_t nodeIdLimit = in_out_isContracted.size();
     
     std::vector<std::pair<uint64_t, int>> nodeWithCost;
-    Dijkstra::Dijkstra dijkstra(adjArray);
 
     std::vector<uint64_t> independentSet;
     std::vector<bool> isInIndependentSet(adjArray.width*adjArray.height, false);
+
+    uint64_t initialId = 0;
+    do{
+        initialId = std::rand() % nodeIdLimit;
+    }while(in_out_isContracted.at(initialId) || adjArray.nodes.at(initialId));
 
     for(uint64_t nodeId=0; nodeId<adjArray.width*adjArray.height; ++nodeId){
         
         // check if node is in water and not already in contraction set
         if(!in_out_isContracted.at(nodeId) && !adjArray.nodes.at(nodeId)){
+            
+            // check if node is not adjacent to nodes in contraction set
+            bool isAdjacent = isNodeAdjacentToSet(adjArray, nodeId, isInIndependentSet);
 
-            // calculate criterion
-            std::vector<bool> isEdgeRemoved(adjArray.edges.size(), false);
-            std::vector<uint64_t> removedEdgeIndices;
-            std::vector<Edge> allEdges;
-            std::vector<Edge> shortcutEdges;
-            contractNode(nodeId, adjArray, adjArray.rank.at(nodeId), dijkstra, isEdgeRemoved, removedEdgeIndices, allEdges, shortcutEdges);
-            int criterion = shortcutEdges.size() - removedEdgeIndices.size();
-
-            //std::cout << nodeId << "  " << criterion << "\n";
-
-            // add to list
-            nodeWithCost.push_back(std::pair<uint64_t, uint64_t>(nodeId, criterion));
+            // if node is not adjacent, add to independent set
+            if(!isAdjacent){
+                independentSet.push_back(nodeId);
+                isInIndependentSet.at(nodeId) = true;
+            }
         }
     }
+
+    #pragma omp parallel num_threads(4)
+    {
+        MultiDijkstra::Dijkstra multiDijkstra(adjArray);
+        multiDijkstra.stepLimit = 0;
+        Dijkstra::Dijkstra dijkstra(adjArray);
+        #pragma omp for
+        for(uint64_t nodeIndex=0; nodeIndex<independentSet.size(); ++nodeIndex){
+            
+            uint64_t nodeId = independentSet.at(nodeIndex);
+
+            // check if node is in water and not already in contraction set
+            if(!in_out_isContracted.at(nodeId) && !adjArray.nodes.at(nodeId)){
+
+                // calculate criterion
+                std::vector<bool> isEdgeRemoved(adjArray.edges.size(), false);
+                std::vector<uint64_t> removedEdgeIndices;
+                std::vector<Edge> allEdges;
+                std::vector<Edge> shortcutEdges;
+                std::vector<bool> isNodeInSet(adjArray.width*adjArray.height, true); // no additional shortcuts check (dont know other nodes in final indep set)
+                contractNode(nodeId, adjArray, adjArray.rank.at(nodeId), dijkstra, multiDijkstra, isNodeInSet, isEdgeRemoved, removedEdgeIndices, allEdges, shortcutEdges);
+                int criterion = shortcutEdges.size() - removedEdgeIndices.size();
+
+                //std::cout << nodeId << "  " << criterion << "\n";
+                #pragma omp critical
+                {
+                    // add to list
+                    nodeWithCost.push_back(std::pair<uint64_t, uint64_t>(nodeId, criterion));
+                }
+            }
+        }
+    }
+    
 
     std::cout << "contraction candidates: " << nodeWithCost.size() << "\n";
 
@@ -349,21 +396,14 @@ void edgeDifferenceFillContractionSet(
                 [](std::pair<uint64_t,int> &p1, std::pair<uint64_t,int> &p2){ return p1.second < p2.second; });
     
 
-    for(auto nodeCriterionPair : nodeWithCost){
-        bool isAdjacent = isNodeAdjacentToSet(adjArray, nodeCriterionPair.first, isInIndependentSet);
-        if(!isAdjacent){
-            independentSet.push_back(nodeCriterionPair.first);
-            isInIndependentSet.at(nodeCriterionPair.first) = true;
-        }
-    }
-
-    for(uint64_t nodeIndex=0; nodeIndex<((uint64_t)(independentSet.size()*fraction)); ++nodeIndex){
-        uint64_t nodeId = independentSet.at(nodeIndex);
+    // only take the best fraction of the independent set according to the cost
+    for(uint64_t nodeIndex=0; nodeIndex<((uint64_t)(nodeWithCost.size()*fraction)); ++nodeIndex){
+        uint64_t nodeId = nodeWithCost.at(nodeIndex).first;
         out_newContractions.push_back(nodeId);
         in_out_allContractedIds.push_back(nodeId);
         in_out_isContracted.at(nodeId) = true;
     }
-    std::cout << "num nodes contracted: " << out_newContractions.size() << "\n";
+    std::cout << "num nodes contracted: " << out_newContractions.size() << "  best value: " << nodeWithCost.at(0).second <<  "\n";
 }
 
 int main(int argc, char** argv){
@@ -375,6 +415,7 @@ int main(int argc, char** argv){
     std::srand(std::time(nullptr));
     
     AdjacencyArray adjArray(path);
+    adjArray.rank = std::vector<uint64_t>(adjArray.width*adjArray.height, UINT64_MAX); // set rank from 0 to UINT64_MAX because uncontracted core has highest rank
 
     AdjacencyArray &finalArray = *(new AdjacencyArray(adjArray));
 
@@ -400,6 +441,8 @@ int main(int argc, char** argv){
         std::cout << "round " << round++ << "\n";
 
         Dijkstra::Dijkstra dijkstra(workArray);
+        MultiDijkstra::Dijkstra multiDijkstra(workArray);
+        multiDijkstra.stepLimit = 1000;
         
         std::vector<Edge> shortcutEdges;
         std::vector<uint64_t> removedEdgeIndices;
@@ -419,7 +462,7 @@ int main(int argc, char** argv){
             }
             
             contractNode(   contractedNodeId, workArray, currentRank,
-                            dijkstra, isEdgeRemoved, removedEdgeIndices, allEdges, shortcutEdges);
+                            dijkstra, multiDijkstra, isContracted, isEdgeRemoved, removedEdgeIndices, allEdges, shortcutEdges);
         }
 
         // parallel version

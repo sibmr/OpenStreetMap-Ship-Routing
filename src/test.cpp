@@ -1,5 +1,6 @@
 #include <set>
-# include "shortestPathUtils.cpp"
+#include "shortestPathUtils.cpp"
+#include "MultiDijkstra_simon.cpp"
 
 void recursiveUnpack(Edge &edge, std::vector<uint64_t> &unpackedShortcut, AdjacencyArray &adjArray){
     std::cout << "num shortcut edges: " << edge.shortcutPathEdges.size() << ", v1: " <<  edge.v1 << ", v2: " <<  edge.v2 << "\n";
@@ -94,7 +95,7 @@ void removeRedundantEdges(AdjacencyArray &adjArray){
 
 void checkUndirectedness(AdjacencyArray &adjArray){
     for(uint64_t nodeId = 0; nodeId < adjArray.width*adjArray.height; ++nodeId){
-        if(!adjArray.nodes.at(nodeId)){
+        //if(!adjArray.nodes.at(nodeId)){
             for(uint64_t edgeIndex = adjArray.offsets.at(nodeId); edgeIndex < adjArray.offsets.at(nodeId+1); ++edgeIndex){
                 uint64_t adjacentNodeId = adjArray.edges.at(edgeIndex);
                 bool foundBackedge = false;
@@ -108,7 +109,7 @@ void checkUndirectedness(AdjacencyArray &adjArray){
                     std::cout << "did not find backedge\n";
                 }
             }
-        }
+        //}
     }
 }
 
@@ -120,8 +121,39 @@ void checkEdgeIdSorted(AdjacencyArray &adjArray){
     }
 }
 
+void rank0ToRankMax(AdjacencyArray &adjArray){
+    for(uint64_t nodeId = 0; nodeId < adjArray.width*adjArray.height; ++nodeId){
+        if(adjArray.rank.at(nodeId) == 0){
+            adjArray.rank.at(nodeId) = UINT64_MAX;
+        } 
+    }
+    for(uint64_t nodeId = 0; nodeId < adjArray.width*adjArray.height; ++nodeId){
+        if(adjArray.rank.at(nodeId) == 0){
+            std::cout << "nodes with rank 0 still exist\n";
+        } 
+    }
+}
+
+void checkMultiDijkstra(){
+    AdjacencyArray arr;
+    arr.width = 2;
+    arr.height= 2;
+    arr.nodes   =   {true,  true,   true,   true};
+    arr.offsets =   {0,     2,      3,      4,      4};
+    arr.edges =     {1,2,   3,      3};
+    
+    arr.distances = std::vector<uint64_t>(arr.edges.size(), 1);
+
+    MultiDijkstra::Dijkstra md(arr);
+    md.calculateDist(0, 3);
+    std::vector<bool> isIndep(arr.nodes.size(), false);
+    isIndep.at(2) = true;
+    isIndep.at(1) = true;
+    md.checkMultipleShortestPath(isIndep);
+}
+
 int main(){
-    AdjacencyArray adjArray("data/CHAdjArray_54.graph_2");
+    AdjacencyArray adjArray("data/CHAdjArray_noDuplicate.graph_2");
     std::cout << "Number of edges: " << adjArray.allEdgeInfo.size() << "\n";
     for(uint64_t i = 0; i<adjArray.allEdgeInfo.size(); ++i){
         uint64_t v1 = adjArray.allEdgeInfo.at(i).v1;
@@ -140,7 +172,7 @@ int main(){
 
     uint64_t contractedNodes = 0;
     for(uint64_t nodeId=0; nodeId<adjArray.width*adjArray.height; ++nodeId){
-        if(adjArray.rank.at(nodeId)>0){ 
+        if(adjArray.rank.at(nodeId)>0 && adjArray.rank.at(nodeId)<UINT64_MAX){ 
             //std::cout << nodeId << " " << adjArray.rank.at(nodeId) << "\n"; 
             contractedNodes++;
         }
@@ -153,14 +185,20 @@ int main(){
 
     checkEdgeIdSorted(adjArray);
 
-    removeRedundantEdges(adjArray);
+    rank0ToRankMax(adjArray);
 
-    checkRedundantEdges(adjArray);
+    adjArray.writeToDisk("data/CHAdjArray_rankFix.graph_2");
 
-    checkUndirectedness(adjArray);
+    // removeRedundantEdges(adjArray);
 
-    checkEdgeIdSorted(adjArray);
+    // checkRedundantEdges(adjArray);
 
-    adjArray.writeToDisk("data/CHAdjArray_smallNoDuplicate.graph_2");
+    // checkUndirectedness(adjArray);
+
+    // checkEdgeIdSorted(adjArray);
+
+    //adjArray.writeToDisk("data/CHAdjArray_smallNoDuplicate.graph_2");
+    
+    //checkMultiDijkstra();
     
 }
