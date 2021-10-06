@@ -341,10 +341,13 @@ void edgeDifferenceFillContractionSet(
         initialId = std::rand() % nodeIdLimit;
     }while(in_out_isContracted.at(initialId) || adjArray.nodes.at(initialId));
 
+    independentSet.push_back(initialId);
+    isInIndependentSet.at(initialId) = true;
+
     for(uint64_t nodeId=0; nodeId<adjArray.width*adjArray.height; ++nodeId){
         
         // check if node is in water and not already in contraction set
-        if(!in_out_isContracted.at(nodeId) && !adjArray.nodes.at(nodeId)){
+        if(!in_out_isContracted.at(nodeId) && !adjArray.nodes.at(nodeId) && !isInIndependentSet.at(nodeId)){
             
             // check if node is not adjacent to nodes in contraction set
             bool isAdjacent = isNodeAdjacentToSet(adjArray, nodeId, isInIndependentSet);
@@ -356,6 +359,8 @@ void edgeDifferenceFillContractionSet(
             }
         }
     }
+
+    std::cout << "contraction candidates: " << independentSet.size() << "\n";
 
     #pragma omp parallel num_threads(4)
     {
@@ -389,7 +394,6 @@ void edgeDifferenceFillContractionSet(
         }
     }
     
-
     std::cout << "contraction candidates: " << nodeWithCost.size() << "\n";
 
     std::sort(  nodeWithCost.begin(), nodeWithCost.end(),
