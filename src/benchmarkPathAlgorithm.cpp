@@ -140,9 +140,6 @@ void testDijkstra(PathAlgorithm &pathAlg, PathAlgorithm &pathAlg2,  AdjacencyArr
 
     while(currSample < numSamplePoints){
 
-
-    //for (int sampleId = 0; sampleId < numSamplePoints; sampleId++){
-
         std::vector<uint64_t> timings;
         
         // get two random samplepoints and check if there exists a path
@@ -151,19 +148,26 @@ void testDijkstra(PathAlgorithm &pathAlg, PathAlgorithm &pathAlg2,  AdjacencyArr
         currLatStart = doubleRand(latStart, latGoal);
         currLatEnd = doubleRand(latStart, latGoal);
 
+        // get start and end node 
         uint64_t sNode = longLatToNodeId(adjArray, currLongStart, currLatStart);
         uint64_t tNode = longLatToNodeId(adjArray, currLongEnd, currLatEnd);
+
+        // check with first algorithm if there is a path between start and endnode
         pathAlg.reset();        
         temp_result = pathAlg.calculateDist(sNode, tNode);
         if(temp_result == UINT64_MAX){
             continue;
         }
+
+        // there exists a path between the two nodes
         currSample++;
         std::cout << "run: " << currSample << " of " << numSamplePoints << std::endl;
 
 
+
         coordinates.push_back(std::array<double,4> {currLongStart, currLatStart, currLongEnd, currLatEnd});
 
+        // start timing of first algorithm
         startQuery = std::chrono::high_resolution_clock::now();
 
         pathAlg.reset();        
@@ -175,6 +179,7 @@ void testDijkstra(PathAlgorithm &pathAlg, PathAlgorithm &pathAlg2,  AdjacencyArr
         numNodesPoppedPathAlgOne.push_back(pathAlg.getNumNodesPopped());
 
 
+        // start timing of second algorithm
         startQuery = std::chrono::high_resolution_clock::now();
 
         pathAlg2.reset();        
@@ -186,6 +191,9 @@ void testDijkstra(PathAlgorithm &pathAlg, PathAlgorithm &pathAlg2,  AdjacencyArr
 
 
     }
+    
+    // all queries have been completed output results
+
 
     uint64_t avgOne = computeAverage(timingPathAlgOne);
     uint64_t stddevOne = computeStdDev(timingPathAlgOne, avgOne);
@@ -198,6 +206,7 @@ void testDijkstra(PathAlgorithm &pathAlg, PathAlgorithm &pathAlg2,  AdjacencyArr
 
     
 
+    // output the samplepoints and show diff if there is any
     for(int i = 0; i < timingPathAlgOne.size(); i++){
         if(resultPathAlgOne.at(i) != resultPathAlgTwo.at(i)){
             std::cout << "(" << coordinates.at(i)[0] << "," << coordinates.at(i)[1] << ") (" << coordinates.at(i)[2] << "," << coordinates.at(i)[3] << ")\t has wrong results - " << resultPathAlgOne.at(i) << " " << resultPathAlgTwo.at(i) << std::endl;
@@ -206,6 +215,7 @@ void testDijkstra(PathAlgorithm &pathAlg, PathAlgorithm &pathAlg2,  AdjacencyArr
         }
     }
 
+    // output timing differences
     std::cout << "First alg has from  " << timingPathAlgOne.size() << " Queries an Average of " << avgOne << "us and stddev of: "<< stddevOne <<  "us" << std::endl;
     std::cout << "Second alg has from " << timingPathAlgTwo.size() << " Queries an Average of " << avgTwo << "us and stddev of: "<< stddevTwo << "us" <<  std::endl;
     std::cout << "On average the first algorithm takes  " <<  ((double)((avgOne * 10000)/(avgTwo)) / 10000) << " times longer" << std::endl;
@@ -223,10 +233,20 @@ int main(int argc, char** argv) {
     std::string inputFileName2 = "data/planet_2.graph_3_920p_invT";
     int numberOfTries = 100; 
 
+    bool outputHelp = false;
+    if(argc < 1 || argc > 4){
+        outputHelp = true;
+    }else if(argc > 1 && (std::string(argv[1]) == "--help" || std::string(argv[1]) == "-h")){
+        outputHelp = true;
+    }
+
+
     // check input parameter
-    if(argc < 1 || argc > 3){
-        std::cout << "Usage: " << argv[0] << " numberOfTries " << " file_to_first.graph" << " " << "file_to_second.graph"<< std::endl;
+    if(outputHelp){
+        std::cout << "Usage: " << argv[0]  << std::endl;
+        std::cout << "Usage: " << argv[0] << " numberOfTries " << std::endl;
         std::cout << "Usage: " << argv[0] << " numberOfTries " << " file_to.graph" << std::endl;
+        std::cout << "Usage: " << argv[0] << " numberOfTries " << " file_to_first.graph" << " " << "file_to_second.graph"<< std::endl;
         return 1;
     }
     if(argc > 1){
@@ -242,17 +262,15 @@ int main(int argc, char** argv) {
 
     AdjacencyArray adjArray(inputFileName);
     AdjacencyArray chArray(inputFileName2);
+    SecondDijkstra dijkstra (adjArray);
+    //BiDirectDijkstra::BiDirectDijkstra sd2 (adjArray);
     {
-        SecondDijkstra dijkstra (adjArray);
-        //BiDirectDijkstra::BiDirectDijkstra sd2 (adjArray);
-
         ChQuery::ChQuery chQuery (chArray);
-        
+
         PathAlgorithm &pa1 = dijkstra;
         PathAlgorithm &pa2 = chQuery;
 
         std::cout << "First array has " << adjArray.edges.size() << " edges. Second array has " <<  chArray.edges.size() << " edges." << std::endl;
         testDijkstra(pa1, pa2, adjArray, -180, -85, 180, 85, numberOfTries);
-
     }
 }
