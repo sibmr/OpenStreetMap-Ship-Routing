@@ -71,7 +71,7 @@ namespace ChQuery{
                 maxRank = adjArray.rank.at(currNode);
             }
         }
-        std::cout << "maxrank " << maxRank << std::endl;
+        //std::cout << "maxrank " << maxRank << std::endl;
         reset();
 
         // calculate distances between nodes:
@@ -122,31 +122,23 @@ namespace ChQuery{
      */
     uint64_t ChQuery::calculateDist(uint64_t startPoint, uint64_t endPoint){
 
-        uint64_t sourceDist = 0;
-        uint64_t targetDist = 0;
+        // save start and end Node for path export
+        this->startPoint = startPoint;
+        this->endPoint = endPoint;
         uint64_t currDist = UINT64_MAX;
 
         uint64_t rankSourceTree = 0;
         uint64_t rankTargetTree = 0;
 
-        bool sourceHeapEmpty = false;
-        bool targetHeapEmpty = false;
+        bool sourceTreeReady = false;
+        bool targetTreeReady = false;
 
-
-
-        // early stop with same start value
-        //if(std::find (visited.begin(), visited.end(), endPoint) != visited.end() && distance.at(startPoint) == 0){
-        //    return distance.at(endPoint);
-        //}else{
-        //    reset();
-        //
 
         // init rank
         rankSourceTree = adjArray.rank.at(startPoint);
         rankTargetTree = adjArray.rank.at(endPoint);
 
-        uint64_t currRankS = 0;
-        uint64_t currRankT = 0;
+        uint64_t currRank = 0;
 
         heapSource.push_back(HeapElement{startPoint, UINT64_MAX, 0});
         heapTarget.push_back(HeapElement{endPoint, UINT64_MAX, 0});
@@ -158,50 +150,62 @@ namespace ChQuery{
         HeapElement frontTarget;
         while(true){
             if(heapSource.empty() && heapTarget.empty()){
+                lastCalculatedDistance = currDist;
                 return currDist;
             }
 
             // find next node in sourceTree not already visited
-            do{
-                if(heapSource.empty()){
-                    sourceHeapEmpty = true;
-                }else{
-                    std::pop_heap(heapSource.begin(), heapSource.end());
-                    frontSource = heapSource.back();
-                    heapSource.pop_back();
+            if(!sourceTreeReady){
+                do{
+                    if(heapSource.empty()){
+                        sourceTreeReady = true;
+                    }else{
+                        std::pop_heap(heapSource.begin(), heapSource.end());
+                        frontSource = heapSource.back();
+                        heapSource.pop_back();
+                        // one node will be popped inSourceTree 
+                        numNodesPopped++;
 
-                    //std::cout << "sHeapPop " << heapSource.size() << " " << frontSource.heuristic_dist << " - " << distanceSource.at(frontSource.nodeIdx) << std::endl;
-                    // one node will be popped inSourceTree 
-                    numNodesPopped++;
-                }
-            }while(frontSource.heuristic_dist >= distanceSource.at(frontSource.nodeIdx) && !heapSource.empty());
+                        if(frontSource.heuristic_dist > currDist){
+                            sourceTreeReady = true;
+                        }
+                    }
+                }while(frontSource.heuristic_dist >= distanceSource.at(frontSource.nodeIdx) && !heapSource.empty() && !sourceTreeReady);
+            }
             
 
 
 
-
             // find next node in targetTree not already visited
-            do{
-                if(heapTarget.empty()){
-                    targetHeapEmpty = true;
-                }else{
-                    std::pop_heap(heapTarget.begin(), heapTarget.end());
-                    frontTarget = heapTarget.back();
-                    heapTarget.pop_back();
+            if(!targetTreeReady){
+                do{
+                    if(heapTarget.empty()){
+                        targetTreeReady = true;
+                    }else{
+                        std::pop_heap(heapTarget.begin(), heapTarget.end());
+                        frontTarget = heapTarget.back();
+                        heapTarget.pop_back();
+                        // one node will be popped in targetTree
+                        numNodesPopped++;
 
-                    //std::cout << "tHeapPop " << heapTarget.size() << std::endl;
+                        if(frontTarget.heuristic_dist > currDist){
+                            targetTreeReady = true; 
+                        }
+                    }
+                }while(frontTarget.heuristic_dist >= distanceTarget.at(frontTarget.nodeIdx) && !heapTarget.empty());
 
-                    // one node will be popped in targetTree
-                    numNodesPopped++;
-                }
-            }while(frontTarget.heuristic_dist >= distanceTarget.at(frontTarget.nodeIdx) && !heapTarget.empty());
+
+            }
 
 
-            //std::cout << "s alive " << !sourceHeapEmpty << " " << " t alive " << !targetHeapEmpty << std::endl;
+            // ch termination
+            if(sourceTreeReady && targetTreeReady){
+                lastCalculatedDistance = currDist;
+                return lastCalculatedDistance;
+            }
 
-            if(!sourceHeapEmpty){
+            if(!sourceTreeReady){
                 rankSourceTree = adjArray.rank.at(frontSource.nodeIdx);
-                if(rankSourceTree == 0){rankSourceTree = maxRank+1;};
 
                 distanceSource.at(frontSource.nodeIdx) = frontSource.heuristic_dist;
                 prevSource.at(frontSource.nodeIdx) = frontSource.prev;
@@ -217,9 +221,8 @@ namespace ChQuery{
             }
 
 
-            if(!targetHeapEmpty){
+            if( !targetTreeReady){
                 rankTargetTree = adjArray.rank.at(frontTarget.nodeIdx);
-                if(rankTargetTree == 0){rankTargetTree = maxRank+1;};
                 // meetingNode found
                 distanceTarget.at(frontTarget.nodeIdx) = frontTarget.heuristic_dist;
                 prevTarget.at(frontTarget.nodeIdx) = frontTarget.prev;
@@ -235,100 +238,67 @@ namespace ChQuery{
 
 
 
-            // ch termination
-            if(frontSource.heuristic_dist > currDist && frontTarget.heuristic_dist > currDist){
-                lastCalculatedDistance = currDist;
-                return lastCalculatedDistance;
-            }
 
             // one step in sourceTree
-            {
+            if(!sourceTreeReady){
                 distanceSource.at(frontSource.nodeIdx) = frontSource.heuristic_dist;
                 prevSource.at(frontSource.nodeIdx) = frontSource.prev;
 
                 for(uint64_t currEdgeId = adjArray.offsets.at(frontSource.nodeIdx); currEdgeId < adjArray.offsets.at(frontSource.nodeIdx+1); currEdgeId++){
                     uint64_t neighborIdx = adjArray.edges.at(currEdgeId);
 
-                    currRankS = adjArray.rank.at(neighborIdx);
-                    if(currRankS == 0){currRankS = maxRank+1;};
-                    //if((rankSourceTree == maxRank && adjArray.rank.at(neighborIdx) != maxRank) || adjArray.rank.at(neighborIdx) <= rankSourceTree){
-                    //    continue;
-                    //}
+                    currRank = adjArray.rank.at(neighborIdx);
 
-                    if(rankSourceTree > currRankS){
-                        continue;
-                    }
+                    // only push nodes with higer rank
+                    if(rankSourceTree < currRank || currRank == maxRank){
     
-                    // choose length of edge from precalculated lengths
-                    uint64_t edgeDist = adjArray.distances.at(currEdgeId);
+                        // choose length of edge from precalculated lengths
+                        uint64_t edgeDist = adjArray.distances.at(currEdgeId);
     
-                    uint64_t newNeighborDist = frontSource.heuristic_dist + edgeDist;
-                    uint64_t oldNeighborDist = distanceSource.at(neighborIdx);
-                     
+                        uint64_t newNeighborDist = frontSource.heuristic_dist + edgeDist;
+                        uint64_t oldNeighborDist = distanceSource.at(neighborIdx);
+
     
-                    if(newNeighborDist<oldNeighborDist){
-                        // do not update distance array: only update for distances that are final
-                        // distance.at(neighborIdx) = newNeighborDist;
-                        heapSource.push_back(HeapElement{neighborIdx, frontSource.nodeIdx, newNeighborDist});
-                        std::push_heap(heapSource.begin(), heapSource.end());
+                        if(newNeighborDist<oldNeighborDist && currDist == UINT64_MAX){
+                            // do not update distance array: only update for distances that are final
+                            // distance.at(neighborIdx) = newNeighborDist;
+                            heapSource.push_back(HeapElement{neighborIdx, frontSource.nodeIdx, newNeighborDist});
+                            std::push_heap(heapSource.begin(), heapSource.end());
+                        }
                     }
 
-                    //std::cout << "sourcetree: " << rankSourceTree << " " << currRankS << " " << (newNeighborDist < oldNeighborDist) << heapSource.size() << std::endl;
-
-                    // distance is set from other direction already
-                    //if(distanceTarget.at(neighborIdx) < UINT64_MAX){
-                    //    uint64_t tmp = frontSource.heuristic_dist + edgeDist + distanceTarget.at(neighborIdx);
-                    //    if(tmp < currDist){
-                    //        currDist = tmp;
-                    //        forwardMeetingNode = frontSource.nodeIdx;
-                    //        backwardMeetingNode = neighborIdx;
-                    //    }
-                    //}
                 }
             }
 
             // one step in targetTree
-            {
+            if(!targetTreeReady){
                 distanceTarget.at(frontTarget.nodeIdx) = frontTarget.heuristic_dist;
                 prevTarget.at(frontTarget.nodeIdx) = frontTarget.prev;
 
                 for(uint64_t currEdgeId = adjArray.offsets.at(frontTarget.nodeIdx); currEdgeId < adjArray.offsets.at(frontTarget.nodeIdx+1); currEdgeId++){
                     uint64_t neighborIdx = adjArray.edges.at(currEdgeId);
 
-                    //if((rankTargetTree == maxRank && adjArray.rank.at(neighborIdx) != maxRank) || adjArray.rank.at(neighborIdx) <= rankTargetTree){
-                    //    continue;
-                    //}
-                    currRankS = adjArray.rank.at(neighborIdx);
-                    if(currRankS == 0){currRankS = maxRank+1;};
+                    currRank = adjArray.rank.at(neighborIdx);
 
-                    if(rankTargetTree > currRankS){
-                        continue;
+                    if(rankTargetTree < currRank || currRank == maxRank){
+
+
+                        // choose length of edge from precalculated lengths
+                        uint64_t edgeDist = adjArray.distances.at(currEdgeId);
+
+                        uint64_t newNeighborDist = frontTarget.heuristic_dist + edgeDist;
+                        uint64_t oldNeighborDist = distanceTarget.at(neighborIdx);
+
+
+                        // from 4 times more nodes to 2 times more nodes
+                        if(newNeighborDist<oldNeighborDist && currDist == UINT64_MAX){
+                            // do not update distance array: only update for distances that are final
+                            // distance.at(neighborIdx) = newNeighborDist;
+                            heapTarget.push_back(HeapElement{neighborIdx, frontTarget.nodeIdx, newNeighborDist});
+                            std::push_heap(heapTarget.begin(), heapTarget.end());
+                        }
                     }
 
-
-                    // choose length of edge from precalculated lengths
-                    uint64_t edgeDist = adjArray.distances.at(currEdgeId);
-
-                    uint64_t newNeighborDist = frontTarget.heuristic_dist + edgeDist;
-                    uint64_t oldNeighborDist = distanceTarget.at(neighborIdx);
-
-
-                    if(newNeighborDist<oldNeighborDist){
-                        // do not update distance array: only update for distances that are final
-                        // distance.at(neighborIdx) = newNeighborDist;
-                        heapTarget.push_back(HeapElement{neighborIdx, frontTarget.nodeIdx, newNeighborDist});
-                        std::push_heap(heapTarget.begin(), heapTarget.end());
-                    }
-
-                    //std::cout <<  "targetTree " <<rankTargetTree << " " << currRankS << " " << (newNeighborDist < oldNeighborDist) << " " <<  heapTarget.size() << std::endl;
-                    //if(distanceSource.at(neighborIdx) < UINT64_MAX){
-                    //    uint64_t tmp = frontTarget.heuristic_dist + edgeDist + distanceSource.at(neighborIdx);
-                    //    if(tmp < currDist){
-                    //        currDist = tmp;
-                    //        forwardMeetingNode = neighborIdx;
-                    //        backwardMeetingNode = frontTarget.nodeIdx;
-                    //    }
-                    //}
                 }
             }
 
