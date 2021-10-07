@@ -1,5 +1,3 @@
-#include <set>
-
 #include "shortestPathUtils.cpp"
 #include "PathAlgorithm.cpp"
 
@@ -9,8 +7,8 @@ namespace BidirectionalDijkstra{
  * @brief HeapElement for BidirectionalDijkstra implementation
  */
 struct HeapElement {
-    // for normal dijkstra, heuristic_dist is the current distance to this node
-    uint64_t nodeIdx, prev, heuristic_dist, dist;
+
+    uint64_t nodeIdx, prev, dist;
     
     /**
      * @brief "reverse" comparison function turning max-heap into min-heap 
@@ -20,13 +18,13 @@ struct HeapElement {
      * @return false    otherwise
      */
     bool operator<(const HeapElement &a){
-        return heuristic_dist > a.heuristic_dist;
+        return dist > a.dist;
     }
 };
 
 /**
- * @brief Our second more efficient implementation of the dijkstra algorithm
- * Similar implementation to https://github.com/Lesstat/dijkstra-performance-study/
+ * @brief Bidirectional Dijkstra implementation
+ * 
  */
 class BidirectionalDijkstra: public PathAlgorithm{
     public:
@@ -42,7 +40,6 @@ class BidirectionalDijkstra: public PathAlgorithm{
         std::vector<uint64_t> backwardDistance;
         std::vector<HeapElement> forwardHeap;
         std::vector<HeapElement> backwardHeap;
-        std::set<uint64_t> visited;
         std::vector<uint64_t> forwardPrev;
         std::vector<uint64_t> backwardPrev;
         AdjacencyArray &adjArray;
@@ -52,7 +49,7 @@ class BidirectionalDijkstra: public PathAlgorithm{
 
 
 /**
- * @brief Construct a new Second BidirectionalDijkstra:: Second BidirectionalDijkstra object
+ * @brief Construct a new BidirectionalDijkstra object
  * 
  * Initialize datastructures
  * Initialize distances between nodes
@@ -84,15 +81,11 @@ void BidirectionalDijkstra::reset(){
 }
 
 /**
- * @brief efficient dijkstra shortest-path implementation
+ * @brief Bidirectional Dijkstra implementation
  * 
- * Uses binary Min(Max)-heap for greedy node visitation strategy
- * 
- * For this to work, reset need to be called first
- * 
- * @param startPoint 
- * @param endPoint 
- * @return uint64_t 
+ * @param startPoint    shortest path start node id
+ * @param endPoint      shortest path end node id
+ * @return uint64_t     shortest path distance
  */
 uint64_t BidirectionalDijkstra::calculateDist(uint64_t startPoint_, uint64_t endPoint_){
 
@@ -123,7 +116,7 @@ uint64_t BidirectionalDijkstra::calculateDist(uint64_t startPoint_, uint64_t end
             forwardFront = forwardHeap.back();
             forwardHeap.pop_back();
             numNodesPopped++;
-        }while (forwardFront.heuristic_dist >= forwardDistance.at(forwardFront.nodeIdx));
+        }while (forwardFront.dist >= forwardDistance.at(forwardFront.nodeIdx));
         do{
             // no path found
             if(backwardHeap.empty()){
@@ -133,17 +126,17 @@ uint64_t BidirectionalDijkstra::calculateDist(uint64_t startPoint_, uint64_t end
             backwardFront = backwardHeap.back();
             backwardHeap.pop_back();
             numNodesPopped++;
-        }while (backwardFront.heuristic_dist >= backwardDistance.at(backwardFront.nodeIdx));
+        }while (backwardFront.dist >= backwardDistance.at(backwardFront.nodeIdx));
         
         // update distance and previous node of current forward node
-        forwardDistance.at(forwardFront.nodeIdx) = forwardFront.heuristic_dist;
+        forwardDistance.at(forwardFront.nodeIdx) = forwardFront.dist;
         forwardPrev.at(forwardFront.nodeIdx) = forwardFront.prev;
         // update distance and previous node of current backward node
-        backwardDistance.at(backwardFront.nodeIdx) = backwardFront.heuristic_dist;
+        backwardDistance.at(backwardFront.nodeIdx) = backwardFront.dist;
         backwardPrev.at(backwardFront.nodeIdx) = backwardFront.prev;
 
         // termination criterion for bidirectional dijkstra
-        if(forwardFront.heuristic_dist + backwardFront.heuristic_dist >= minDistance){
+        if(forwardFront.dist + backwardFront.dist >= minDistance){
             lastCalculatedDistance = minDistance;
             return lastCalculatedDistance;
         }
@@ -159,7 +152,7 @@ uint64_t BidirectionalDijkstra::calculateDist(uint64_t startPoint_, uint64_t end
             uint64_t edgeDist = adjArray.distances.at(currEdgeId);
 
             // calculate new distances
-            uint64_t newNeighborDist = forwardFront.heuristic_dist + edgeDist;
+            uint64_t newNeighborDist = forwardFront.dist + edgeDist;
             uint64_t oldNeighborDist = forwardDistance.at(neighborIdx);
 
             // update node distance if it improves (in this case: push new heap node with better distance)
@@ -171,7 +164,7 @@ uint64_t BidirectionalDijkstra::calculateDist(uint64_t startPoint_, uint64_t end
             // if neighbor has been discovered in "backward" dijkstra then check if min distance improves
             uint64_t neighborGoalDistance = backwardDistance.at(neighborIdx);
             if(neighborGoalDistance < UINT64_MAX){
-                uint64_t joinDistance = forwardFront.heuristic_dist + edgeDist + neighborGoalDistance;
+                uint64_t joinDistance = forwardFront.dist + edgeDist + neighborGoalDistance;
                 if(joinDistance < minDistance){
                     minDistance = joinDistance;
                     forwardMinMeetingNodeId = forwardFront.nodeIdx;
@@ -191,7 +184,7 @@ uint64_t BidirectionalDijkstra::calculateDist(uint64_t startPoint_, uint64_t end
             uint64_t edgeDist = adjArray.distances.at(currEdgeId);
 
             // calculate new distances
-            uint64_t newNeighborDist = backwardFront.heuristic_dist + edgeDist;
+            uint64_t newNeighborDist = backwardFront.dist + edgeDist;
             uint64_t oldNeighborDist = backwardDistance.at(neighborIdx);
 
             // update node distance if it improves (in this case: push new heap node with better distance)
@@ -203,7 +196,7 @@ uint64_t BidirectionalDijkstra::calculateDist(uint64_t startPoint_, uint64_t end
             // if neighbor has been discovered in "backward" dijkstra then check if min distance improves
             uint64_t neighborStartDistance = forwardDistance.at(neighborIdx);
             if(neighborStartDistance < UINT64_MAX){
-                uint64_t joinDistance = backwardFront.heuristic_dist + edgeDist + neighborStartDistance;
+                uint64_t joinDistance = backwardFront.dist + edgeDist + neighborStartDistance;
                 if(joinDistance < minDistance){
                     minDistance = joinDistance;
                     forwardMinMeetingNodeId = neighborIdx;
@@ -216,6 +209,7 @@ uint64_t BidirectionalDijkstra::calculateDist(uint64_t startPoint_, uint64_t end
 
 }
 
+
 /**
  * @brief returns distance of last call to calculateDist
  * 
@@ -224,6 +218,7 @@ uint64_t BidirectionalDijkstra::calculateDist(uint64_t startPoint_, uint64_t end
 uint64_t BidirectionalDijkstra::getDist(){
     return lastCalculatedDistance;
 }
+
 
 /**
  * @brief retrieve path calculated by the last call to calculateDist
@@ -265,12 +260,16 @@ void BidirectionalDijkstra::getPath(std::vector<uint64_t> &path){
         std::cout << "dist: " << lastCalculatedDistance/1000 << "km" << std::endl;
     }else{
         std::cout << "no path found" << std::endl;
-        //path.push_back(startPoint);
-        //path.push_back(endPoint);
     }
     
 }
 
+
+/**
+ * @brief return the number of nodes popped form the heap
+ * 
+ * @return uint64_t number of nodes
+ */
 uint64_t BidirectionalDijkstra::getNumNodesPopped(){
     return numNodesPopped;
 }
