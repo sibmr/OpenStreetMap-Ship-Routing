@@ -9,7 +9,7 @@ namespace CH_Astar{
  * @brief HeapElement for A_star implementation
  */
 struct HeapElement {
-    // for normal dijkstra, heuristic_dist is the current distance to this node
+    // heuristic dist is f(x) = g(x) + h(x), dist is g(x)
     uint64_t nodeIdx, prev, heuristic_dist, dist;
     
     /**
@@ -25,8 +25,8 @@ struct HeapElement {
 };
 
 /**
- * @brief Our second more efficient implementation of the dijkstra algorithm
- * Similar implementation to https://github.com/Lesstat/dijkstra-performance-study/
+ * @brief Implementation of the A* Algorithm for Contraction Hierarchies
+ * 
  */
 class A_star: public PathAlgorithm{
     public:
@@ -42,6 +42,8 @@ class A_star: public PathAlgorithm{
         std::vector<uint64_t> constLatDist;
     private:
         uint64_t fillVectors(uint64_t startPoint, uint64_t endPoint);
+        void recursiveUnpackEdge(uint64_t edgeId, std::vector<uint64_t> &unpackedEdges);
+        uint64_t getEdgeIdBetween(uint64_t nodeId1, uint64_t nodeId2);
         std::vector<uint64_t> distance;
         std::vector<HeapElement> heap;
         std::vector<uint64_t> visited;
@@ -57,7 +59,7 @@ class A_star: public PathAlgorithm{
 
 
 /**
- * @brief Construct a new Second A_star:: Second A_star object
+ * @brief Construct a new A_star object
  * 
  * Initialize datastructures
  * Initialize distances between nodes
@@ -95,6 +97,7 @@ A_star::A_star(AdjacencyArray &array) : adjArray(array), prev(array.width*array.
     }
 }
 
+
 /**
  * @brief reset datastructures to prepare for next call to calculateDist
  */
@@ -109,12 +112,22 @@ void A_star::reset(){
     numNodesPopped = 0;
 }
 
+
+/**
+ * @brief for two nodes, calculate the heuristic underapproximation of their path distance
+ * 
+ * @param adjArray          input AdjacencyArray
+ * @param firstNodeIdx      star node
+ * @param secondNodeIdx     goal node
+ * @return uint64_t         great-circle distance between the two nodes
+ */
 uint64_t A_star::getHeuristic(AdjacencyArray &adjArray, uint64_t firstNodeIdx, uint64_t secondNodeIdx){
     return nodeDistance(adjArray, firstNodeIdx, secondNodeIdx);
 }
 
+
 /**
- * @brief efficient dijkstra shortest-path implementation
+ * @brief calculate the distance between two nodes using the astar algorithm for contraction hierarchies
  * 
  * Uses binary Min(Max)-heap for greedy node visitation strategy
  * 
@@ -129,7 +142,7 @@ uint64_t A_star::calculateDist(uint64_t startPoint_, uint64_t endPoint_){
     startPoint = startPoint_;
     endPoint = endPoint_;
 
-    // do depth first search to mark edges
+    // do depth first search to mark edges on all downward paths towards the goal node
     std::vector<uint64_t> stack;
     stack.push_back(endPoint);
     while(!stack.empty()){
@@ -205,8 +218,6 @@ uint64_t A_star::calculateDist(uint64_t startPoint_, uint64_t endPoint_){
 
             // update node distance if it improves
             if(newNeighborDist<oldNeighborDist && (neighborRank >= currentRank || isEdgeMarked.at(currEdgeId))){
-                // do not update distance array: only update for distances that are final
-                // distance.at(neighborIdx) = newNeighborDist;
                 heap.push_back(
                     HeapElement{
                         neighborIdx, 
@@ -225,6 +236,7 @@ uint64_t A_star::calculateDist(uint64_t startPoint_, uint64_t endPoint_){
 
 }
 
+
 /**
  * @brief returns distance of last call to calculateDist
  * 
@@ -234,19 +246,70 @@ uint64_t A_star::getDist(){
     return lastCalculatedDistance;
 }
 
+
 /**
- * @brief retrieve path calculated by the last call to calculateDist
+ * @brief unpack the node-path that is represented by the edgeId 
  * 
- * @param path 
+ * @param edgeId            id of edge to unpack
+ * @param unpackedNodes     unpacked vector of nodes (still contains duplicate nodes)
+ */
+void A_star::recursiveUnpackEdge(uint64_t edgeId, std::vector<uint64_t> &unpackedNodes){
+    Edge &edge = adjArray.allEdgeInfo.at(edgeId);
+    if(edge.shortcutPathEdges.size() > 0){
+        for(uint64_t edgeId : edge.shortcutPathEdges){
+            recursiveUnpackEdge(edgeId, unpackedNodes);
+        }
+    }else{
+        unpackedNodes.push_back(edge.v1);
+        unpackedNodes.push_back(edge.v2);
+    }
+}
+
+
+/**
+ * @brief given two nodes, calculate the id of the edge between them, if there is one
+ * 
+ * @param nodeId1   first node id
+ * @param nodeId2   second node id
+ * @return uint64_t the id of the edge between first and second node, if there is none: UINT64_t instead
+ */
+uint64_t A_star::getEdgeIdBetween(uint64_t nodeId1, uint64_t nodeId2){
+    for(uint64_t currEdgeIndex = adjArray.offsets.at(nodeId1); currEdgeIndex < adjArray.offsets.at(nodeId1+1); ++currEdgeIndex){
+        uint64_t adjacentNodeId = adjArray.edges.at(currEdgeIndex);
+        if(adjacentNodeId == nodeId2){
+            return adjArray.edgeIds.at(currEdgeIndex);
+        }
+    }
+    return UINT64_MAX;
+}
+
+
+/**
+ * @brief retrieve path calculated by the last call to calculateDist by unpacking shortcuts
+ * 
+ * @param path  path of nodes from start to goal node, empty vector if there is no path
  */
 void A_star::getPath(std::vector<uint64_t> &path){
     if(distance.at(endPoint) < UINT64_MAX){
+        
         // build up path
-        uint64_t currNode = endPoint;
-        path.push_back(currNode);
+        uint64_t prevNode = endPoint;
+        uint64_t currNode = UINT64_MAX;
         while(currNode != startPoint){
-            currNode = prev.at(currNode);
-            path.push_back(currNode);
+            currNode = prev.at(prevNode);
+            
+            std::cout << "p1: " << startPoint << " " << endPoint << "\n";
+            std::cout << currNode << "\n";
+            
+            uint64_t currEdgeId = getEdgeIdBetween(prevNode, currNode);
+            std::vector<uint64_t> unpackedNodeIds;
+            recursiveUnpackEdge(currEdgeId, unpackedNodeIds);
+            for(uint64_t i = 0; i<unpackedNodeIds.size(); i+=2){
+                path.push_back(unpackedNodeIds.at(i));
+            }
+            path.push_back(unpackedNodeIds.at(unpackedNodeIds.size()-1));
+            
+            prevNode = currNode;
         }
 
         // print path
@@ -258,17 +321,26 @@ void A_star::getPath(std::vector<uint64_t> &path){
         std::cout << "dist: " << distance.at(endPoint)/1000 << "km" << std::endl;
     }else{
         std::cout << "no path found" << std::endl;
-        //path.push_back(startPoint);
-        //path.push_back(endPoint);
     }
     
 }
 
+
+/**
+ * @brief return the number of nodes popped from the heap during shortest path calculation
+ * 
+ * @return uint64_t number of nodes
+ */
 uint64_t A_star::getNumNodesPopped(){
     return numNodesPopped;
 }
 
 
+
+/**
+ * @brief A_star with a thighter lower bound on the path distance as heuristic
+ * 
+ */
 class A_star_rectangular : public A_star{
     
     public:
@@ -277,6 +349,18 @@ class A_star_rectangular : public A_star{
     
 };
 
+
+/**
+ * @brief heuristic distance between two nodes similar to the manhattan distance
+ * the heuristic calculates min(start-southpole-goal,start-northpole-goal,shortest path around rectange on the surface of the sphere)
+ * the calculation considers longitudinal wraparound
+ * this only works because of the 4-connected grid with nodes equally distributed over longitude and latitude
+ * 
+ * @param adjArray          input AdjacencyArray
+ * @param firstNodeIdx      node index of the first node
+ * @param secondNodeIdx     node index of the second node
+ * @return uint64_t         underapproximation of path distance between nodes
+ */
 uint64_t A_star_rectangular::getHeuristic(AdjacencyArray &adjArray, uint64_t firstNodeIdx, uint64_t secondNodeIdx){
     uint64_t lngFirst, latFirst, lngSecond, latSecond;
 

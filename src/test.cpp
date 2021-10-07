@@ -14,6 +14,53 @@ void recursiveUnpack(Edge &edge, std::vector<uint64_t> &unpackedShortcut, Adjace
     }
 }
 
+/**
+ * @brief convert a path of node ids to a path of edges between the nodes
+ * 
+ * Unused in current version of program (moved from CH_preprocessing)
+ * 
+ * @param adjArray          AdjacencyArray that the path is occuring in
+ * @param in_nodeIdPath     input vector of node ids
+ * @param out_edgeIdPath    output vector of edge ids
+ */
+void nodeToEdgeIdPathForward(AdjacencyArray &adjArray, std::vector<uint64_t> &in_nodeIdPath, std::vector<uint64_t> &out_edgeIdPath){
+    uint64_t prev_nodeId = in_nodeIdPath.at(0);
+    for(uint64_t nodeIndex = 1; nodeIndex<in_nodeIdPath.size(); ++nodeIndex){
+        uint64_t nodeId = in_nodeIdPath.at(nodeIndex);
+        for(uint64_t currEdgeIndex = adjArray.offsets.at(prev_nodeId); currEdgeIndex < adjArray.offsets.at(prev_nodeId+1); ++currEdgeIndex){
+            uint64_t nextNode = adjArray.edges.at(currEdgeIndex);
+            if(nextNode == nodeId){
+                out_edgeIdPath.push_back(adjArray.edgeIds.at(currEdgeIndex));
+            }
+        }
+        prev_nodeId = nodeId;
+    }
+}
+
+
+/**
+ * @brief convert a path of node ids to a path of edges betwee the nodes in the opposite direction as the original node path
+ * 
+ * Unused in current version of program (moved from CH_preprocessing)
+ * 
+ * @param adjArray          AdjacencyArray that the path is occuring in
+ * @param in_nodeIdPath     input vector of node ids
+ * @param out_edgeIdPath    output vector of edge ids
+ */
+void nodeToEdgeIdPathBackward(AdjacencyArray &adjArray, std::vector<uint64_t> &in_nodeIdPath, std::vector<uint64_t> &out_edgeIdPath){
+    uint64_t prev_nodeId = in_nodeIdPath.at(in_nodeIdPath.size()-1);
+    for(uint64_t nodeIndex = in_nodeIdPath.size()-2; nodeIndex>=0 && nodeIndex < in_nodeIdPath.size(); --nodeIndex){
+        uint64_t nodeId = in_nodeIdPath.at(nodeIndex);
+        for(uint64_t currEdgeIndex = adjArray.offsets.at(prev_nodeId); currEdgeIndex < adjArray.offsets.at(prev_nodeId+1); ++currEdgeIndex){
+            uint64_t nextNode = adjArray.edges.at(currEdgeIndex);
+            if(nextNode == nodeId){
+                out_edgeIdPath.push_back(adjArray.edgeIds.at(currEdgeIndex));
+            }
+        }
+        prev_nodeId = nodeId;
+    }
+}
+
 std::vector<bool> checkRedundantEdges(AdjacencyArray &adjArray){
     std::vector<bool> isEdgeRemoved(adjArray.allEdgeInfo.size(), false);
     uint64_t numRemoved = 0;
@@ -149,7 +196,7 @@ void checkMultiDijkstra(){
 }
 
 int main(){
-    AdjacencyArray adjArray("data/CHAdjArray_noDuplicate.graph_2");
+    AdjacencyArray adjArray("data/CHAdjArray_60_otherPc.graph_2");
     std::cout << "Number of edges: " << adjArray.allEdgeInfo.size() << "\n";
     for(uint64_t i = 0; i<adjArray.allEdgeInfo.size(); ++i){
         uint64_t v1 = adjArray.allEdgeInfo.at(i).v1;
@@ -183,17 +230,15 @@ int main(){
 
     rank0ToRankMax(adjArray);
 
-    adjArray.writeToDisk("data/CHAdjArray_rankFix.graph_2");
+    removeRedundantEdges(adjArray);
 
-    // removeRedundantEdges(adjArray);
+    checkRedundantEdges(adjArray);
 
-    // checkRedundantEdges(adjArray);
+    checkUndirectedness(adjArray);
 
-    // checkUndirectedness(adjArray);
+    checkEdgeIdSorted(adjArray);
 
-    // checkEdgeIdSorted(adjArray);
-
-    //adjArray.writeToDisk("data/CHAdjArray_smallNoDuplicate.graph_2");
+    adjArray.writeToDisk("data/CHAdjArray_otherPc_noDup.graph_2");
     
     //checkMultiDijkstra();
     

@@ -10,7 +10,7 @@ namespace CH_query{
  * @brief HeapElement for Dijkstra implementation
  */
 struct HeapElement {
-    // for normal dijkstra, dist is the current distance to this node
+    
     uint64_t nodeIdx, prev, dist;
     
     /**
@@ -25,6 +25,10 @@ struct HeapElement {
     }
 };
 
+/**
+ * @brief realize the contraction hierarchies query using naive dijkstra and bidirectional dijkstra method
+ * 
+ */
 class CH_query: public PathAlgorithm{
     public:
         CH_query(AdjacencyArray &array);
@@ -55,6 +59,7 @@ class CH_query: public PathAlgorithm{
         
 };
 
+
 /**
  * @brief Construct a new CH_query::CH_query object
  * 
@@ -70,6 +75,7 @@ CH_query::CH_query(AdjacencyArray &array) :
 {
     reset();
 }
+
 
 /**
  * @brief reset datastructures to prepare for next call to calculateDist
@@ -87,6 +93,19 @@ void CH_query::reset(){
     numNodesPopped = 0;
 }
 
+
+/**
+ * @brief naive distance calculation method:
+ *          dijkstra is executed in forwards and backwards direction
+ *          then the sum of settled node distance in forward and backward direction is used
+ *          to caluculate the shortest path
+ * 
+ * correct, but slow
+ * 
+ * @param startPoint_ 
+ * @param endPoint_ 
+ * @return uint64_t 
+ */
 uint64_t CH_query::calculateDistNaive(uint64_t startPoint_, uint64_t endPoint_){
 
     startPoint = startPoint_;
@@ -229,11 +248,9 @@ uint64_t CH_query::calculateDistNaive(uint64_t startPoint_, uint64_t endPoint_){
 
 
 /**
- * @brief efficient dijkstra shortest-path implementation
+ * @brief bidirectional dijkstra contraction hierarchies query
  * 
- * Uses binary Min(Max)-heap for greedy node visitation strategy
- * 
- * For this to work, reset need to be called first
+ * still contains bug (leading to some incorrect results), faster than naive approach
  * 
  * @param startPoint 
  * @param endPoint 
@@ -264,11 +281,12 @@ uint64_t CH_query::calculateDist(uint64_t startPoint_, uint64_t endPoint_){
     
 
     while(true){
-
+        
+        // stalling was removed
         bool forwardStalled = false;
         bool backwardStalled = false;
 
-        // get (non-duplicate) heap front
+        // get (non-duplicate) heap front in both directions
         // avoid duplicate nodes (nodes that were already visited, indicated by higher distance)
         do{
             // no path found
@@ -297,80 +315,6 @@ uint64_t CH_query::calculateDist(uint64_t startPoint_, uint64_t endPoint_){
             lastCalculatedDistance = minDistance;
             return minDistance;
         }
-        
-        //std::cout << "heap size: " << forwardHeap.size() << " " << backwardHeap.size() << "\n";
-
-        // settle heap fronts
-        // if(!forwardStuck){
-        //     forwardFront = newForwardFront;
-            
-        //     uint64_t stallingDistance = UINT64_MAX;
-        //     uint64_t stallingPredecessor = UINT64_MAX;
-
-        //     // stall on demand
-        //     for(uint64_t currEdgeId = adjArray.offsets.at(forwardFront.nodeIdx); currEdgeId < adjArray.offsets.at(forwardFront.nodeIdx+1); ++currEdgeId){
-        //         // get id of adjacent node for current edge (neighboring node)
-        //         uint64_t neighborIdx = adjArray.edges.at(currEdgeId);
-        //         if(adjArray.rank.at(neighborIdx) < adjArray.rank.at(forwardFront.nodeIdx)){
-                    
-        //             if(forwardDistance.at(neighborIdx)==UINT64_MAX){ continue; }
-                    
-        //             stallingDistance = forwardDistance.at(neighborIdx) + adjArray.distances.at(currEdgeId);
-        //             stallingPredecessor = neighborIdx;
-
-        //             if(stallingDistance < forwardFront.dist){
-        //                 forwardStalled = true;
-        //                 break;    
-        //             }
-        //         }
-        //     }
-
-        //     if(!forwardStalled){
-        //         // update distance and previous node of current forward node
-        //         forwardDistance.at(forwardFront.nodeIdx) = forwardFront.dist;
-        //         forwardPrev.at(forwardFront.nodeIdx) = forwardFront.prev;
-        //     }
-        //     else{
-        //         forwardDistance.at(forwardFront.nodeIdx) = stallingDistance;
-        //         forwardDistance.at(forwardFront.nodeIdx) = stallingPredecessor;
-        //     }
-        //     //forwardStalled = false;
-        // }
-        // if(!backwardStuck){
-        //     backwardFront = newBackwardFront;
-
-        //     uint64_t stallingDistance = UINT64_MAX;
-        //     uint64_t stallingPredecessor = UINT64_MAX;
-
-        //     // stall on demand
-        //     for(uint64_t currEdgeId = adjArray.offsets.at(backwardFront.nodeIdx); currEdgeId < adjArray.offsets.at(backwardFront.nodeIdx+1); ++currEdgeId){
-        //         // get id of adjacent node for current edge (neighboring node)
-        //         uint64_t neighborIdx = adjArray.edges.at(currEdgeId);
-        //         if(adjArray.rank.at(neighborIdx) < adjArray.rank.at(backwardFront.nodeIdx)){
-                    
-        //             if(backwardDistance.at(neighborIdx)==UINT64_MAX){ continue; }
-                    
-        //             stallingDistance = backwardDistance.at(neighborIdx) + adjArray.distances.at(currEdgeId);
-        //             stallingPredecessor = neighborIdx;
-                    
-        //             if(stallingDistance < backwardFront.dist){
-        //                 backwardStalled = true;
-        //                 break;    
-        //             }
-        //         }
-        //     }
-            
-        //     if(!backwardStalled){
-        //         // update distance and previous node of current backward node
-        //         backwardDistance.at(backwardFront.nodeIdx) = backwardFront.dist;
-        //         backwardPrev.at(backwardFront.nodeIdx) = backwardFront.prev;
-        //     }
-        //     else{
-        //         backwardDistance.at(backwardFront.nodeIdx) = stallingDistance;
-        //         backwardPrev.at(backwardFront.nodeIdx) = stallingPredecessor;
-        //     }
-        //     // backwardStalled = false;
-        // }
 
         if(!forwardStuck){
             forwardFront = newForwardFront;
@@ -493,6 +437,16 @@ uint64_t CH_query::calculateDist(uint64_t startPoint_, uint64_t endPoint_){
 
 }
 
+
+/**
+ * @brief alternative formualtion of bidirectional contraction hierarchies query
+ * 
+ * probably contains the same bug as calculateDist
+ * 
+ * @param startPoint_ 
+ * @param endPoint_ 
+ * @return uint64_t 
+ */
 uint64_t CH_query::calculateDist1(uint64_t startPoint_, uint64_t endPoint_){
 
     startPoint = startPoint_;
@@ -661,6 +615,12 @@ uint64_t CH_query::getDist(){
     return lastCalculatedDistance;
 }
 
+/**
+ * @brief unpack the node-path that is represented by the edgeId 
+ * 
+ * @param edgeId            id of edge to unpack
+ * @param unpackedNodes     unpacked vector of nodes (still contains duplicate nodes)
+ */
 void CH_query::recursiveUnpackEdge(uint64_t edgeId, std::vector<uint64_t> &unpackedNodes){
     Edge &edge = adjArray.allEdgeInfo.at(edgeId);
     //std::cout << "num shortcut edges: " << edge.shortcutPathEdges.size() << ", v1: " <<  edge.v1 << ", v2: " <<  edge.v2 << "\n";
@@ -675,6 +635,13 @@ void CH_query::recursiveUnpackEdge(uint64_t edgeId, std::vector<uint64_t> &unpac
     }
 }
 
+/**
+ * @brief given two nodes, calculate the id of the edge between them, if there is one
+ * 
+ * @param nodeId1   first node id
+ * @param nodeId2   second node id
+ * @return uint64_t the id of the edge between first and second node, if there is none: UINT64_t instead
+ */
 uint64_t CH_query::getEdgeIdBetween(uint64_t nodeId1, uint64_t nodeId2){
     for(uint64_t currEdgeIndex = adjArray.offsets.at(nodeId1); currEdgeIndex < adjArray.offsets.at(nodeId1+1); ++currEdgeIndex){
         uint64_t adjacentNodeId = adjArray.edges.at(currEdgeIndex);
@@ -686,15 +653,16 @@ uint64_t CH_query::getEdgeIdBetween(uint64_t nodeId1, uint64_t nodeId2){
 }
 
 /**
- * @brief retrieve path calculated by the last call to calculateDist
+ * @brief retrieve path calculated by the last call to calculateDist by unpacking shortcuts
  * 
- * @param path 
+ * @param path  output vector to write path of nodes to
  */
 void CH_query::getPath(std::vector<uint64_t> &path){
     std::vector<uint64_t> forwardPath;
     std::vector<uint64_t> backwardPath;
     if(lastCalculatedDistance < UINT64_MAX){
         // build up path
+        // fill forward path 
         uint64_t prevNode = forwardMinMeetingNodeId;
         uint64_t currNode = UINT64_MAX;
         while(currNode != startPoint){
@@ -713,6 +681,8 @@ void CH_query::getPath(std::vector<uint64_t> &path){
             
             prevNode = currNode;
         }
+
+        // fill backward path
         prevNode = backwardMinMeetingNodeId;
         currNode = UINT64_MAX;
         while(currNode != endPoint){
@@ -732,12 +702,14 @@ void CH_query::getPath(std::vector<uint64_t> &path){
             prevNode = currNode;
         }
         
+        // add forward path nodes to path
         for(int i = forwardPath.size()-1; i>=0; --i){
             path.push_back(forwardPath.at(i));
         }
 
         std::cout << "forward path end: " << path.size();
 
+        // if there is a meeting edge, unpack it and add nodes to path
         if(forwardMinMeetingNodeId != backwardMinMeetingNodeId){
             std::vector<uint64_t> unpackedNodeIds;
             uint64_t edgeId = getEdgeIdBetween(forwardMinMeetingNodeId, backwardMinMeetingNodeId);
@@ -751,7 +723,7 @@ void CH_query::getPath(std::vector<uint64_t> &path){
             std::cout << "intermediate path end: " << path.size() << "\n";
         }
        
-
+        // add backward path nodes to path
         for(int i = 0; i<backwardPath.size(); ++i){
             path.push_back(backwardPath.at(i));
         }
@@ -765,12 +737,15 @@ void CH_query::getPath(std::vector<uint64_t> &path){
         std::cout << "dist: " << lastCalculatedDistance/1000 << "km" << std::endl;
     }else{
         std::cout << "no path found" << std::endl;
-        //path.push_back(startPoint);
-        //path.push_back(endPoint);
     }
     
 }
 
+/**
+ * @brief return the number of nodes popped from the stack
+ * 
+ * @return uint64_t     number of nodes popped from the stack
+ */
 uint64_t CH_query::getNumNodesPopped(){
     return numNodesPopped;
 }

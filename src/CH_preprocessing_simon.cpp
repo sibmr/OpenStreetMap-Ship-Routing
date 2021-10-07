@@ -6,6 +6,16 @@
 #include "Dijkstra_simon.cpp"
 #include "MultiDijkstra_simon.cpp"
 
+
+
+/**
+ * @brief Create a 2D Vector Matrix object of type T
+ * 
+ * @tparam T                                type of the matrix elements
+ * @param size_i                            size of the first dimenstion
+ * @param size_j                            size of the second dimension
+ * @return std::vector<std::vector<T>>      Matrix object
+ */
 template <typename T>
 std::vector<std::vector<T>> createVectorMatrix(uint64_t size_i, uint64_t size_j){
     std::vector<std::vector<T>> matrix(size_i);
@@ -15,6 +25,15 @@ std::vector<std::vector<T>> createVectorMatrix(uint64_t size_i, uint64_t size_j)
     return matrix;
 }
 
+
+/**
+ * @brief Get the File Path Input string from the command line
+ * 
+ * @param argc      first parameter of main method, containing the number of command line arguments
+ * @param argv      second parameter of main method, containing all command line arguments
+ * @param out_path  output string reference with file path command line argument
+ * @return int 
+ */
 int getFilePathInput(int argc, char** argv, std::string &out_path){
     if(argc > 1){
         out_path = std::string(argv[1]);
@@ -33,34 +52,14 @@ int getFilePathInput(int argc, char** argv, std::string &out_path){
     return 1;
 }
 
-void nodeToEdgeIdPathForward(AdjacencyArray &adjArray, std::vector<uint64_t> &in_nodeIdPath, std::vector<uint64_t> &out_edgeIdPath){
-    uint64_t prev_nodeId = in_nodeIdPath.at(0);
-    for(uint64_t nodeIndex = 1; nodeIndex<in_nodeIdPath.size(); ++nodeIndex){
-        uint64_t nodeId = in_nodeIdPath.at(nodeIndex);
-        for(uint64_t currEdgeIndex = adjArray.offsets.at(prev_nodeId); currEdgeIndex < adjArray.offsets.at(prev_nodeId+1); ++currEdgeIndex){
-            uint64_t nextNode = adjArray.edges.at(currEdgeIndex);
-            if(nextNode == nodeId){
-                out_edgeIdPath.push_back(adjArray.edgeIds.at(currEdgeIndex));
-            }
-        }
-        prev_nodeId = nodeId;
-    }
-}
 
-void nodeToEdgeIdPathBackward(AdjacencyArray &adjArray, std::vector<uint64_t> &in_nodeIdPath, std::vector<uint64_t> &out_edgeIdPath){
-    uint64_t prev_nodeId = in_nodeIdPath.at(in_nodeIdPath.size()-1);
-    for(uint64_t nodeIndex = in_nodeIdPath.size()-2; nodeIndex>=0 && nodeIndex < in_nodeIdPath.size(); --nodeIndex){
-        uint64_t nodeId = in_nodeIdPath.at(nodeIndex);
-        for(uint64_t currEdgeIndex = adjArray.offsets.at(prev_nodeId); currEdgeIndex < adjArray.offsets.at(prev_nodeId+1); ++currEdgeIndex){
-            uint64_t nextNode = adjArray.edges.at(currEdgeIndex);
-            if(nextNode == nodeId){
-                out_edgeIdPath.push_back(adjArray.edgeIds.at(currEdgeIndex));
-            }
-        }
-        prev_nodeId = nodeId;
-    }
-}
-
+/**
+ * @brief From an AdjacencyArray input, generate a vector of all edges in the adjacency array
+ * This gives each edge a unique identitiy that can be used to unpack shortcuts
+ * 
+ * @param adjArray          input AdjacencyArray
+ * @param out_allEdges      output vector representing all edges in the AdjacencyArray
+ */
 void extractAllEdges(AdjacencyArray &adjArray, std::vector<Edge> &out_allEdges){
     uint64_t edgeIdCounter = 0;
     uint64_t noEdgesCounter = 0;
@@ -87,6 +86,13 @@ void extractAllEdges(AdjacencyArray &adjArray, std::vector<Edge> &out_allEdges){
     std::cout << "Number of active nodes without edges: " << noEdgesCounter << "\n";
 }
 
+
+/**
+ * @brief Check if there are redundant edges in the AdjacencyArray and mark such edges for removal
+ * 
+ * @param adjArray          input AdjacencyArray
+ * @param isEdgeRemoved     output binary flags for each edge
+ */
 void checkRedundantEdges(AdjacencyArray &adjArray, std::vector<bool> isEdgeRemoved){
     uint64_t numRemoved = 0;
     
@@ -134,6 +140,16 @@ void checkRedundantEdges(AdjacencyArray &adjArray, std::vector<bool> isEdgeRemov
     std::cout << numRemoved << " additional redundant edges removed\n";
 }
 
+
+/**
+ * @brief Check if a node (idToCheck) is adjacent to a marked node (isIdInSet) in the AdjacencyArray 
+ * 
+ * @param adjArray      input AdjacencyArray
+ * @param idToCheck     node id that is checked for adjacency to set     
+ * @param isIdInSet     vector, where each node is flagged with true if it is in the set
+ * @return true         if idToCheck is adjacent to any of the nodes in the set
+ * @return false        otherwise
+ */
 bool isNodeAdjacentToSet(AdjacencyArray &adjArray, uint64_t idToCheck, std::vector<bool> &isIdInSet){
     for(uint64_t currEdgeIndex = adjArray.offsets.at(idToCheck); currEdgeIndex < adjArray.offsets.at(idToCheck+1); ++currEdgeIndex){
         uint64_t adjacentId = adjArray.edges.at(currEdgeIndex);
@@ -144,6 +160,15 @@ bool isNodeAdjacentToSet(AdjacencyArray &adjArray, uint64_t idToCheck, std::vect
     return false;
 }
 
+
+/**
+ * @brief create a random set of independent nodes from the adjacency array that does not contain nodes that were already contracted
+ * 
+ * @param adjArray              input AdjacencyArray
+ * @param allContractedIds      vector of node ids that are already contracted - newly marked nodes ids are added
+ * @param isContracted          vector of boolean flags for each node, indicating if the node is already contracted - newly marked nodes are marked
+ * @param out_newContractions   vector of node ids that are newly marked for contaction by this function
+ */
 void randomFillContractionSet(
     AdjacencyArray &adjArray, 
     std::vector<uint64_t> &allContractedIds, 
@@ -151,7 +176,7 @@ void randomFillContractionSet(
     std::vector<uint64_t> &out_newContractions
     ){
 
-    uint64_t numDraws = 20000;
+    uint64_t numDraws = 200000;
     uint64_t nodeIdLimit = isContracted.size();
     
     uint64_t nodeIdx = 0;
@@ -177,6 +202,17 @@ void randomFillContractionSet(
     }
 }
 
+
+/**
+ * @brief heuristically create a set of independent nodes containing nodes with few edges from the adjacency array 
+ *        the set does not contain nodes that were already contracted
+ * 
+ * @param adjArray                  input AdjacencyArray
+ * @param fraction                  percentage of independent nodes with lowest cost to output
+ * @param in_out_allContractedIds   vector of node ids that are already contracted - newly marked nodes ids are added
+ * @param in_out_isContracted       vector of boolean flags for each node, indicating if the node is already contracted - newly marked nodes are marked
+ * @param out_newContractions       vector of node ids that are newly marked for contaction by this function
+ */
 void numEdgeFillContractionSet(
     AdjacencyArray &adjArray,
     double fraction, 
@@ -232,6 +268,20 @@ void numEdgeFillContractionSet(
 }
 
 
+/**
+ * @brief contract the specified node and add shortcuts
+ * 
+ * @param contractedNodeId          id of node to contract
+ * @param workArray                 input AdjacencyArray
+ * @param currentRank               current rank of the contraction process
+ * @param dijkstra                  dijkstra routing instance for shortest path calculation
+ * @param multiDijkstra             multiDijkstra routing instance for checking if there exist multiple shortest paths
+ * @param isNodeContracted          vector of boolean flags for each node indicating whether the node is contracted (used in multiDijkstra)
+ * @param out_isEdgeRemoved         vector to add removed edges of the current node
+ * @param out_removedEdgeIndices    vector that edgeIndices removed in this round are added to
+ * @param out_allEdges              vector that newly created edges are added to
+ * @param out_shortcutEdges         vector that newly created edges are added to
+ */
 void contractNode(  uint64_t contractedNodeId, AdjacencyArray &workArray, uint64_t currentRank, 
                     Dijkstra::Dijkstra &dijkstra, MultiDijkstra::Dijkstra &multiDijkstra, std::vector<bool> &isNodeContracted,
                     std::vector<bool> &out_isEdgeRemoved, std::vector<uint64_t> &out_removedEdgeIndices,
@@ -240,10 +290,11 @@ void contractNode(  uint64_t contractedNodeId, AdjacencyArray &workArray, uint64
     // set the rank of contractedNodes to current rank
     workArray.rank.at(contractedNodeId) = currentRank;
 
+
     // find all neighbor ids and all edges (to and from contracted node)
     std::vector<uint64_t> adjacentIds;
-    std::vector<uint64_t> forwardEdgeIds;
-    std::vector<uint64_t> forwardEdgeIndices;
+    std::vector<uint64_t> forwardEdgeIds;       // used to avoid duplicate edges
+    std::vector<uint64_t> forwardEdgeIndices;   // used to avoid duplicate edges
     std::vector<uint64_t> edgeIds;
     std::vector<uint64_t> edgeIndices;
     // process edges away from contracted node
@@ -260,8 +311,8 @@ void contractNode(  uint64_t contractedNodeId, AdjacencyArray &workArray, uint64
         out_isEdgeRemoved.at(currEdgeIndex) = true;
     }
     
-    std::vector<uint64_t> reverseEdgeIds(adjacentIds.size(), UINT64_MAX);
     // process edges to contracted node
+    std::vector<uint64_t> reverseEdgeIds(adjacentIds.size(), UINT64_MAX); // used to avoid duplicate edges
     for(uint64_t neighborIndex = 0; neighborIndex<adjacentIds.size(); ++neighborIndex){
         uint64_t neighborId = adjacentIds.at(neighborIndex);
         uint64_t minEdgeId = UINT64_MAX;
@@ -279,9 +330,10 @@ void contractNode(  uint64_t contractedNodeId, AdjacencyArray &workArray, uint64
         }
     }
 
+
     if(edgeIds.size() != 2*adjacentIds.size()){ std::cout << "more/less edges" << edgeIds.size() << " " << adjacentIds.size() << "\n"; }
 
-    //calculate distances
+    //calculate distances between all adjacent nodes
     std::vector<std::vector<uint64_t>> distanceUWMatrix = createVectorMatrix<uint64_t>(adjacentIds.size(), adjacentIds.size());
     std::vector<std::vector<bool>> multipleShortcutsMatrix = createVectorMatrix<bool>(adjacentIds.size(), adjacentIds.size());
     for(uint64_t uIndex = 0; uIndex<adjacentIds.size(); ++uIndex){
@@ -315,30 +367,25 @@ void contractNode(  uint64_t contractedNodeId, AdjacencyArray &workArray, uint64
             uint64_t startNodeEdgeIndex = forwardEdgeIndices.at(i);
             uint64_t endNodeEdgeIndex = forwardEdgeIndices.at(j);
 
+            // read distances from matrix: order of forward/backward indices and i/j does not matter since graph is undirected 
+            // -> always has edges in both directions of same length between nodes 
             uint64_t distanceUW = distanceUWMatrix.at(i).at(j);
             uint64_t distanceUVW = workArray.distances.at(startNodeEdgeIndex) + workArray.distances.at(endNodeEdgeIndex);
 
             bool multipleShortestPaths = multipleShortcutsMatrix.at(i).at(j); //md.checkMultipleShortestPath(con);
+            
+            //                              condition for avoiding duplicate shortcuts
             //                       there is a shorter path   OR  there exist shortest paths besides UVW 
             bool noShortcutNeeded = (distanceUW < distanceUVW) || multipleShortestPaths;
 
             if((!(distanceUW < distanceUVW)) && multipleShortestPaths){std::cout << "shortcut saved\n";}
-            // if(multipleShortestPaths){ std::cout << "multiple paths\n"; }
 
             // if deleted edges are potentially part of a shortest path, then add shortcut edge
             if(!noShortcutNeeded){
                 // add shortcut to list
-                // use distances of edges (contractedNodeId, otherNodeId) - instead of (otherNodeId, contractedNodeId)
                 uint64_t edgeDistance = distanceUVW;
                 uint64_t shortcutId = out_allEdges.size();
-                /*
-                std::vector<uint64_t> edgePathUVW;
-                std::vector<uint64_t> edgePathUV {reverseEdgeIds.at(i)};
-                std::vector<uint64_t> edgePathVW {forwardEdgeIds.at(j)};
-                edgePathUVW.insert(edgePathUVW.end(), edgePathUV.begin(), edgePathUV.end());
-                edgePathUVW.insert(edgePathUVW.end(), edgePathVW.begin(), edgePathVW.end());
-                */
-               std::vector<uint64_t> edgePathUVW {reverseEdgeIds.at(i), forwardEdgeIds.at(j)};
+                std::vector<uint64_t> edgePathUVW {reverseEdgeIds.at(i), forwardEdgeIds.at(j)};
 
                 Edge newEdge{
                     .edgeId=shortcutId,
@@ -357,6 +404,17 @@ void contractNode(  uint64_t contractedNodeId, AdjacencyArray &workArray, uint64
     out_removedEdgeIndices.insert(out_removedEdgeIndices.end(), edgeIndices.begin(), edgeIndices.end());
 }
 
+
+/**
+ * @brief heuristically create a set of independent nodes containing nodes with low edge difference from the adjacency array 
+ *        the set does not contain nodes that were already contracted
+ * 
+ * @param adjArray                  input AdjacencyArray
+ * @param fraction                  percentage of independent nodes with lowest cost to output
+ * @param in_out_allContractedIds   vector of node ids that are already contracted - newly marked nodes ids are added
+ * @param in_out_isContracted       vector of boolean flags for each node, indicating if the node is already contracted - newly marked nodes are marked
+ * @param out_newContractions       vector of node ids that are newly marked for contaction by this function
+ */
 void edgeDifferenceFillContractionSet(
     AdjacencyArray &adjArray,
     double fraction, 
@@ -365,13 +423,10 @@ void edgeDifferenceFillContractionSet(
     std::vector<uint64_t> &out_newContractions
     ){
 
-    uint64_t nodeIdLimit = in_out_isContracted.size();
-    
-    std::vector<std::pair<uint64_t, int>> nodeWithCost;
-
     std::vector<uint64_t> independentSet;
     std::vector<bool> isInIndependentSet(adjArray.width*adjArray.height, false);
 
+    uint64_t nodeIdLimit = in_out_isContracted.size();
     uint64_t initialId = 0;
     do{
         initialId = std::rand() % nodeIdLimit;
@@ -397,6 +452,8 @@ void edgeDifferenceFillContractionSet(
     }
 
     std::cout << "contraction candidates: " << independentSet.size() << "\n";
+
+    std::vector<std::pair<uint64_t, int>> nodeWithCost;
 
     #pragma omp parallel num_threads(4)
     {
@@ -457,29 +514,32 @@ int main(int argc, char** argv){
 
     std::srand(std::time(nullptr));
     
+    // load non-CH AdjacencyArray from disk and set initial rank to UINT_MAX
     AdjacencyArray adjArray(path);
     adjArray.rank = std::vector<uint64_t>(adjArray.width*adjArray.height, UINT64_MAX); // set rank from 0 to UINT64_MAX because uncontracted core has highest rank
 
+    // create final array in dynamic memory
     AdjacencyArray &finalArray = *(new AdjacencyArray(adjArray));
 
+    // create vectors to keep track of which nodes are contracted
     std::vector<bool> isContracted(adjArray.width*adjArray.height, false);
     std::vector<uint64_t> contractedNodeIds;
+    
+    // create vector containing all edges
     std::vector<Edge> allEdges;
     extractAllEdges(adjArray, allEdges);
+    
+    // initialize rank to 1
     uint64_t currentRank = 1;
-
-    uint64_t numWaterNodes = 0;
-    for(bool onLand : adjArray.nodes){
-        numWaterNodes += !onLand;
-    }
+    uint64_t round = 1;
 
     // copy original adjacency array
     AdjacencyArray workArray = AdjacencyArray(adjArray);
 
-    // while there are still uncontracted nodes
-    //for(uint64_t round = 0; round<5; ++round){
-    uint64_t round = 1;
-    std::cout << workArray.width*workArray.height - std::accumulate(workArray.nodes.begin(), workArray.nodes.end(), 0) << "\n";
+    std::cout << "initial number of uncontracted nodes: " << 
+                    workArray.width*workArray.height - std::accumulate(workArray.nodes.begin(), workArray.nodes.end(), 0) << "\n";
+    
+    // while there is an uncontracted core bigger than the threshold, start new contraction rounds
     while((workArray.width*workArray.height - std::accumulate(workArray.nodes.begin(), workArray.nodes.end(), 0)) > 550){
         std::cout << "round " << round++ << "\n";
 
@@ -489,7 +549,7 @@ int main(int argc, char** argv){
         
         std::vector<Edge> shortcutEdges;
         std::vector<uint64_t> removedEdgeIndices;
-        std::vector<bool> isEdgeRemoved(workArray.edges.size(), false);
+        std::vector<bool> isEdgeRemoved(workArray.edges.size(), false); // flag for edge indices if they are removed
 
         // select set of independent nodes for contraction
         std::vector<uint64_t> newContractions;
@@ -508,41 +568,16 @@ int main(int argc, char** argv){
                             dijkstra, multiDijkstra, isContracted, isEdgeRemoved, removedEdgeIndices, allEdges, shortcutEdges);
         }
 
-        isEdgeRemoved.resize(allEdges.size(), false);
-        checkRedundantEdges(adjArray, isEdgeRemoved); // isEdgeRemoved array is too small
-        
-        // parallel version
-        // uint64_t edgeCount = allEdges.size();
-        // #pragma omp parallel num_threads(8)
-        // {
-        //     std::vector<Edge> shortcutEdges_thread;
-        //     std::vector<uint64_t> removedEdgeIndices_thread;
-        //     Dijkstra::Dijkstra dijkstra_thread(workArray);
-            
-        //     #pragma omp for
-        //     for(uint64_t contractedNodeId : newContractions){
-                
-        //         if(roundProgress++%1024==0){
-        //             std::cout << "round " << round-1 << " progress " << ((double)roundProgress)/newContractions.size()  << "\t\r" << std::flush;
-        //         }
-                
-        //         contractNodeParallel(   contractedNodeId, workArray, currentRank,
-        //                                 dijkstra_thread, removedEdgeIndices_thread, shortcutEdges_thread, edgeCount);
-        //     }
-            
-        //     #pragma omp critical
-        //     {
-        //         shortcutEdges.insert(shortcutEdges.end(), shortcutEdges_thread.begin(), shortcutEdges_thread.end());
-        //         removedEdgeIndices.insert(removedEdgeIndices.end(), removedEdgeIndices_thread.begin(), removedEdgeIndices_thread.end());
-        //     }
-        // }
-        // allEdges.insert(allEdges.end(), shortcutEdges.begin(), shortcutEdges.end());
-        // for(uint64_t removedEdgeIndex : removedEdgeIndices){ isEdgeRemoved.at(removedEdgeIndex) = true; };
+        // check for duplicate shortcut edges and mark them
+        std::vector<bool> isShortcutIdRemoved(allEdges.size(), false); // vector for duplicate shortcut edge ids (instead of edge indices in isEdgeRemoved)
+        checkRedundantEdges(adjArray, isShortcutIdRemoved);
+
 
         std::cout << "rebuild phase\n";
-
+        
         // build intermediate graph
         AdjacencyArray tempArray = AdjacencyArray(workArray);
+        
         // adjust temp array
         tempArray.edges.clear();
         tempArray.edgeIds.clear();
@@ -550,11 +585,13 @@ int main(int argc, char** argv){
         tempArray.offsets.clear();
         tempArray.offsets.push_back(0);
         
+        // sort shortcuts for binary search
         std::vector<Edge> shortcutSortedV1 = copyEdgeVector(shortcutEdges);
         std::sort(  
             shortcutSortedV1.begin(), shortcutSortedV1.end(), 
             [](Edge& a, Edge& b) {return a.v1 < b.v1; });
 
+        // insert edges for all nodes
         uint64_t currentOffset = 0;
         for(uint64_t nodeId = 0; nodeId<tempArray.width*tempArray.height; ++nodeId){
             bool activeNode = !tempArray.nodes.at(nodeId);
@@ -585,7 +622,7 @@ int main(int argc, char** argv){
                 for(auto shortcutEdgeIt = resV1; (*shortcutEdgeIt).v1 <= nodeId && shortcutEdgeIt<shortcutSortedV1.end(); ++shortcutEdgeIt){
                     
                     if(nodeId != shortcutEdgeIt->v1){ std::cout << "nodeID!=shortcutEdge.v1"  << "\n"; }
-                    if(!isEdgeRemoved.at(shortcutEdgeIt->edgeId)){
+                    if(!isShortcutIdRemoved.at(shortcutEdgeIt->edgeId)){ // ignore marked shortcut edges
                         tempArray.edges.push_back(shortcutEdgeIt->v2);
                         tempArray.edgeIds.push_back(shortcutEdgeIt->edgeId);
                         tempArray.distances.push_back(shortcutEdgeIt->edgeDistance);
@@ -614,12 +651,10 @@ int main(int argc, char** argv){
     
         
 
-
-
         // finally: G'' = (V, E u E')
+        // final array is constructed and saved in every round
         
         // prepare array
-        
         finalArray.edges.clear();
         finalArray.edgeIds.clear();
         finalArray.distances.clear();
@@ -649,123 +684,8 @@ int main(int argc, char** argv){
             }
             finalArray.offsets.push_back(currentOffsetIndex);
         }
-        finalArray.writeToDisk("data/CHAdjArray_" + std::to_string(currentRank-1) + ".graph_2");
-
-        // workArray.allEdgeInfo = allEdges;
-        // workArray.writeToDisk("data/CHAdjArray.graph_2");
-
-        
-
-    
-    
+        finalArray.writeToDisk("data/CHAdjArray_" + std::to_string(currentRank-1) + ".graph_2");    
     }
     
     delete &finalArray;
 }
-
-
-// void contractNodeParallel(  uint64_t contractedNodeId, AdjacencyArray &workArray, uint64_t currentRank, Dijkstra::Dijkstra &dijkstra,
-//                             std::vector<uint64_t> &out_removedEdgeIndices,
-//                             std::vector<Edge> &out_shortcutEdges,
-//                             uint64_t &in_out_edgeCount){
-
-//     // set the rank of contractedNodes to current rank
-//     workArray.rank.at(contractedNodeId) = currentRank;
-
-//     // find all neighbor ids and all edges (to and from contracted node)
-//     std::vector<uint64_t> adjacentIds; 
-//     std::vector<uint64_t> edgeIds;
-//     std::vector<uint64_t> edgeIndices;
-    
-//     // process edges away from contracted node
-//     for(uint64_t currEdgeIndex = workArray.offsets.at(contractedNodeId); currEdgeIndex < workArray.offsets.at(contractedNodeId+1); ++currEdgeIndex){
-//         uint64_t adjacentId = workArray.edges.at(currEdgeIndex);
-//         bool isIdNotDuplicated = std::find(adjacentIds.begin(), adjacentIds.end(), adjacentId) == adjacentIds.end();
-//         if(isIdNotDuplicated){
-//             adjacentIds.push_back(adjacentId);
-//             edgeIds.push_back(workArray.edgeIds.at(currEdgeIndex));
-//             edgeIndices.push_back(currEdgeIndex);
-//         }
-//     }
-
-//     std::vector<uint64_t> reverseEdgeIds(adjacentIds.size(), UINT64_MAX);
-//     // process edges to contracted node
-//     for(uint64_t neighborIndex = 0; neighborIndex<adjacentIds.size(); ++neighborIndex){
-//         uint64_t neighborId = adjacentIds.at(neighborIndex);
-//         uint64_t minEdgeId = UINT64_MAX;
-//         for(uint64_t currEdgeIndex = workArray.offsets.at(neighborId); currEdgeIndex < workArray.offsets.at(neighborId+1); ++currEdgeIndex){
-//             uint64_t neighborOfNeighborId = workArray.edges.at(currEdgeIndex);
-//             if(contractedNodeId == neighborOfNeighborId){
-//                 edgeIds.push_back(workArray.edgeIds.at(currEdgeIndex));
-//                 edgeIndices.push_back(currEdgeIndex);
-//                 if(workArray.edgeIds.at(currEdgeIndex) < minEdgeId){
-//                     minEdgeId = workArray.edgeIds.at(currEdgeIndex);
-//                     reverseEdgeIds.at(neighborIndex) = currEdgeIndex; // there are still uninitialized entries
-//                 }
-//             }
-//         }
-//     }
-
-//     if(edgeIds.size() != 2*adjacentIds.size()){ std::cout << "more/less edges" << edgeIds.size() << " " << adjacentIds.size() << "\n"; }
-
-//     //calculate distances
-//     std::vector<std::vector<uint64_t>> distanceUWMatrix = createVectorMatrix(adjacentIds.size(), adjacentIds.size());
-//     for(uint64_t uIndex = 0; uIndex<adjacentIds.size(); ++uIndex){
-//         uint64_t uId = adjacentIds.at(uIndex);
-//         dijkstra.reset(); // do not disable any nodes
-//         if(uIndex+1<adjacentIds.size()){
-//             dijkstra.calculateDist(uId, adjacentIds.at(uIndex+1)); // set correct start point
-//         } 
-//         for(uint64_t wIndex = uIndex+1; wIndex<adjacentIds.size(); ++wIndex){
-//             uint64_t wId = adjacentIds.at(wIndex);
-//             uint64_t distance = dijkstra.calculateDist(wId); // only query with end point (one-to-many)
-//             distanceUWMatrix.at(uIndex).at(wIndex) = distance;
-//             distanceUWMatrix.at(wIndex).at(uIndex) = distance;
-//         }
-//     }
-    
-
-//     // insert shortcuts in both directions
-//     for(uint64_t i = 0; i<adjacentIds.size(); ++i){
-//         for(uint64_t j = 0; j<adjacentIds.size(); ++j){
-//             if(i == j){ continue; }
-            
-//             uint64_t startNode = adjacentIds.at(i); // i is u
-//             uint64_t endNode = adjacentIds.at(j);   // j is w
-//             uint64_t startNodeEdgeIndex = edgeIndices.at(i);
-//             uint64_t endNodeEdgeIndex = edgeIndices.at(j);
-
-//             uint64_t distanceUW = distanceUWMatrix.at(i).at(j);
-//             uint64_t distanceUVW = workArray.distances.at(startNodeEdgeIndex) + workArray.distances.at(endNodeEdgeIndex);
-
-//             // if replaced edges are potentially part of a shortest path, then add shortcut
-//             if(distanceUW >= distanceUVW){
-//                 // add shortcut to list
-//                 // use distances of edges (contractedNodeId, otherNodeId) - instead of (otherNodeId, contractedNodeId)
-//                 uint64_t edgeDistance = distanceUVW;
-//                 uint64_t shortcutId = 0;
-//                 #pragma omp critical
-//                 {
-//                     shortcutId = in_out_edgeCount++;
-//                 }
-//                 std::vector<uint64_t> edgePathUVW;
-//                 std::vector<uint64_t> edgePathUV = {reverseEdgeIds.at(i)};
-//                 std::vector<uint64_t> edgePathVW = {edgeIds.at(       j)};
-//                 edgePathUVW.insert(edgePathUVW.end(), edgePathUV.begin(), edgePathUV.end());
-//                 edgePathUVW.insert(edgePathUVW.end(), edgePathVW.begin(), edgePathVW.end());
-
-//                 Edge newEdge{
-//                     .edgeId=shortcutId,
-//                     .v1=startNode, 
-//                     .v2=endNode, 
-//                     .edgeDistance=edgeDistance, 
-//                     .shortcutPathEdges=edgePathUVW
-//                     };
-//                 out_shortcutEdges.push_back(newEdge);
-//             }
-//         }
-//     }
-
-//     //mark adjacent edges of contractedNode for removal
-//     out_removedEdgeIndices.insert(out_removedEdgeIndices.end(), edgeIndices.begin(), edgeIndices.end());
-// }

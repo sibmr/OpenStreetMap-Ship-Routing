@@ -7,8 +7,8 @@ namespace Dijkstra{
  * @brief HeapElement for Dijkstra implementation
  */
 struct HeapElement {
-    // for normal dijkstra, heuristic_dist is the current distance to this node
-    uint64_t nodeIdx, prev, heuristic_dist, dist;
+    // for normal dijkstra, dist is the current distance to this node
+    uint64_t nodeIdx, prev, dist;
     
     /**
      * @brief "reverse" comparison function turning max-heap into min-heap 
@@ -18,12 +18,13 @@ struct HeapElement {
      * @return false    otherwise
      */
     bool operator<(const HeapElement &a){
-        return heuristic_dist > a.heuristic_dist;
+        return dist > a.dist;
     }
 };
 
 /**
- * @brief Our second more efficient implementation of the dijkstra algorithm
+ * @brief Corresponds to second more efficient implementation of the dijkstra algorithm in Dijkstra.cpp
+ * Modified for one-to-many query
  * Similar implementation to https://github.com/Lesstat/dijkstra-performance-study/
  */
 class Dijkstra: public PathAlgorithm{
@@ -54,7 +55,7 @@ class Dijkstra: public PathAlgorithm{
 
 
 /**
- * @brief Construct a new Second Dijkstra:: Second Dijkstra object
+ * @brief Construct a new Dijkstra::Dijkstra object
  * 
  * Initialize datastructures
  * Initialize distances between nodes
@@ -114,6 +115,14 @@ uint64_t Dijkstra::calculateDist(uint64_t startPoint_, uint64_t endPoint_){
     return mainCalculationLoop();
 }
 
+/**
+ * @brief calculate distance with same start point as the previous call to calculateDist(startPoint, endPoint)
+ * 
+ * do not call reset before next query
+ * 
+ * @param endPoint_ 
+ * @return uint64_t 
+ */
 uint64_t Dijkstra::calculateDist(uint64_t endPoint_){
     endPoint = endPoint_;
     // if node is already settled, then return distance directly
@@ -125,6 +134,13 @@ uint64_t Dijkstra::calculateDist(uint64_t endPoint_){
     return mainCalculationLoop();
 }
 
+/**
+ * @brief main dijkstra distance calculation function using min-heap
+ * 
+ * start node and end node have to be set prior to call
+ * 
+ * @return uint64_t calculated distance
+ */
 uint64_t Dijkstra::mainCalculationLoop(){
     HeapElement front;
     while(true){
@@ -141,12 +157,12 @@ uint64_t Dijkstra::mainCalculationLoop(){
         numNodesPopped++;
 
         // avoid duplicate nodes (nodes that were already visited, indicated by higher distance)
-        if(front.heuristic_dist >= distance.at(front.nodeIdx)){
+        if(front.dist >= distance.at(front.nodeIdx)){
             continue;
         }
 
         // update distance and previous node of current node
-        distance.at(front.nodeIdx) = front.heuristic_dist;
+        distance.at(front.nodeIdx) = front.dist;
         prev.at(front.nodeIdx) = front.prev;
         visited.push_back(front.nodeIdx);
 
@@ -163,7 +179,7 @@ uint64_t Dijkstra::mainCalculationLoop(){
             uint64_t edgeDist = adjArray.distances.at(currEdgeId);
 
             // calculate new distances
-            uint64_t newNeighborDist = front.heuristic_dist + edgeDist;
+            uint64_t newNeighborDist = front.dist + edgeDist;
             uint64_t oldNeighborDist = distance.at(neighborIdx);
 
             // push updated node if distance is improved
@@ -206,16 +222,14 @@ void Dijkstra::getPath(std::vector<uint64_t> &path){
         }
 
         // print path
-        // std::cout << "Path:" << std::endl;
-        // for (std::vector<uint64_t>::iterator it = path.begin(); it != path.end(); ++it) {
-        //     std::cout << *it << " ";
-        // }
-        // std::cout <<  std::endl;
-        // std::cout << "dist: " << distance.at(endPoint)/1000 << "km" << std::endl;
+        std::cout << "Path:" << std::endl;
+        for (std::vector<uint64_t>::iterator it = path.begin(); it != path.end(); ++it) {
+            std::cout << *it << " ";
+        }
+        std::cout <<  std::endl;
+        std::cout << "dist: " << distance.at(endPoint)/1000 << "km" << std::endl;
     }else{
         std::cout << "no path found" << std::endl;
-        //path.push_back(startPoint);
-        //path.push_back(endPoint);
     }
     
 }
@@ -224,10 +238,21 @@ uint64_t Dijkstra::getNumNodesPopped(){
     return numNodesPopped;
 }
 
+/**
+ * @brief disable the specified node for use in queries
+ * 
+ * not used anymore
+ * 
+ * @param nodeId disabled node
+ */
 void Dijkstra::disableNode(uint64_t nodeId){
     disabledNodes.at(nodeId) = true;
 }
 
+/**
+ * @brief clear disable nodes flag vector
+ * 
+ */
 void Dijkstra::resetDisabledNodes(){
     disabledNodes = std::vector<bool>(adjArray.width*adjArray.height, false);
 }

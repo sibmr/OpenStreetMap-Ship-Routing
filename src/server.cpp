@@ -11,6 +11,7 @@
 #include "A_star_simon.cpp"
 #include "CH_query_simon.cpp"
 #include "MultiDijkstra_simon.cpp"
+#include "CH_Astar_simon.cpp"
 
 /**
  * @brief load static file (html,js,css) from disk
@@ -34,10 +35,13 @@ void loadStatic(std::string& path, std::string& loaded){
 int main(int argc, char** argv)
 {
     std::string inputFileName;
-    if(argc > 1){
+    std::string pathAlg;
+    if(argc > 2){
         inputFileName = std::string(argv[1]);
+        pathAlg = std::string(argv[2]);
     }else{
         inputFileName = "data/planet.graph";
+        pathAlg = "dijkstra";
         std::cout << "no input file given assume " <<  inputFileName << std::endl;
     }
 
@@ -58,8 +62,27 @@ int main(int argc, char** argv)
     static std::string page;
 
     static AdjacencyArray adjArray(inputFileName);
-    static MultiDijkstra::Dijkstra dijkstraImpl(adjArray);
-    static PathAlgorithm &pathAlgorithm = dijkstraImpl;
+    
+    Dijkstra::Dijkstra dijk (adjArray);
+    BidirectionalDijkstra::BidirectionalDijkstra bidijk (adjArray);
+    A_star::A_star astar (adjArray);
+    A_star::A_star_rectangular astar_rect (adjArray);
+    CH_query::CH_query chquery (adjArray);
+    CH_Astar::A_star chqueryStar (adjArray);
+    CH_Astar::A_star_rectangular chqueryRectStar (adjArray);
+
+    std::map<std::string, PathAlgorithm*> algs{
+        {"dijkstra", &dijk},
+        {"bidijkstra", &bidijk},
+        {"astar", &astar},
+        {"rectastar", &astar_rect},
+        {"chquery", &chquery},
+        {"chastar", &chqueryStar},
+        {"chrectastar", &chqueryRectStar}
+    };
+    
+    
+    static PathAlgorithm &pathAlgorithm = *algs.at(pathAlg);
     
     static std::mutex mutex;
     static std::unique_lock<std::mutex> lock (mutex, std::defer_lock);

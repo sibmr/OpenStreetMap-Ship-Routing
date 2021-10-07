@@ -5,11 +5,12 @@
 
 namespace A_star{
 
+
 /**
  * @brief HeapElement for A_star implementation
  */
 struct HeapElement {
-    // for normal dijkstra, heuristic_dist is the current distance to this node
+    // heuristic_dist is f(x) = g(x) + h(x), dist is g(x) ... the cost so far
     uint64_t nodeIdx, prev, heuristic_dist, dist;
     
     /**
@@ -24,9 +25,10 @@ struct HeapElement {
     }
 };
 
+
 /**
- * @brief Our second more efficient implementation of the dijkstra algorithm
- * Similar implementation to https://github.com/Lesstat/dijkstra-performance-study/
+ * @brief Implementation of the A* algorithm using great-circle distance
+ * 
  */
 class A_star: public PathAlgorithm{
     public:
@@ -89,12 +91,22 @@ void A_star::reset(){
     numNodesPopped = 0;
 }
 
+
+/**
+ * @brief for two nodes, calculate the heuristic underapproximation of their path distance
+ * 
+ * @param adjArray          input AdjacencyArray
+ * @param firstNodeIdx      star node
+ * @param secondNodeIdx     goal node
+ * @return uint64_t         great-circle distance between the two nodes
+ */
 uint64_t A_star::getHeuristic(AdjacencyArray &adjArray, uint64_t firstNodeIdx, uint64_t secondNodeIdx){
     return nodeDistance(adjArray, firstNodeIdx, secondNodeIdx);
 }
 
+
 /**
- * @brief efficient dijkstra shortest-path implementation
+ * @brief A* shortest path implementation
  * 
  * Uses binary Min(Max)-heap for greedy node visitation strategy
  * 
@@ -173,6 +185,7 @@ uint64_t A_star::calculateDist(uint64_t startPoint_, uint64_t endPoint_){
 
 }
 
+
 /**
  * @brief returns distance of last call to calculateDist
  * 
@@ -181,6 +194,7 @@ uint64_t A_star::calculateDist(uint64_t startPoint_, uint64_t endPoint_){
 uint64_t A_star::getDist(){
     return lastCalculatedDistance;
 }
+
 
 /**
  * @brief retrieve path calculated by the last call to calculateDist
@@ -212,11 +226,21 @@ void A_star::getPath(std::vector<uint64_t> &path){
     
 }
 
+
+/**
+ * @brief return the number of nodes popped from the heap during shortest path calculation
+ * 
+ * @return uint64_t number of nodes
+ */
 uint64_t A_star::getNumNodesPopped(){
     return numNodesPopped;
 }
 
 
+/**
+ * @brief A_star with a thighter lower bound on the path distance as heuristic
+ * 
+ */
 class A_star_rectangular : public A_star{
     
     public:
@@ -226,6 +250,17 @@ class A_star_rectangular : public A_star{
 };
 
 
+/**
+ * @brief heuristic distance between two nodes similar to the manhattan distance
+ * the heuristic calculates min(start-southpole-goal,start-northpole-goal,shortest path around rectange on the surface of the sphere)
+ * the calculation considers longitudinal wraparound
+ * this only works because of the 4-connected grid with nodes equally distributed over longitude and latitude
+ * 
+ * @param adjArray          input AdjacencyArray
+ * @param firstNodeIdx      node index of the first node
+ * @param secondNodeIdx     node index of the second node
+ * @return uint64_t         underapproximation of path distance between nodes
+ */
 uint64_t A_star_rectangular::getHeuristic(AdjacencyArray &adjArray, uint64_t firstNodeIdx, uint64_t secondNodeIdx){
     uint64_t lngFirst, latFirst, lngSecond, latSecond;
 

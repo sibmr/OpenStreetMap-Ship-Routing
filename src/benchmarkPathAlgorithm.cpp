@@ -12,6 +12,19 @@
 #include "CH_query_simon.cpp"
 #include "CH_Astar_simon.cpp"
 
+
+
+/**
+ * @brief benchmark a path algorithm for a single query, multiple times
+ * 
+ * @param pathAlg       path algorithm object
+ * @param adjArray      input AdjacencyArray
+ * @param longStart     // 
+ * @param latStart      // first point coordinates
+ * @param longGoal      //
+ * @param latGoal       // second point coordinates
+ * @param numAvg        // number of query executions to average
+ */
 void benchmarkDijkstra(PathAlgorithm &pathAlg, AdjacencyArray &adjArray,
     double longStart, double latStart, double longGoal, double latGoal, int numAvg)
 {
@@ -48,37 +61,35 @@ void benchmarkDijkstra(PathAlgorithm &pathAlg, AdjacencyArray &adjArray,
     std::cout << "Duration: " << avg << " +/- " << stddev << "us\n";
 }
 
+
+/**
+ * @brief generate a random double value between (doubleMin, doubleMax)
+ * 
+ * @param doubleMin     lower bound for random value
+ * @param doubleMax     upper bound for random value
+ * @return double       random value
+ */
 double doubleRand(double doubleMin, double doubleMax){
     double d = ((double) rand() / (double) RAND_MAX);
     return doubleMin + d * (doubleMax - doubleMin);
 }
 
 /**
- * @brief Test two PathAlgorithms to be identical and test how long each takes
+ * @brief compute the average of the values in the vector
  * 
- * @param pathAlg           first Path Algorith to test
- * @param adjArray      
- * @param longStart 
- * @param latStart 
- * @param longGoal 
- * @param latGoal 
- * @param numSamplePoints 
+ * @param data          vector of values to use in the computation
+ * @return uint64_t     mean of the values
  */
-void debugDijkstra(PathAlgorithm &pathAlg,  AdjacencyArray &adjArray,
-    double longStart, double latStart, double longGoal, double latGoal)
-{
-    uint64_t sNode = longLatToNodeId(adjArray, longStart, latStart);
-    uint64_t tNode = longLatToNodeId(adjArray, longGoal, latGoal);
-
-    pathAlg.reset();
-
-    std::cout << pathAlg.calculateDist(sNode, tNode) << std::endl;
-}
-
 uint64_t computeAverage(std::vector<uint64_t> &data){
     return std::accumulate(data.begin(), data.end(), 0) / data.size();
 }
 
+/**
+ * @brief compute the standart deviation of the values in the vector
+ * 
+ * @param data          vector of values to use in the computation
+ * @return uint64_t     standart deviation of the values
+ */
 uint64_t computeStdDev(std::vector<uint64_t> &data, uint64_t dataAvg){
     uint64_t stddev = 0;
     for(uint64_t value : data){
@@ -91,17 +102,18 @@ uint64_t computeStdDev(std::vector<uint64_t> &data, uint64_t dataAvg){
 
 /**
  * @brief Test two PathAlgorithms to be identical and test how long each takes
+ * in addition, execution duration and number of heap elements popped mean and standart deviation are printed
  * 
  * @param pathAlg           first Path Algorith to test
  * @param pathAlg2          second Path Algorith to test
- * @param adjArray      
- * @param longStart 
- * @param latStart 
- * @param longGoal 
- * @param latGoal 
- * @param numSamplePoints 
+ * @param adjArray          input AdjacencyArray
+ * @param longStart         lower longitude limit
+ * @param latStart          lower latitude limit
+ * @param longGoal          upper longitude limit
+ * @param latGoal           upper latitude limit
+ * @param numSamplePoints   number path calculations to compare
  */
-void testDijkstra(PathAlgorithm &pathAlg, PathAlgorithm &pathAlg2,  AdjacencyArray &adjArray,
+void comparePathAlgorithms(PathAlgorithm &pathAlg, PathAlgorithm &pathAlg2,  AdjacencyArray &adjArray,
     double longStart, double latStart, double longGoal, double latGoal, int numSamplePoints)
 {
     srand(time(NULL));
@@ -209,36 +221,66 @@ void testDijkstra(PathAlgorithm &pathAlg, PathAlgorithm &pathAlg2,  AdjacencyArr
 int main(int argc, char** argv) {
     std::string inputFileName;
     std::string filenameCH;
+    std::string pathAlg1;
+    std::string pathAlg2;
     // check input parameter
-    if(argc < 1 || argc > 3){
-        std::cout << "Usage: " << argv[0] << " file_to_read.graph ch_file_to_read.graph" << std::endl;
+    if(argc < 1 || argc > 5){
+        std::cout << "Usage: " << argv[0] << " file_to_read.graph ch_file_to_read.graph pathAlg1Name pathAlg2Name" << std::endl;
         return 1;
     }
-    if(argc > 2){
+    if(argc == 4){
         inputFileName = std::string(argv[1]);
         filenameCH =std::string(argv[2]);
+        pathAlg1 = "dijkstra";
+        pathAlg2 = argv[3];
+    }
+    else if(argc > 4){
+        inputFileName = std::string(argv[1]);
+        filenameCH =std::string(argv[2]);
+        pathAlg1 = argv[3];
+        pathAlg2 = argv[4];
     }
     else{
         inputFileName = "data/planet.graph_2";
         filenameCH = "data/CHAdjArray_54.graph_2";
+        pathAlg1 = "dijkstra";
+        pathAlg2 = "bidijkstra";
     }
-    
-
 
     AdjacencyArray adjArray(inputFileName);
     AdjacencyArray adjArrayCH(filenameCH);
-    {
-        Dijkstra::Dijkstra dijk (adjArray);
-        BidirectionalDijkstra::BidirectionalDijkstra bidijk (adjArray);
-        A_star::A_star astar (adjArray);
-        A_star::A_star_rectangular astar_rect (adjArray);
-        CH_query::CH_query chquery (adjArrayCH);
-        CH_Astar::A_star_rectangular chqueryStar (adjArrayCH);
-        PathAlgorithm &pa = dijk;
-        PathAlgorithm &pa_one = chqueryStar;
-        //debugDijkstra(pa, adjArray, 59.5502,80.2847, 81.9907,84.0839);
-        //debugDijkstra(pa_one, adjArray, 59.5502,80.2847, 81.9907,84.0839);
-        testDijkstra(pa, pa_one, adjArray, -85, -180, 85, 180, 100);
+    
+    Dijkstra::Dijkstra dijk (adjArray);
+    BidirectionalDijkstra::BidirectionalDijkstra bidijk (adjArray);
+    A_star::A_star astar (adjArray);
+    A_star::A_star_rectangular astar_rect (adjArray);
+    CH_query::CH_query chquery (adjArrayCH);
+    CH_Astar::A_star chqueryStar (adjArrayCH);
+    CH_Astar::A_star_rectangular chqueryRectStar (adjArrayCH);
 
+    std::map<std::string, PathAlgorithm*> algs{
+        {"dijkstra", &dijk},
+        {"bidijkstra", &bidijk},
+        {"astar", &astar},
+        {"rectastar", &astar_rect},
+        {"chquery", &chquery},
+        {"chastar", &chqueryStar},
+        {"chrectastar", &chqueryRectStar}
+    };
+    
+    if(algs.find(pathAlg1)==algs.end()){
+        std::cout << "path algorithm with name " << pathAlg1 << " does not exist\n";
+        return 0;
     }
+
+    if(algs.find(pathAlg2)==algs.end()){
+        std::cout << "path algorithm with name " << pathAlg2 << " does not exist\n";
+        return 0;
+    }
+    
+    std::cout << inputFileName << "  " << filenameCH << "  " << pathAlg1 << "  " << pathAlg2 << "\n";
+
+    PathAlgorithm &pa = *algs.at(pathAlg1);
+    PathAlgorithm &pa_one = *algs.at(pathAlg2);
+    comparePathAlgorithms(pa, pa_one, adjArray, -180, -85, 180, 85, 100);
 }
