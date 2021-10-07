@@ -455,7 +455,7 @@ void edgeDifferenceFillContractionSet(
 
     std::vector<std::pair<uint64_t, int>> nodeWithCost;
 
-    #pragma omp parallel num_threads(4)
+    #pragma omp parallel num_threads(10)
     {
         MultiDijkstra::Dijkstra multiDijkstra(adjArray);
         multiDijkstra.stepLimit = 0;
@@ -485,6 +485,9 @@ void edgeDifferenceFillContractionSet(
                 {
                     // add to list
                     nodeWithCost.push_back(std::pair<uint64_t, uint64_t>(nodeId, criterion));
+                    if(nodeWithCost.size() % 1000 == 0){
+                        std::cout << "cost calculation progress " << ((double)nodeWithCost.size())/independentSet.size()  << "\t\r" << std::flush;
+                    }
                 }
             }
         }
