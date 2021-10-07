@@ -8,6 +8,7 @@
 
 #include "Dijkstra.cpp"
 #include "BiDirectDijkstra_marcel.cpp"
+#include "ChQuery_marcel.cpp"
 
 /**
  * @brief load static file (html,js,css) from disk
@@ -35,6 +36,7 @@ int main(int argc, char** argv)
         inputFileName = std::string(argv[1]);
     }else{
         inputFileName = "data/planet.graph";
+        inputFileName = "data/planet_2.graph_3_920p_invT";
         std::cout << "no input file given assume " <<  inputFileName << std::endl;
     }
 
@@ -56,7 +58,8 @@ int main(int argc, char** argv)
 
     static AdjacencyArray adjArray(inputFileName);
     //static SecondDijkstra dijkstraImpl(adjArray);
-    static BiDirectDijkstra::BiDirectDijkstra dijkstraImpl(adjArray);
+    //static BiDirectDijkstra::BiDirectDijkstra dijkstraImpl(adjArray);
+    static ChQuery::ChQuery dijkstraImpl(adjArray);
     static PathAlgorithm &pathAlgorithm = dijkstraImpl;
     
     static std::mutex mutex;
@@ -106,7 +109,7 @@ int main(int argc, char** argv)
         std::vector<uint64_t> idPath;
         pathAlgorithm.reset();
         uint64_t distance = pathAlgorithm.calculateDist(sNode, tNode);
-        std::cout << distance << std::endl;
+        std::cout << "route found with: " << distance << std::endl;
 
         std::vector<double> posPath;
 
