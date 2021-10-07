@@ -278,29 +278,36 @@ class A_star_rectangular : public A_star{
 };
 
 uint64_t A_star_rectangular::getHeuristic(AdjacencyArray &adjArray, uint64_t firstNodeIdx, uint64_t secondNodeIdx){
-    uint64_t lngFirst;
-    uint64_t latFirst;
-    uint64_t lngSecond;
-    uint64_t latSecond;
+    uint64_t lngFirst, latFirst, lngSecond, latSecond;
 
     nodeIdToArrayIdx(adjArray, firstNodeIdx, lngFirst, latFirst);
     nodeIdToArrayIdx(adjArray, secondNodeIdx, lngSecond, latSecond);
 
+    // makes sure lngFirst <= lngSecond
     if(lngFirst > lngSecond){
         std::swap(lngFirst, lngSecond);
     }
 
+    // makes sure latFirst <= latSecond
     if(latFirst > latSecond){
         std::swap(latFirst, latSecond);
     }
 
-    //std::cout << "using rectangular version\n";
+    return (
+        std::min(
+            std::min(
+            
+            // distance over south pole
+            (latFirst+latSecond)*constLngDist,  
+            
+            // distance over north pole
+            ((adjArray.height-latFirst)+(adjArray.height-latSecond))*constLngDist  
+            ),
 
-    return std::floor(
-        (
+            // shortest "manhattan" distance: latitude difference + minimum longitude difference (wraparound) on the smaller ring around the globe
             (latSecond-latFirst)*constLngDist + 
             std::min((lngSecond-lngFirst), (lngFirst+adjArray.width) - lngSecond) * std::min(constLatDist[latFirst], constLatDist[latSecond])
-        )*0.99
+        )
     );
 }
 
