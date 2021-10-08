@@ -229,6 +229,7 @@ void testDijkstra(PathAlgorithm &pathAlg, PathAlgorithm &pathAlg2,  AdjacencyArr
 }
 
 int main(int argc, char** argv) {
+    std::cout << "First graph uses dijkstra second graph uses contraction hierachies" << std::endl;
     std::string inputFileName = "data/planet_2.graph_2";
     std::string inputFileName2 = "data/planet_2.graph_3_920p_invT";
     int numberOfTries = 100; 
