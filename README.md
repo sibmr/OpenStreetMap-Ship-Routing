@@ -137,6 +137,8 @@ All path algorithms (except the naive query) are referenced in the command line 
 * Contraction Hierarchies great-circle A* -> chastar
 * Contraction Hierarchies rectangular A* -> chrectastar
 
+The naive version of the Dijkstra for Contraction Hierarchies is included in the code CH_query_simon file, but is currently not accessible via CLI.
+
 ### Start Server
 The server program reads a "*.graph" file and runs a server, where the user can interactively select two points on the map.  
 
@@ -158,8 +160,9 @@ Visit http://localhost:8080 using the Browser
 
 If only benchmarking two path algorithms that are not using contraction hierarchies, the contraction hierarchies path file can be replaced by a normal graph file.  
 
-First, the benchmark prints out all query point pairs (longitude1, latitude1), (longitude2,latitude2).  
-After that, timing and heap nodes popped comparisons are printed.
+First, the benchmark prints out all query point pairs (longitude1, latitude1), (longitude2,latitude2).    
+If the calculated distances do not match, a warning is printed next to the query point.  
+After that, timing and heap nodes popped comparisons are printed.  
 
 From the project root:
 

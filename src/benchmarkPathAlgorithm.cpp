@@ -158,6 +158,11 @@ void comparePathAlgorithms(PathAlgorithm &pathAlg, PathAlgorithm &pathAlg2,  Adj
             tNode = longLatToNodeId(adjArray, currLongEnd, currLatEnd);
             pathAlg.reset();        
             temp_result = pathAlg.calculateDist(sNode, tNode);
+
+            if(sNode >= adjArray.width*adjArray.height || tNode >= adjArray.width*adjArray.height){
+                continue;
+            }
+
         }while(temp_result == UINT64_MAX);
 
 
