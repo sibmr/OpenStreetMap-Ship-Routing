@@ -11,14 +11,24 @@
 
 
 
+/**
+ * @brief generate set of independent nodes. Try random nodes and add them if they for an independent set
+ *  
+ * @param array 
+ * @param adjacentNodes 
+ * @param independentSetVector 
+ * @param independentSet 
+ * @param alreadyContractedNodes 
+ * @param totalWaterNodes 
+ */
 void independentNodeSetRandom(
     AdjacencyArray &array, 
-    std::vector<bool> &adjacentNodes, 
-    std::vector<bool> &independentSetVector, 
     std::set<uint64_t> &independentSet, 
     uint64_t alreadyContractedNodes,
     uint64_t totalWaterNodes
     ){
+    std::vector<bool> adjacentNodes(array.rank.size(), false);
+    std::vector<bool> independentSetVector(array.rank.size(), false);
     // use one seedNode on water
     uint64_t seedNode = 0; 
     bool correctNode = true;
@@ -38,7 +48,6 @@ void independentNodeSetRandom(
                 break;
             }
 
-            //std::cout << "seed "<< seedNode << " " << currSetSize  << " of " << sizeOfSet <<  "\t " << limitNumberOfTries << " twn" << totalWaterNodes << " acn:" << alreadyContractedNodes <<  " makes "  <<  totalWaterNodes -  alreadyContractedNodes <<   std::endl;
         }while (!correctNode);
 
         if(correctNode){
@@ -47,6 +56,7 @@ void independentNodeSetRandom(
             currSetSize++;
 
 
+            // mark adjacent nodes so they can not be in the independent set
             for(uint64_t currEdgeId = array.offsets.at(seedNode); currEdgeId < array.offsets.at(seedNode+1); currEdgeId++){
                     uint64_t neighborIdx = array.edges.at(currEdgeId);
                     adjacentNodes.at(neighborIdx) = true;
@@ -59,10 +69,31 @@ void independentNodeSetRandom(
 
 }
 
+/**
+ * @brief compare two ChEdges sorted by startNode
+ * 
+ * @param i1 
+ * @param i2 
+ * @return true 
+ * @return false 
+ */
 bool compareEdge(ChEdge i1, ChEdge i2)
 {
     return (i1.startNode < i2.startNode);
 }
+
+
+/**
+ * @brief calculate how many percent of nodes have been already contracted
+ * 
+ * @param numberOfNodesOnWater 
+ * @param numberOfNodesContracted 
+ * @return double 
+ */
+double contractedPercent(uint64_t numberOfNodesOnWater, uint64_t numberOfNodesContracted){
+    return (((double) (numberOfNodesOnWater - numberOfNodesContracted)) / ((double) numberOfNodesOnWater) * 100);
+}
+
 
 
 
@@ -76,6 +107,11 @@ void contract(AdjacencyArray &array, double percentage){
     std::cout << "--- BEGIN CONTRACT HIERACHIES ---" << std::endl;
     std::cout << "initial number of edges: " << array.edges.size() << std::endl;
 
+    uint64_t totalIndependentSetTime = 0;
+    uint64_t totalDijkstraTime = 0;
+    uint64_t totalRebuildTime = 0;
+    uint64_t totalTime = 0;
+
     auto allStart = std::chrono::high_resolution_clock::now();
 
     AdjacencyArray workArray (array);
@@ -83,17 +119,22 @@ void contract(AdjacencyArray &array, double percentage){
     uint64_t numberOfNodesOnWater = 0;
     uint64_t numberOfNodesContracted = 0;
 
+
     std::vector<ChEdge> allShortcuts; 
+
+    // maybe non rel
+    std::vector<uint64_t> globalEdges = array.edges;
 
     for(uint64_t nodeId = 0; nodeId < array.rank.size(); nodeId++){
         if(!isNodeOnLand(array, nodeId)){
             numberOfNodesOnWater++;
         }
     }
-    std::cout << "Nodes on land: " << numberOfNodesOnWater << std::endl;
+    std::cout << "Nodes on water: " << numberOfNodesOnWater << std::endl;
+    uint64_t sizeOfUncontractedCore =  (uint64_t) ((1 - percentage) * numberOfNodesOnWater);
 
 
-    // initialize random seed based on size
+    // initialize random seed based on time
     std::srand(time(NULL));
 
     uint64_t numNodes = workArray.rank.size();
@@ -105,37 +146,31 @@ void contract(AdjacencyArray &array, double percentage){
 
     uint64_t currentRank = 1;
 
-    
     std::cout << "workarray nodes " << numNodes << std::endl;
 
 
 
     // stop if the uncontracted core is smaller than x percent of all nodes
+    while ((numberOfNodesOnWater - numberOfNodesContracted) > sizeOfUncontractedCore){   
 
-    std::cout << (((double) (numberOfNodesOnWater - numberOfNodesContracted)) / ((double) numberOfNodesOnWater) * 100) <<  " percent "  << (numberOfNodesOnWater - numberOfNodesContracted) << " of " << (1-percentage) * numberOfNodesOnWater << " bool: " << ((numberOfNodesOnWater - numberOfNodesContracted) > (1 - percentage) * numberOfNodesOnWater) << std::endl;
+        std::cout << contractedPercent(numberOfNodesOnWater, numberOfNodesContracted) <<  " percent "  << (numberOfNodesOnWater - numberOfNodesContracted) << " of " << sizeOfUncontractedCore << std::endl;
 
-    while ((numberOfNodesOnWater - numberOfNodesContracted) > (1 - percentage) * numberOfNodesOnWater){   
-
-        std::cout << (((double) (numberOfNodesOnWater - numberOfNodesContracted)) / ((double) numberOfNodesOnWater) * 100) <<  " percent "  << (numberOfNodesOnWater - numberOfNodesContracted) << " of " << (1-percentage) * numberOfNodesOnWater << " bool: " << ((numberOfNodesOnWater - numberOfNodesContracted) > (1 - percentage) * numberOfNodesOnWater) << std::endl;
         AdjacencyArray workArrayNew;
-
 
         // SELECT INDEPENDENT SET OF NODES  C <= V
 
 
-        std::vector<bool> adjacentNodes(workArray.rank.size(), false);
-        std::vector<bool> independentSetVector(workArray.rank.size(), false);
         independentSet.clear();
 
         auto independentSetStart = std::chrono::high_resolution_clock::now();
 
-        independentNodeSetRandom(workArray, adjacentNodes, independentSetVector, independentSet, numberOfNodesContracted, numberOfNodesOnWater);
-        //std::cout << independentSet.size() << std::endl;
+        independentNodeSetRandom(workArray, independentSet, numberOfNodesContracted, numberOfNodesOnWater);
 
-        std::cout << "set generated " <<  independentSet.size()   << "\t" << (((double) (numberOfNodesOnWater - numberOfNodesContracted)) / ((double) numberOfNodesOnWater) * 100) << std::endl;
+        std::cout << "set generated " <<  independentSet.size()   << "\t contraction of " << contractedPercent(numberOfNodesOnWater, numberOfNodesContracted) << " percent" << std::endl;
         auto independentSetStop = std::chrono::high_resolution_clock::now();
 
         auto independentSetTime = std::chrono::duration_cast<std::chrono::microseconds>(independentSetStop - independentSetStart).count();
+        totalIndependentSetTime += independentSetTime;
 
 
         SecondDijkstra dijkstra(workArray);
@@ -145,7 +180,6 @@ void contract(AdjacencyArray &array, double percentage){
         uint64_t dijkstraDistance = UINT64_MAX;
         uint64_t arrayDistance = UINT64_MAX;
 
-
         
         contractedSet.clear();
         roundEdges.clear();
@@ -154,28 +188,24 @@ void contract(AdjacencyArray &array, double percentage){
         auto dijkstraStart = std::chrono::high_resolution_clock::now();
 
         for(uint64_t nodeInIndependentSet : independentSet){
-            //std::cout << nodeInIndependentSet << " ";
 
+            // use 70% of the independent set (ranoom order)
             if((std::rand() % 100) < 70){
                 contractedSet.insert(nodeInIndependentSet);
 
                 for(uint64_t currEdgeId1 = workArray.offsets.at(nodeInIndependentSet); currEdgeId1 < workArray.offsets.at(nodeInIndependentSet+1); currEdgeId1++){
                     uint64_t sourceNeighbor = workArray.edges.at(currEdgeId1);
+
+                    // save half of the iterations since all edges are undirected
                     for(uint64_t currEdgeId2 = workArray.offsets.at(nodeInIndependentSet); currEdgeId2 < currEdgeId1; currEdgeId2++){
                         uint64_t targetNeighbor = workArray.edges.at(currEdgeId2);
-                        if(sourceNeighbor != targetNeighbor){
 
-                            dijkstraDistance = dijkstra.calculateDist(sourceNeighbor, targetNeighbor);
-                            arrayDistance = workArray.distances.at(currEdgeId1) + workArray.distances.at(currEdgeId2);
+                        dijkstraDistance = dijkstra.calculateDist(sourceNeighbor, targetNeighbor);
+                        arrayDistance = workArray.distances.at(currEdgeId1) + workArray.distances.at(currEdgeId2);
 
-                            if(dijkstraDistance >= arrayDistance){
-                              // add shortcut edge
-                              roundEdges.push_back(ChEdge(sourceNeighbor, targetNeighbor, dijkstraDistance, currEdgeId1, currEdgeId2));
-                              roundEdges.push_back(ChEdge(targetNeighbor, sourceNeighbor, dijkstraDistance, currEdgeId2, currEdgeId1));
-                              //std::cout << "dij step: " << counter << " of " << independentSet.size() * 0.7 <<  std::endl;
-                              //counter++;
-                            }
-                            //roundEdges.push_back(ChEdge(sourceNeighbor, targetNeighbor, 1000, currEdgeId1, currEdgeId2));
+                        if(dijkstraDistance >= arrayDistance){
+                            roundEdges.push_back(ChEdge(sourceNeighbor, targetNeighbor, dijkstraDistance, currEdgeId1, currEdgeId2));
+                            roundEdges.push_back(ChEdge(targetNeighbor, sourceNeighbor, dijkstraDistance, currEdgeId2, currEdgeId1));
                         }
                     }
                 }
@@ -183,16 +213,16 @@ void contract(AdjacencyArray &array, double percentage){
         }
         auto dijkstraStop = std::chrono::high_resolution_clock::now();
         auto dijkstraTiming = std::chrono::duration_cast<std::chrono::microseconds>(dijkstraStop - dijkstraStart).count();
+        totalDijkstraTime += dijkstraTiming;
 
-        std::cout << "contracted Edges " << roundEdges.size()  << "\t" << (((double) (numberOfNodesOnWater - numberOfNodesContracted)) / ((double) numberOfNodesOnWater) * 100) << std::endl;
+        std::cout << "contracted Edges " << roundEdges.size()  << "\t contraction of " << contractedPercent(numberOfNodesOnWater, numberOfNodesContracted) << " percent" << std::endl;
 
         auto tempGraphBuildStart = std::chrono::high_resolution_clock::now();
 
+        // sort edges in this rank by start node
         std::sort(roundEdges.begin(), roundEdges.end(), compareEdge);
 
-
         std::vector<bool> removeShortcut (roundEdges.size(), false);
-
 
         if(roundEdges.size() > 0){
 
@@ -232,8 +262,6 @@ void contract(AdjacencyArray &array, double percentage){
         numberOfNodesContracted += contractedSet.size();
 
         std::cout << "ranks updated" << std::endl;
-
-        
 
 
         // MARK ADJACENT EDGES FOR REMOVAL 
@@ -276,18 +304,22 @@ void contract(AdjacencyArray &array, double percentage){
         uint64_t roundEdgeIndex = 0;
         uint64_t oldEdgesIndex = 0;
         uint64_t preventedShortcuts = 0;
+        ChEdge currEdge;
 
         workArrayNew.offsets.push_back(0);
         uint64_t currentOffset = 0;
         for(uint64_t nodeId = 0; nodeId < workArray.rank.size(); nodeId++){
             
+            // if there is no shortcut found in this iteration we skip this step
             if(roundEdges.size() > 0){
                 bool whileAlive = true;
                 while(whileAlive && roundEdges.at(roundEdgeIndex).startNode == nodeId){
                     // only add shortcut if there is no identical other one
                     if(!removeShortcut.at(roundEdgeIndex)){
-                        workArrayNew.edges.push_back(roundEdges.at(roundEdgeIndex).targetNode);
-                        workArrayNew.distances.push_back(roundEdges.at(roundEdgeIndex).distance);
+                        currEdge = roundEdges.at(roundEdgeIndex);
+                        workArrayNew.edges.push_back(currEdge.targetNode);
+                        workArrayNew.distances.push_back(currEdge.distance);
+
                         allShortcuts.push_back(roundEdges.at(roundEdgeIndex));
                         currentOffset++;
                     }else{
@@ -301,6 +333,7 @@ void contract(AdjacencyArray &array, double percentage){
 
                 }
             }
+            // add all edges not adjacent to the contracted core
             for(uint64_t currEdge = workArray.offsets.at(nodeId); currEdge < workArray.offsets.at(nodeId +1); currEdge++){
                 if(!adjacentEdges.at(currEdge)){
                     workArrayNew.edges.push_back(workArray.edges.at(currEdge));
@@ -314,22 +347,22 @@ void contract(AdjacencyArray &array, double percentage){
         }
         auto tempGraphBuildStop = std::chrono::high_resolution_clock::now();
         auto tempGraphBuildTiming = std::chrono::duration_cast<std::chrono::microseconds>(tempGraphBuildStop - tempGraphBuildStart).count();
+        totalRebuildTime += tempGraphBuildTiming;
 
-        std::cout << "workarray new: " << workArrayNew.offsets.at(workArrayNew.offsets.size() - 1)  << " " <<  workArray.offsets.at(workArray.offsets.size() - 1)<< std::endl;
-        std::cout << "workarray new: " << workArrayNew.offsets.size()  << " " <<  workArray.offsets.size() << std::endl;
+        totalTime = std::chrono::duration_cast<std::chrono::microseconds>(tempGraphBuildStop - allStart).count();
+
+        std::cout << "intermediate shortcuts for rank " << currentRank-1 << " has been calculated" << std::endl;
+        std::cout << "new array has : " << workArrayNew.offsets.at(workArrayNew.offsets.size() - 1)  << " edges old array had " <<  workArray.offsets.at(workArray.offsets.size() - 1) << " edges"<< std::endl;
         std::cout << "prevented shortcuts: " << preventedShortcuts <<   " from " << roundEdges.size() << std::endl;
-
-        std::cout << "independetSet took " << independentSetTime / 1000000 << " s" 
+        std::cout << "independetSet took " << independentSetTime / 1000 << " ms" 
                 << " dijkstra took " << dijkstraTiming / 1000000 << " s" 
-                << " graph Build took "  << tempGraphBuildTiming / 1000000 << " s" 
-                << " overall " << std::chrono::duration_cast<std::chrono::microseconds>(tempGraphBuildStop - allStart).count() / 1000000 << " s" << std::endl;
+                << " graph Build took "  << tempGraphBuildTiming / 1000 << " ms" 
+                << " overall " << totalTime / 1000000 << " s" << std::endl;
 
         workArray = workArrayNew;
 
         std::cout << "--------------------------------------------------------------" << std::endl;
 
-        //std::cout << "workarray new: " << workArrayNew.offsets.at(workArrayNew.offsets.size() - 1)  << " " <<  workArray.offsets.at(workArray.offsets.size() - 1)<< std::endl;
-        //std::cout << "workarray new: " << workArrayNew.offsets.size()  << " " <<  workArray.offsets.size() << std::endl;
 
 
 
@@ -403,12 +436,14 @@ void contract(AdjacencyArray &array, double percentage){
         finalGraph.offsets.push_back(currentOffset);
     }
 
+    std::cout << "Independent Set took " << totalIndependentSetTime / 1000 << "ms in total"  << std::endl;
+    std::cout << "Dijkstra took " << totalDijkstraTime / 1000000 << "s in total"  << std::endl;
+    std::cout << "Graph rebuild took " << totalRebuildTime / 1000000 << "s in total"  << std::endl;
+    std::cout << "In total took " << totalTime / 1000000 << "s in total"  << std::endl;
 
-    std::cout << "finalGraph " << finalGraph.edges.size() << " from "  << array.edges.size() << std::endl;
+    std::cout << "finalGraph has " << finalGraph.edges.size() << " edges from initially "  << array.edges.size() << " edges" << std::endl;
 
     array = finalGraph;
-
-    std::cout << "finalGraph " << array.edges.size() << std::endl;
 
     std::cout << "--- END CONTRACT HIERACHIES ---" << std::endl;
 
