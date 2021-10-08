@@ -61,8 +61,8 @@ void loadGridPoints(GridData &gridData, std::string path){
     }
 
 
-    std::cout << width << std::endl;
-    std::cout << height << std::endl;
+    //std::cout << width << std::endl;
+    //std::cout << height << std::endl;
     //std::cout << gridData.gridDataList.at(0) << std::endl;
     //std::cout << gridData.gridDataList.at(1) << std::endl;
     //std::cout << gridData.gridDataList.at(2) << std::endl;
@@ -272,14 +272,15 @@ int main(int argc, char** argv) {
     int inputFileId = -1;
     int outputFileId = -1;
 
+    double contractedCore = 0.9;
+
     bool verboseOutput = false;
     bool ch = false;
-    // always go in contract mode
-    ch = true;
 
     // check input parameter
     if(argc < 1 || argc > 4){
         std::cout << "Usage: " << argv[0] << " file_to_read.grid" << " " << "file_to.graph" << std::endl;
+        std::cout << "Usage: " << argv[0] << "-ch" << " contracted_percentage " << " file_to_read.grid" << " " << "file_to.graph" << std::endl;
         return 1;
     }
     if(argc > 1){
@@ -294,10 +295,17 @@ int main(int argc, char** argv) {
         }else if(std::string(argv[1]) == "-ch"){
             ch = true;
             if(argc > 2){
-                inputFileId = 2;
+                contractedCore = atof(argv[2]);
+                if (contractedCore > 1 || contractedCore < 0){
+                    std::cout << "contracted core has to be between 0 and 1!!" << std::endl;
+                    return 1;
+                }
             }
             if(argc > 3){
-                outputFileId = 3;
+                inputFileId = 3;
+            }
+            if(argc > 4){
+                outputFileId = 4;
             }
         }
         else{
@@ -318,6 +326,7 @@ int main(int argc, char** argv) {
         std::cout << "no input file given assume " <<  inputFileName << std::endl;
     }else{
         inputFileName = std::string(argv[inputFileId]);
+        std::cout << "input file " <<  inputFileName << " is used" << std::endl;
     }
 
     // generate output filename
@@ -330,8 +339,12 @@ int main(int argc, char** argv) {
     size_t lastindex = tmp_oFile.find_last_of(".");
     outputFileName = tmp_oFile.substr(0, lastindex);
     // distinguish between graphs
-    //outputFileName += ".graph_3_100K_997p_updateDijk_bigswap";
-    outputFileName += ".graph_3_997p_invT";
+    if (ch){
+        outputFileName += "_ch_";
+        outputFileName += std::to_string(contractedCore);
+    }
+    outputFileName += ".graph";
+    //outputFileName += "";
 
     GridData dat;
     AdjacencyArray adjArray;
@@ -339,21 +352,13 @@ int main(int argc, char** argv) {
     loadGridPoints(dat, inputFileName);
     fillAdjacencyArray(dat, adjArray);
 
+    // contract hierachies 
     if(ch){
-        contract(adjArray, 0.997);
+        std::cout << "in contracted mode with " << contractedCore << " percent contraction." << std::endl;
+        contract(adjArray, contractedCore);
     }
 
-    //for(uint64_t wi = 0; wi < adjArray.width; wi++){
-    //    for(uint64_t hi = 0; hi < adjArray.height; hi++){
-    //        std::cout << adjArray.rank.at(wi * adjArray.height + hi) <<  "\t";
-    //    }
-    //    std::cout << std::endl;
-    //}
-
-
-
     // save
-    //std::cout << dat.height << std::endl;
     if(verboseOutput){
         testLoadFill(dat, adjArray);
     }
