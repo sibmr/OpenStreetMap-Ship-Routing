@@ -36,7 +36,6 @@ namespace ChQuery{
             uint64_t calculateDistSavedEdges(uint64_t startPoint, uint64_t endPoint);
             void reset();
             uint64_t getNumNodesPopped();
-            void removeContractedNodes();
         private:
             uint64_t fillVectors(uint64_t startPoint, uint64_t endPoint);
             std::vector<uint64_t> distanceSource;
@@ -84,9 +83,6 @@ namespace ChQuery{
             // distance between (0,i) and (1,i)
             constLatDist.push_back(nodeDistance(adjArray, i, adjArray.height+i));
         }
-    }
-
-    void ChQuery::removeContractedNodes(){
     }
 
     /**

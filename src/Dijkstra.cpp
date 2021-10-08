@@ -55,7 +55,6 @@ class SecondDijkstra: public PathAlgorithm{
         uint64_t calculateDist(uint64_t startPoint, uint64_t endPoint);
         void reset();
         uint64_t getNumNodesPopped();
-        void removeContractedNodes();
     private:
         uint64_t fillVectors(uint64_t startPoint, uint64_t endPoint);
         std::vector<uint64_t> distance;
@@ -219,17 +218,8 @@ void SecondDijkstra::reset(){
     heap.clear();
     // initially no nodes are popped
     numNodesPopped = 0;
-    std::vector<bool> falseArray(adjArray.width*adjArray.height, false);
-    contractedNodes = std::move(falseArray);
 }
 
-void SecondDijkstra::removeContractedNodes(){
-    for(uint64_t node = 0; node < adjArray.rank.size(); node++){
-        if(adjArray.rank.at(node) > 0){
-            contractedNodes.at(node) = true;
-        }
-    }
-}
 
 /**
  * @brief efficient dijkstra shortest-path implementation
@@ -283,11 +273,6 @@ uint64_t SecondDijkstra::calculateDist(uint64_t startPoint_, uint64_t endPoint_)
 
         for(uint64_t currEdgeId = adjArray.offsets.at(front.nodeIdx); currEdgeId < adjArray.offsets.at(front.nodeIdx+1); currEdgeId++){
             uint64_t neighborIdx = adjArray.edges.at(currEdgeId);
-
-            //if(contractedNodes.at(neighborIdx)){
-            //    // avoid already coontracted nodes
-            //    continue;
-            //}
 
             // choose length of edge from precalculated lengths
             uint64_t edgeDist = adjArray.distances.at(currEdgeId);

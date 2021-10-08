@@ -36,7 +36,6 @@ namespace BiDirectDijkstra{
             uint64_t calculateDistSavedEdges(uint64_t startPoint, uint64_t endPoint);
             void reset();
             uint64_t getNumNodesPopped();
-            void removeContractedNodes();
         private:
             uint64_t fillVectors(uint64_t startPoint, uint64_t endPoint);
             std::vector<uint64_t> distanceSource;
@@ -78,8 +77,6 @@ namespace BiDirectDijkstra{
         }
     }
 
-    void BiDirectDijkstra::removeContractedNodes(){
-    }
 
     /**
      * @brief reset datastructures to prepare for next call to calculateDist

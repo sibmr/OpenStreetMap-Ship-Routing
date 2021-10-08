@@ -138,25 +138,6 @@ void contract(AdjacencyArray &array, double percentage){
         auto independentSetTime = std::chrono::duration_cast<std::chrono::microseconds>(independentSetStop - independentSetStart).count();
 
 
-        // VISUALIZE INDEPENDENT SET 
-        //for(int i = 0; i < array.height; i++){
-        //    for(int j = 0; j < array.width; j++){
-        //        std::cout << independentSet.at(array.height * i + j);
-        //    }
-        //    std::cout << "--" <<  std::endl;
-
-        //}
-
-        //std::cout << "--" <<  std::endl;
-
-        //for(int i = 0; i < array.height; i++){
-        //    for(int j = 0; j < array.width; j++){
-        //        std::cout << adjacentNodes.at(array.height * i + j);
-        //    }
-        //    std::cout << "--" <<  std::endl;
-
-        //}
-
         SecondDijkstra dijkstra(workArray);
         //dijkstra.removeContractedNodes();
 
