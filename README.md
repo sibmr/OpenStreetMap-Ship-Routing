@@ -88,7 +88,7 @@ With the "-n" argument followed by "100K", "1M", "10M".
 
 Example:
 
-    ./build/bin/pointInPolygon -n 100K ./build/bin/planet.coastline data/planet.grid 
+    ./build/bin/pointInPolygon -n 100K data/planet.coastline data/planet.grid
 
 ### Create Adjacency Array from PointInPolygon Queries file
 The buildGraph program reads a "*.grid" file and saves it as "*.graph" file.
