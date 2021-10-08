@@ -35,7 +35,7 @@ int main(int argc, char** argv)
     if(argc > 1){
         inputFileName = std::string(argv[1]);
     }else{
-        inputFileName = "data/planet_2_ch_0.920000.graph";
+        inputFileName = "data/planet_ch_0.920000.graph";
         std::cout << "no input file given assume " <<  inputFileName << std::endl;
     }
 

@@ -320,9 +320,6 @@ int main(int argc, char** argv) {
     // generate input filename
     if(inputFileId == -1){
         inputFileName = "data/planet.grid";
-        inputFileName = "data/planet_2.grid";
-        //inputFileName = "data/planet_coastlines_100K.grid";
-        //inputFileName = "data/antarctica_100K.grid";
         std::cout << "no input file given assume " <<  inputFileName << std::endl;
     }else{
         inputFileName = std::string(argv[inputFileId]);
