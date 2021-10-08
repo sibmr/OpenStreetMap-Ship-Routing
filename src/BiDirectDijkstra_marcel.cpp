@@ -121,14 +121,6 @@ namespace BiDirectDijkstra{
         uint64_t targetDist = 0;
         uint64_t currDist = UINT64_MAX;
 
-
-        // early stop with same start value
-        //if(std::find (visited.begin(), visited.end(), endPoint) != visited.end() && distance.at(startPoint) == 0){
-        //    return distance.at(endPoint);
-        //}else{
-        //    reset();
-        //
-
         heapSource.push_back(HeapElement{startPoint, UINT64_MAX, 0});
         heapTarget.push_back(HeapElement{endPoint, UINT64_MAX, 0});
 
