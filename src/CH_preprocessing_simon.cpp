@@ -331,7 +331,7 @@ void contractNode(  uint64_t contractedNodeId, AdjacencyArray &workArray, uint64
     }
 
 
-    if(edgeIds.size() != 2*adjacentIds.size()){ std::cout << "more/less edges" << edgeIds.size() << " " << adjacentIds.size() << "\n"; }
+    //if(edgeIds.size() != 2*adjacentIds.size()){ std::cout << "more/less edges" << edgeIds.size() << " " << adjacentIds.size() << "\n"; }
 
     //calculate distances between all adjacent nodes
     std::vector<std::vector<uint64_t>> distanceUWMatrix = createVectorMatrix<uint64_t>(adjacentIds.size(), adjacentIds.size());
@@ -378,7 +378,7 @@ void contractNode(  uint64_t contractedNodeId, AdjacencyArray &workArray, uint64
             //                       there is a shorter path   OR  there exist shortest paths besides UVW 
             bool noShortcutNeeded = (distanceUW < distanceUVW) || multipleShortestPaths;
 
-            if((!(distanceUW < distanceUVW)) && multipleShortestPaths){std::cout << "shortcut saved\n";}
+            //if((!(distanceUW < distanceUVW)) && multipleShortestPaths){std::cout << "shortcut saved\n";}
 
             // if deleted edges are potentially part of a shortest path, then add shortcut edge
             if(!noShortcutNeeded){
