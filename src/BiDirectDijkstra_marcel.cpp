@@ -7,8 +7,8 @@ namespace BiDirectDijkstra{
      * @brief HeapElement for DijkstraImpl implementation
      */
     struct HeapElement {
-        // for normal dijkstra, heuristic_dist is the current distance to this node
-        uint64_t nodeIdx, prev, heuristic_dist, dist;
+        // for normal dijkstra, dist is the current distance to this node
+        uint64_t nodeIdx, prev, dist;
 
         /**
          * @brief "reverse" comparison function turning max-heap into min-heap 
@@ -18,7 +18,7 @@ namespace BiDirectDijkstra{
          * @return false    otherwise
          */
         bool operator<(const HeapElement &a){
-            return heuristic_dist > a.heuristic_dist;
+            return dist > a.dist;
         }
     };
 
@@ -141,7 +141,7 @@ namespace BiDirectDijkstra{
                 heapSource.pop_back();
                 // one node will be popped in sourceTree
                 numNodesPopped++;
-            }while(frontSource.heuristic_dist >= distanceSource.at(frontSource.nodeIdx) && !heapSource.empty());
+            }while(frontSource.dist >= distanceSource.at(frontSource.nodeIdx) && !heapSource.empty());
 
 
 
@@ -152,18 +152,18 @@ namespace BiDirectDijkstra{
                 heapTarget.pop_back();
                 // one node will be popped in targetTree
                 numNodesPopped++;
-            }while(frontTarget.heuristic_dist >= distanceTarget.at(frontTarget.nodeIdx) && !heapTarget.empty());
+            }while(frontTarget.dist >= distanceTarget.at(frontTarget.nodeIdx) && !heapTarget.empty());
 
 
             // bidirect termination criteria
-            if(frontSource.heuristic_dist + frontTarget.heuristic_dist >= currDist){
+            if(frontSource.dist + frontTarget.dist >= currDist){
                 lastCalculatedDistance = currDist;
                 return lastCalculatedDistance;
             }
 
             // one step in sourceTree
             {
-                distanceSource.at(frontSource.nodeIdx) = frontSource.heuristic_dist;
+                distanceSource.at(frontSource.nodeIdx) = frontSource.dist;
                 prevSource.at(frontSource.nodeIdx) = frontSource.prev;
 
                 for(uint64_t currEdgeId = adjArray.offsets.at(frontSource.nodeIdx); currEdgeId < adjArray.offsets.at(frontSource.nodeIdx+1); currEdgeId++){
@@ -172,7 +172,7 @@ namespace BiDirectDijkstra{
                     // choose length of edge from precalculated lengths
                     uint64_t edgeDist = adjArray.distances.at(currEdgeId);
     
-                    uint64_t newNeighborDist = frontSource.heuristic_dist + edgeDist;
+                    uint64_t newNeighborDist = frontSource.dist + edgeDist;
                     uint64_t oldNeighborDist = distanceSource.at(neighborIdx);
     
                     if(newNeighborDist<oldNeighborDist){
@@ -184,7 +184,7 @@ namespace BiDirectDijkstra{
 
                     // distance is set from other direction already
                     if(distanceTarget.at(neighborIdx) < UINT64_MAX){
-                        uint64_t tmp = frontSource.heuristic_dist + edgeDist + distanceTarget.at(neighborIdx);
+                        uint64_t tmp = frontSource.dist + edgeDist + distanceTarget.at(neighborIdx);
                         if(tmp < currDist){
                             currDist = tmp;
                             forwardMeetingNode = frontSource.nodeIdx;
@@ -196,7 +196,7 @@ namespace BiDirectDijkstra{
 
             // one step in targetTree
             {
-                distanceTarget.at(frontTarget.nodeIdx) = frontTarget.heuristic_dist;
+                distanceTarget.at(frontTarget.nodeIdx) = frontTarget.dist;
                 prevTarget.at(frontTarget.nodeIdx) = frontTarget.prev;
 
                 for(uint64_t currEdgeId = adjArray.offsets.at(frontTarget.nodeIdx); currEdgeId < adjArray.offsets.at(frontTarget.nodeIdx+1); currEdgeId++){
@@ -205,7 +205,7 @@ namespace BiDirectDijkstra{
                     // choose length of edge from precalculated lengths
                     uint64_t edgeDist = adjArray.distances.at(currEdgeId);
 
-                    uint64_t newNeighborDist = frontTarget.heuristic_dist + edgeDist;
+                    uint64_t newNeighborDist = frontTarget.dist + edgeDist;
                     uint64_t oldNeighborDist = distanceTarget.at(neighborIdx);
 
                     if(newNeighborDist<oldNeighborDist){
@@ -215,7 +215,7 @@ namespace BiDirectDijkstra{
                         std::push_heap(heapTarget.begin(), heapTarget.end());
                     }
                     if(distanceSource.at(neighborIdx) < UINT64_MAX){
-                        uint64_t tmp = frontTarget.heuristic_dist + edgeDist + distanceSource.at(neighborIdx);
+                        uint64_t tmp = frontTarget.dist + edgeDist + distanceSource.at(neighborIdx);
                         if(tmp < currDist){
                             currDist = tmp;
                             forwardMeetingNode = neighborIdx;

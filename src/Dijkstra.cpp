@@ -5,8 +5,8 @@
  * @brief HeapElement for SecondDijkstra implementation
  */
 struct HeapElement {
-    // for normal dijkstra, heuristic_dist is the current distance to this node
-    uint64_t nodeIdx, prev, heuristic_dist, dist;
+    // for normal dijkstra, dist is the current distance to this node
+    uint64_t nodeIdx, prev, dist;
     
     /**
      * @brief "reverse" comparison function turning max-heap into min-heap 
@@ -16,7 +16,7 @@ struct HeapElement {
      * @return false    otherwise
      */
     bool operator<(const HeapElement &a){
-        return heuristic_dist > a.heuristic_dist;
+        return dist > a.dist;
     }
 };
 
@@ -271,13 +271,13 @@ uint64_t SecondDijkstra::calculateDist(uint64_t startPoint_, uint64_t endPoint_)
         heap.pop_back();
 
         // avoid duplicate nodes
-        if(front.heuristic_dist >= distance.at(front.nodeIdx)){
+        if(front.dist >= distance.at(front.nodeIdx)){
             continue;
         }else{
             numNodesPopped++;
         }
 
-        distance.at(front.nodeIdx) = front.heuristic_dist;
+        distance.at(front.nodeIdx) = front.dist;
         prev.at(front.nodeIdx) = front.prev;
         visited.push_back(front.nodeIdx);
 
@@ -292,7 +292,7 @@ uint64_t SecondDijkstra::calculateDist(uint64_t startPoint_, uint64_t endPoint_)
             // choose length of edge from precalculated lengths
             uint64_t edgeDist = adjArray.distances.at(currEdgeId);
 
-            uint64_t newNeighborDist = front.heuristic_dist + edgeDist;
+            uint64_t newNeighborDist = front.dist + edgeDist;
             uint64_t oldNeighborDist = distance.at(neighborIdx);
 
             if(newNeighborDist<oldNeighborDist){

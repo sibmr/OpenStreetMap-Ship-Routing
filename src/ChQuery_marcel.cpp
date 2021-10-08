@@ -7,8 +7,8 @@ namespace ChQuery{
      * @brief HeapElement for DijkstraImpl implementation
      */
     struct HeapElement {
-        // for normal dijkstra, heuristic_dist is the current distance to this node
-        uint64_t nodeIdx, prev, heuristic_dist, dist;
+        // for normal dijkstra, dist is the current distance to this node
+        uint64_t nodeIdx, prev, dist;
 
         /**
          * @brief "reverse" comparison function turning max-heap into min-heap 
@@ -18,7 +18,7 @@ namespace ChQuery{
          * @return false    otherwise
          */
         bool operator<(const HeapElement &a){
-            return heuristic_dist > a.heuristic_dist;
+            return dist > a.dist;
         }
     };
 
@@ -165,11 +165,11 @@ namespace ChQuery{
                         // one node will be popped inSourceTree 
                         numNodesPopped++;
 
-                        if(frontSource.heuristic_dist > currDist){
+                        if(frontSource.dist > currDist){
                             sourceTreeReady = true;
                         }
                     }
-                }while(frontSource.heuristic_dist >= distanceSource.at(frontSource.nodeIdx) && !heapSource.empty() && !sourceTreeReady);
+                }while(frontSource.dist >= distanceSource.at(frontSource.nodeIdx) && !heapSource.empty() && !sourceTreeReady);
             }
             
 
@@ -187,11 +187,11 @@ namespace ChQuery{
                         // one node will be popped in targetTree
                         numNodesPopped++;
 
-                        if(frontTarget.heuristic_dist > currDist){
+                        if(frontTarget.dist > currDist){
                             targetTreeReady = true; 
                         }
                     }
-                }while(frontTarget.heuristic_dist >= distanceTarget.at(frontTarget.nodeIdx) && !heapTarget.empty());
+                }while(frontTarget.dist >= distanceTarget.at(frontTarget.nodeIdx) && !heapTarget.empty());
 
 
             }
@@ -206,12 +206,12 @@ namespace ChQuery{
             if(!sourceTreeReady){
                 rankSourceTree = adjArray.rank.at(frontSource.nodeIdx);
 
-                distanceSource.at(frontSource.nodeIdx) = frontSource.heuristic_dist;
+                distanceSource.at(frontSource.nodeIdx) = frontSource.dist;
                 prevSource.at(frontSource.nodeIdx) = frontSource.prev;
 
                 // meetingNode found
                 if(distanceTarget.at(frontSource.nodeIdx) < UINT64_MAX){
-                    uint64_t tmpDist = distanceTarget.at(frontSource.nodeIdx) + frontSource.heuristic_dist;
+                    uint64_t tmpDist = distanceTarget.at(frontSource.nodeIdx) + frontSource.dist;
                     if(tmpDist < currDist){
                         currDist = tmpDist;
                         meetingNode = frontSource.nodeIdx;
@@ -223,10 +223,10 @@ namespace ChQuery{
             if( !targetTreeReady){
                 rankTargetTree = adjArray.rank.at(frontTarget.nodeIdx);
                 // meetingNode found
-                distanceTarget.at(frontTarget.nodeIdx) = frontTarget.heuristic_dist;
+                distanceTarget.at(frontTarget.nodeIdx) = frontTarget.dist;
                 prevTarget.at(frontTarget.nodeIdx) = frontTarget.prev;
                 if(distanceSource.at(frontTarget.nodeIdx) < UINT64_MAX){
-                    uint64_t tmpDist = distanceSource.at(frontTarget.nodeIdx) + frontTarget.heuristic_dist;
+                    uint64_t tmpDist = distanceSource.at(frontTarget.nodeIdx) + frontTarget.dist;
                     if(tmpDist < currDist){
                         currDist = tmpDist;
                         meetingNode = frontTarget.nodeIdx;
@@ -240,7 +240,7 @@ namespace ChQuery{
 
             // one step in sourceTree
             if(!sourceTreeReady){
-                distanceSource.at(frontSource.nodeIdx) = frontSource.heuristic_dist;
+                distanceSource.at(frontSource.nodeIdx) = frontSource.dist;
                 prevSource.at(frontSource.nodeIdx) = frontSource.prev;
 
                 for(uint64_t currEdgeId = adjArray.offsets.at(frontSource.nodeIdx); currEdgeId < adjArray.offsets.at(frontSource.nodeIdx+1); currEdgeId++){
@@ -254,7 +254,7 @@ namespace ChQuery{
                         // choose length of edge from precalculated lengths
                         uint64_t edgeDist = adjArray.distances.at(currEdgeId);
     
-                        uint64_t newNeighborDist = frontSource.heuristic_dist + edgeDist;
+                        uint64_t newNeighborDist = frontSource.dist + edgeDist;
                         uint64_t oldNeighborDist = distanceSource.at(neighborIdx);
 
     
@@ -271,7 +271,7 @@ namespace ChQuery{
 
             // one step in targetTree
             if(!targetTreeReady){
-                distanceTarget.at(frontTarget.nodeIdx) = frontTarget.heuristic_dist;
+                distanceTarget.at(frontTarget.nodeIdx) = frontTarget.dist;
                 prevTarget.at(frontTarget.nodeIdx) = frontTarget.prev;
 
                 for(uint64_t currEdgeId = adjArray.offsets.at(frontTarget.nodeIdx); currEdgeId < adjArray.offsets.at(frontTarget.nodeIdx+1); currEdgeId++){
@@ -285,7 +285,7 @@ namespace ChQuery{
                         // choose length of edge from precalculated lengths
                         uint64_t edgeDist = adjArray.distances.at(currEdgeId);
 
-                        uint64_t newNeighborDist = frontTarget.heuristic_dist + edgeDist;
+                        uint64_t newNeighborDist = frontTarget.dist + edgeDist;
                         uint64_t oldNeighborDist = distanceTarget.at(neighborIdx);
 
 
