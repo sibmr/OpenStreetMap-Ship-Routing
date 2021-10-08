@@ -35,8 +35,7 @@ int main(int argc, char** argv)
     if(argc > 1){
         inputFileName = std::string(argv[1]);
     }else{
-        inputFileName = "data/planet.graph";
-        inputFileName = "data/planet_2.graph_3_920p_invT";
+        inputFileName = "data/planet_2_ch_0.920000.graph";
         std::cout << "no input file given assume " <<  inputFileName << std::endl;
     }
 
@@ -57,10 +56,12 @@ int main(int argc, char** argv)
     static std::string page;
 
     static AdjacencyArray adjArray(inputFileName);
-    //static SecondDijkstra dijkstraImpl(adjArray);
-    //static BiDirectDijkstra::BiDirectDijkstra dijkstraImpl(adjArray);
-    static ChQuery::ChQuery dijkstraImpl(adjArray);
-    static PathAlgorithm &pathAlgorithm = dijkstraImpl;
+    static SecondDijkstra dijkstra(adjArray);
+    static BiDirectDijkstra::BiDirectDijkstra biDirectDijkstra(adjArray);
+    static ChQuery::ChQuery chQuery(adjArray);
+    //static PathAlgorithm &pathAlgorithm = dijkstra;
+    //static PathAlgorithm &pathAlgorithm = biDirectDijkstra;
+    static PathAlgorithm &pathAlgorithm = chQuery;
     
     static std::mutex mutex;
     static std::unique_lock<std::mutex> lock (mutex, std::defer_lock);
