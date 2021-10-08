@@ -71,7 +71,6 @@ namespace ChQuery{
                 maxRank = adjArray.rank.at(currNode);
             }
         }
-        //std::cout << "maxrank " << maxRank << std::endl;
         reset();
 
         // calculate distances between nodes:
