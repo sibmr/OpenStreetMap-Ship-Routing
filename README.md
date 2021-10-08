@@ -100,17 +100,84 @@ Example:
 
     ./build/bin/buildGraph data/planet.grid data/planet.graph
 
-### Start Server
-The server program reads a "*.graph" file and runs a server, where the user can interactively select two points on the map.
-From project root:
 
-    ./build/bin/server {path to graph file}
+## Final Task Usage
+
+For the final task, Adjacency Array file ending *.graph was replaced with *.graph_2 because the graph has gained additional attributes.
+
+### Contraction Hierarchies Preprocessing
+The preprocessing has a long runtime on the 1M graph. With 10 parallel threads for cost calculation, >99% contraction takes around 24 hours.  
+
+The preprocessing runtime on the smaller 100K graph is much lower.
+
+It requires in the current form ~1GB of disk space per contraction level on the 1M graph, because the final graph is saved after each contraction round.  
+
+All preprocessing output file are written to the project_root/data folder. They have the following naming scheme:
+
+     CHAdjArray_[contraction level].graph_2
+
+The number of threads num_threads(n_threads) in the edgeDifferenceFillContractionSet method can be adjusted to fit the available resources. Please recompile after changing the value.  
+
+From the project root: 
+
+    ./build/bin/CH_preprocessing_simon {path to graph file}
 
 Example:
 
-    ./build/bin/server data/planet.graph
+    ./build/bin/CH_preprocessing_simon data/planet.graph_2
+
+### Path Algorithm Names
+
+All path algorithms (except the naive query) are referenced in the command line interface through their shortcut name:
+* Dijkstra -> dijkstra
+* Bidirectional Dijkstra -> bidijkstra
+* great-crircle A* -> astar
+* rectangular A* -> rectastar
+* Contraction Hierarchies Bidirectional Dijkstra -> chquery
+* Contraction Hierarchies great-circle A* -> chastar
+* Contraction Hierarchies rectangular A* -> chrectastar
+
+### Start Server
+The server program reads a "*.graph" file and runs a server, where the user can interactively select two points on the map.  
+
+Please note, that for Contraction Hierarchies Algorithms, the graph file needs to be one of the output files of the CH_preprocessing_simon executable.
+
+From project root:
+
+    ./build/bin/server {path to graph file} {path algorithm name}
+
+Examples:
+
+    ./build/bin/server data/planet.graph_2 astar
+    
+    ./build/bin/server data/CHAdjArray_10.graph_2 chastar
 
 Visit http://localhost:8080 using the Browser
+
+### Benchmark and Compare Two Path Algorithms
+
+If only benchmarking two path algorithms that are not using contraction hierarchies, the contraction hierarchies path file can be replaced by a normal graph file.  
+
+First, the benchmark prints out all query point pairs (longitude1, latitude1), (longitude2,latitude2).  
+After that, timing and heap nodes popped comparisons are printed.
+
+From the project root:
+
+     ./build/bin/benchmarkPathAlgorithm {path to graph file} {path to contraction hierarchies graph file} {path algorithm name 1} {path algorithm name 2}
+
+or to select Dijsktra as path algorithm 1:
+
+     ./build/bin/benchmarkPathAlgorithm {path to graph file} {path to contraction hierarchies graph file} {path algorithm name 2}
+
+Examples:
+
+Comparing rectangular A* to Dijkstra:
+
+    ./build/bin/benchmarkPathAlgorithm data/planet.graph_2 data/planet.graph_2 rectastar
+
+Comparing contraction hierarchies great-circle A* to contraction hierarchies rectangular A*:
+
+    ./build/bin/benchmarkPathAlgorithm data/planet.graph_2 data/CHAdjArray_10.graph_2 chastar chrectastar
 
 ## Links
 OSM:  
