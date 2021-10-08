@@ -100,15 +100,38 @@ Example:
 
     ./build/bin/buildGraph data/planet.grid data/planet.graph
 
+### Use Contraction Hierarchies from Grid file
+The buildGraph program reads a "*.grid" file and saves it as "*.graph" file.
+With a distinguishable filename based on the level of contraction
+From project root:
+
+    ./build/bin/buildGraph -ch {percentage} {path to grid file} 
+
+Example: 
+
+    ./build/bin/buildGraph -ch 0.9 data/planet.grid 
+    
+### Use Benchmarks
+From project root:
+
+    ./build/bin/benchmark {number of tries} {file to adjacency array graph} {file to contraction hioerachies graph}
+
+Example: 
+
+    ./build/bin/buildGraph 100 data/planet.graph data/planet_ch_0.900000.graph 
+
+
+
 ### Start Server
 The server program reads a "*.graph" file and runs a server, where the user can interactively select two points on the map.
+It uses currently the contraction hierarchies graph (can be chosen over the commented lines)
 From project root:
 
     ./build/bin/server {path to graph file}
 
 Example:
 
-    ./build/bin/server data/planet.graph
+    ./build/bin/server data/planet_ch_0.900000.graph
 
 Visit http://localhost:8080 using the Browser
 
