@@ -1,5 +1,22 @@
 # Ship Routing using OpenStreetMap
 
+
+Image of the geodesic line between two query points.  
+The corresponding great-circle distance is a simple heuristic for A*. 
+<p float="left">
+<img src="img/greatCircle.png" style="height: 300px; width:300px;"/>
+<img src="img/greatCircleGlobe.png" style="height: 300px; width:330px;"/>
+</p>  
+        
+
+Image visualizing the modified "Manhattan" distance on a sphere.  
+It takes into account paths passing through the north or southpole and paths wrapping around the edge of the map.  
+This distance measure can serve as heuristic for grid-graphs on the sphere that are uniformly distributed over longitude and latitude degrees.
+<p float="left">
+<img src="img/rectHeuristic_2dmap_2.png" style="height: 300px; width:300px;"/>
+<img src="img/rectHeuristic_onSphere_2.png" style="height: 300px; width:330px;"/>
+</p>
+
 ## Dependencies
 
 
