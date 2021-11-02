@@ -10,13 +10,65 @@
 # include <queue>
 # include <algorithm>
 
+# include "fileUtils.cpp"
+
+struct Edge
+{
+    uint64_t edgeId;
+    uint64_t v1;
+    uint64_t v2;
+    uint64_t edgeDistance;
+    std::vector<uint64_t> shortcutPathEdges;
+};
+
+std::vector<Edge> copyEdgeVector(const std::vector<Edge> &edgeVector){
+    std::vector<Edge> copy;
+    for (const Edge &edge : edgeVector){
+        copy.push_back(Edge{
+            .edgeId = edge.edgeId,
+            .v1 = edge.v1,
+            .v2 = edge.v2,
+            .edgeDistance = edge.edgeDistance,
+            .shortcutPathEdges = std::vector<uint64_t>(edge.shortcutPathEdges)
+        });
+    }
+    return copy;
+}
+
+void writeEdgeVector(std::ofstream &outputFile, std::vector<Edge> &edgeVector){
+    uint64_t edgeVectorSize = edgeVector.size();
+    writeSimpleValue(outputFile, edgeVectorSize);
+    for(Edge &edge : edgeVector){
+        writeSimpleValue(outputFile, edge.edgeId);
+        writeSimpleValue(outputFile, edge.v1);
+        writeSimpleValue(outputFile, edge.v2);
+        writeSimpleValue(outputFile, edge.edgeDistance);
+        writeVectorOfSimpleValue(outputFile, edge.shortcutPathEdges);
+    }
+}
+
+void readEdgeVector(std::ifstream &inputFile, std::vector<Edge> &edgeVector){
+    uint64_t edgeVectorSize;
+    readSimpleValue(inputFile, edgeVectorSize);
+    edgeVector.resize(edgeVectorSize);
+    for(Edge &edge : edgeVector){
+        readSimpleValue(inputFile, edge.edgeId);
+        readSimpleValue(inputFile, edge.v1);
+        readSimpleValue(inputFile, edge.v2);
+        readSimpleValue(inputFile, edge.edgeDistance);
+        readVectorOfSimpleValue(inputFile, edge.shortcutPathEdges);
+    }
+}
+
 struct AdjacencyArray {
     double longLow, latLow, longHigh, latHigh;
     uint64_t width, height;
     std::vector<uint64_t> offsets;
     std::vector<uint64_t> edges;
+    std::vector<uint64_t> edgeIds;
     std::vector<uint64_t> distances;
     std::vector<uint64_t> rank;
+    std::vector<Edge> allEdgeInfo;
     std::vector<bool> nodes;
 
     /**
@@ -35,9 +87,11 @@ struct AdjacencyArray {
         width = adjArray.width;         height = adjArray.height;
         offsets = std::vector<uint64_t>(adjArray.offsets);
         edges = std::vector<uint64_t>(adjArray.edges);
+        edgeIds = std::vector<uint64_t>(adjArray.edgeIds);
         distances = std::vector<uint64_t>(adjArray.distances);
         rank = std::vector<uint64_t>(adjArray.rank);
-        nodes = std::vector<bool>(nodes);
+        allEdgeInfo = copyEdgeVector(adjArray.allEdgeInfo);
+        nodes = std::vector<bool>(adjArray.nodes);
     };
 
 
@@ -70,61 +124,37 @@ struct AdjacencyArray {
         adjacency_input_file.open(path, std::ios::in);
 
         // write globe size
-        adjacency_input_file.read(reinterpret_cast<char *>(&longLow),     sizeof(longLow));
-        adjacency_input_file.read(reinterpret_cast<char *>(&latLow),      sizeof(latLow));
-        adjacency_input_file.read(reinterpret_cast<char *>(&longHigh),    sizeof(longHigh));
-        adjacency_input_file.read(reinterpret_cast<char *>(&latHigh),     sizeof(latHigh));
-        
+        readSimpleValue(adjacency_input_file, longLow);
+        readSimpleValue(adjacency_input_file, latLow);
+        readSimpleValue(adjacency_input_file, longHigh);
+        readSimpleValue(adjacency_input_file, latHigh);
 
         // save number of nodes per direction (width, height)
-        adjacency_input_file.read(reinterpret_cast<char *>(&width),     sizeof(width));
-        adjacency_input_file.read(reinterpret_cast<char *>(&height),     sizeof(height));
+        readSimpleValue(adjacency_input_file, width);
+        readSimpleValue(adjacency_input_file, height);
 
-        // save offset vector size
-        uint64_t offset_size;
-        adjacency_input_file.read(reinterpret_cast<char *>(&offset_size),     sizeof(offset_size));
-        offsets.resize(offset_size);
+        // save offset
+        readVectorOfSimpleValue(adjacency_input_file, offsets);
 
+        // read edges
+        readVectorOfSimpleValue(adjacency_input_file, edges);
 
-        for(uint64_t i = 0; i < offset_size; i++){
-            adjacency_input_file.read(reinterpret_cast<char *>(&offsets.at(i)),     sizeof(offsets.at(i)));
-        }
+        // read distances
+        readVectorOfSimpleValue(adjacency_input_file, distances);
 
+        // read rank
+        readVectorOfSimpleValue(adjacency_input_file, rank);
 
-        uint64_t edges_size;
-        adjacency_input_file.read(reinterpret_cast<char *>(&edges_size),     sizeof(edges_size));
-        edges.resize(edges_size);
+        // read edgeIds
+        readVectorOfSimpleValue(adjacency_input_file, edgeIds);
 
+        // read allEdgeInfo
+        readEdgeVector(adjacency_input_file, allEdgeInfo);
 
-        for(uint64_t i = 0; i < edges_size; i++){
-            adjacency_input_file.read(reinterpret_cast<char *>(&edges.at(i)), sizeof(edges.at(i)));
-        }
-
-
-        uint64_t distances_size;
-        adjacency_input_file.read(reinterpret_cast<char *>(&distances_size),     sizeof(distances_size));
-        distances.resize(distances_size);
-
-
-        for(uint64_t i = 0; i < distances_size; i++){
-            adjacency_input_file.read(reinterpret_cast<char *>(&distances.at(i)), sizeof(distances.at(i)));
-        }
-
-        uint64_t rank_size;
-        adjacency_input_file.read(reinterpret_cast<char *>(&rank_size),     sizeof(rank_size));
-        rank.resize(rank_size);
-
-
-        for(uint64_t i = 0; i < rank_size; i++){
-            adjacency_input_file.read(reinterpret_cast<char *>(&rank.at(i)), sizeof(rank.at(i)));
-        }
-
-
+        // read nodes
         uint64_t nodes_size = nodes.size();
         adjacency_input_file.read(reinterpret_cast<char *>(&nodes_size), sizeof(nodes_size));
         nodes.resize(nodes_size);
-
-
 
         std::vector<bool> data(
             (std::istreambuf_iterator<char>(adjacency_input_file)), 
@@ -136,8 +166,70 @@ struct AdjacencyArray {
 
         adjacency_input_file.close();
     }
-};
 
+    /**
+     * @brief save adjacency array to disk
+     * 
+     * @param array AdjacencyArray struct that is stored
+     * @param path  path to storage location
+     * 
+     * output file format
+     * longLow       - double
+     * latLow        - double
+     * longHigh      - double
+     * latHigh       - double
+     * width         - uint64_t
+     * height        - uint64_t
+     * offset_size   - uint64_t
+     * offsets       - uint64_t     (offset_size many)
+     * edges_size    - uint64_t
+     * edges         - uint64_t     (edges_size many)
+     * nodes_size    - uint64_t
+     * nodes          - bool        (nodes_size many)
+     */
+    void writeToDisk(std::string path){
+        std::ofstream adjacency_output_file;
+
+        adjacency_output_file.open(path, std::ios::out | std::ios::trunc);
+        adjacency_output_file.exceptions(adjacency_output_file.exceptions() | std::ios::failbit | std::ifstream::badbit);
+
+        // write globe size
+        writeSimpleValue(adjacency_output_file, longLow);
+        writeSimpleValue(adjacency_output_file, latLow);
+        writeSimpleValue(adjacency_output_file, longHigh);
+        writeSimpleValue(adjacency_output_file, latHigh);
+
+        // save number of nodes per direction (width, height)
+        writeSimpleValue(adjacency_output_file, width);
+        writeSimpleValue(adjacency_output_file, height);
+
+        // save offset vector
+        writeVectorOfSimpleValue(adjacency_output_file, offsets);
+
+        // save edges
+        writeVectorOfSimpleValue(adjacency_output_file, edges);
+
+        // save distances
+        writeVectorOfSimpleValue(adjacency_output_file, distances);
+
+        // save rank
+        writeVectorOfSimpleValue(adjacency_output_file, rank);
+
+        // save edgeIds
+        writeVectorOfSimpleValue(adjacency_output_file, edgeIds);
+
+        // save edgeVector
+        writeEdgeVector(adjacency_output_file, allEdgeInfo);
+
+        // save nodes
+        uint64_t nodes_size = nodes.size();
+        writeSimpleValue(adjacency_output_file, nodes_size);
+        std::copy(nodes.begin(), nodes.end(), std::ostreambuf_iterator<char>(adjacency_output_file));
+        adjacency_output_file.flush();
+
+        adjacency_output_file.close();
+    }
+};
 
 /**
  * @brief Distance between two points on the globe

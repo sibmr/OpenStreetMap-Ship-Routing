@@ -38,12 +38,17 @@
 	var testLocationInv = [0,0];
 	var mymap = L.map('mapid').setView([0, 0], 2);
 	var polyline = L.polyline([], {color: 'red'}).bindPopup("...").addTo(mymap);
+	var polyline2 = L.polyline([], {color: 'blue'}).bindPopup("...").addTo(mymap);
+	var polyline3 = L.polyline([], {color: 'green'}).bindPopup("...").addTo(mymap);
 	let dist = 0;
 
 	var markerSource = L.marker();
 	var markerTarget = L.marker();
 	var popupTarget = L.popup();
 	var firstMarkerSet = false;
+
+	var forwardPathIndex = 0;
+	var intermediatePathIndex = 0;
 
 	// from https://stackoverflow.com/questions/16543446/how-to-make-leaflet-map-height-variable
 	$(window).on("resize", function() {
@@ -115,7 +120,9 @@
 				dist = Math.round(fulldist/1000);
 				document.getElementById("pageDistance").innerHTML = fulldist/1000;
 				correctLongJump(path)
-				polyline.setLatLngs(path);
+				polyline.setLatLngs(path.slice(0,forwardPathIndex));
+				polyline2.setLatLngs(path.slice(forwardPathIndex, intermediatePathIndex));
+				polyline3.setLatLngs(path.slice(intermediatePathIndex))
 				popupTarget
 					.setLatLng(path[0])
 					.setContent(dist + " km")
@@ -170,6 +177,12 @@
 	function onMapClick(e) {
 		testLocation = [e.latlng.lng, e.latlng.lat];
 		testLocationInv = [e.latlng.lat, e.latlng.lng];
+		requestNode();
+	}
+
+	function setLocation(lng, lat){
+		testLocation = [lng, lat];
+		testLocationInv = [lat, lng];
 		requestNode();
 	}
 
