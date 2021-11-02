@@ -288,59 +288,99 @@ uint64_t CH_query::calculateDist(uint64_t startPoint_, uint64_t endPoint_){
 
         // get (non-duplicate) heap front in both directions
         // avoid duplicate nodes (nodes that were already visited, indicated by higher distance)
-        do{
-            // no path found
-            if(forwardHeap.empty()){
-                forwardStuck = true;
-            }else{
-                std::pop_heap(forwardHeap.begin(), forwardHeap.end());
-                newForwardFront = forwardHeap.back();
-                forwardHeap.pop_back();
-                numNodesPopped++;
-            }
-        }while ((newForwardFront.dist >= forwardDistance.at(newForwardFront.nodeIdx) || newForwardFront.dist >= minDistance) && !forwardStuck);
-        do{
-            // no path found
-            if(backwardHeap.empty()){
-                backwardStuck = true;
-            }else{
-                std::pop_heap(backwardHeap.begin(), backwardHeap.end());
-                newBackwardFront = backwardHeap.back();
-                backwardHeap.pop_back();
-                numNodesPopped++;
-            }
-        }while ((newBackwardFront.dist >= backwardDistance.at(newBackwardFront.nodeIdx) || newBackwardFront.dist >= minDistance) && !backwardStuck);
+        if(!forwardStuck){
+            do{
+                // no path found
+                if(forwardHeap.empty()){
+                    forwardStuck = true;
+                }else{
+                    std::pop_heap(forwardHeap.begin(), forwardHeap.end());
+                    newForwardFront = forwardHeap.back();
+                    forwardHeap.pop_back();
+                    numNodesPopped++;
+                }
+            }while ((newForwardFront.dist >= forwardDistance.at(newForwardFront.nodeIdx)));
+        }
+        
+        if(!backwardStuck){
+            do{
+                // no path found
+                if(backwardHeap.empty()){
+                    backwardStuck = true;
+                }else{
+                    std::pop_heap(backwardHeap.begin(), backwardHeap.end());
+                    newBackwardFront = backwardHeap.back();
+                    backwardHeap.pop_back();
+                    numNodesPopped++;
+                }
+            }while ((newBackwardFront.dist >= backwardDistance.at(newBackwardFront.nodeIdx)));
+        }
+        
         
         if(forwardStuck && backwardStuck){
             lastCalculatedDistance = minDistance;
             return minDistance;
         }
 
-        if(!forwardStuck){
+        // for(uint64_t currEdgeId = adjArray.offsets.at(forwardFront.nodeIdx); currEdgeId < adjArray.offsets.at(forwardFront.nodeIdx+1); ++currEdgeId){
+        //     uint64_t adjacentId = adjArray.edges.at(currEdgeId);
+        //     uint64_t adj_fdist = forwardDistance.at(adjacentId);
+        //     uint64_t edgeDist = adjArray.distances.at(currEdgeId);
+
+        //     if(adj_fdist < UINT64_MAX && adjArray.rank.at(adjacentId) > adjArray.rank.at(forwardFront.nodeIdx)){    
+        //         if(adj_fdist + edgeDist < forwardFront.dist){
+        //             forwardStalled = true;
+        //             forwardDistance.at(forwardFront.nodeIdx) = adj_fdist + edgeDist;
+        //             break;
+        //         }
+        //     }
+
+            
+        // }
+
+
+        if(!forwardStuck && !forwardStalled){
             forwardFront = newForwardFront;
             
             // update distance and previous node of current forward node
             forwardDistance.at(forwardFront.nodeIdx) = forwardFront.dist;
             forwardPrev.at(forwardFront.nodeIdx) = forwardFront.prev;
+
+            // if(backwardDistance.at(forwardFront.nodeIdx) < UINT64_MAX){
+            //     uint64_t currDist = forwardFront.dist + backwardDistance.at(forwardFront.nodeIdx);
+            //     if(currDist < minDistance){
+            //         forwardMinMeetingNodeId = forwardFront.nodeIdx;
+            //         backwardMinMeetingNodeId = forwardFront.nodeIdx;
+            //     }
+            // }
         }
-        if(!backwardStuck){
+        if(!backwardStuck && !backwardStalled){
             backwardFront = newBackwardFront;
             
             // update distance and previous node of current forward node
             backwardDistance.at(backwardFront.nodeIdx) = backwardFront.dist;
             backwardPrev.at(backwardFront.nodeIdx) = backwardFront.prev;
+
+            // if(forwardDistance.at(backwardFront.nodeIdx) < UINT64_MAX){
+            //     uint64_t currDist = backwardFront.dist + forwardDistance.at(backwardFront.nodeIdx);
+            //     if(currDist < minDistance){
+            //         forwardMinMeetingNodeId = backwardFront.nodeIdx;
+            //         backwardMinMeetingNodeId = backwardFront.nodeIdx;
+            //     }
+            // }
         }
-        forwardStalled = false;
-        backwardStalled = false;
+       
 
         // termination criterion for bidirectional dijkstra
         // greater only -> not greater or equal
         // which nodes are only settled in the naive one
-        uint64_t cdist = forwardFront.dist + backwardFront.dist;
-        cdist = cdist*1;
-        if(cdist > minDistance){
-            lastCalculatedDistance = minDistance;
-            return lastCalculatedDistance;
+        
+        if(forwardFront.dist > minDistance){
+            forwardStuck = true;
+        }
+
+        if(backwardFront.dist > minDistance){
+            backwardStuck = true;
         }
 
         if(forwardFront.nodeIdx == backwardFront.nodeIdx){

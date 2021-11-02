@@ -112,7 +112,7 @@ std::vector<bool> checkRedundantEdges(AdjacencyArray &adjArray){
 
 void removeRedundantEdges(AdjacencyArray &adjArray){
     std::vector<bool> isEdgeRedundant = checkRedundantEdges(adjArray);
-    AdjacencyArray original(adjArray);
+    AdjacencyArray &original = *(new AdjacencyArray(adjArray));
     adjArray.edges.clear();
     adjArray.edgeIds.clear();
     adjArray.offsets.clear();
@@ -134,6 +134,7 @@ void removeRedundantEdges(AdjacencyArray &adjArray){
         }
         adjArray.offsets.push_back(currentOffset);
     }
+    delete &original;
 }
 
 void checkUndirectedness(AdjacencyArray &adjArray){
@@ -177,6 +178,39 @@ void rank0ToRankMax(AdjacencyArray &adjArray){
     }
 }
 
+void sortEdgesByRank(AdjacencyArray &adjArray){
+    AdjacencyArray &original = *(new AdjacencyArray(adjArray));
+
+    adjArray.edges.clear();
+    adjArray.edgeIds.clear();
+    adjArray.offsets.clear();
+    adjArray.offsets.push_back(0);
+    adjArray.distances.clear();
+
+    uint64_t currOffset = 0;
+    for(uint64_t nodeId = 0; nodeId < adjArray.width*adjArray.height; ++nodeId){
+        for(uint64_t edgeIndex = adjArray.offsets.at(nodeId); edgeIndex < adjArray.offsets.at(nodeId+1); ++edgeIndex){
+            //adjArray
+            currOffset++;
+        }
+        adjArray.offsets.push_back(currOffset);
+    }
+
+    delete &original;
+}
+
+void printContractionPercentage(AdjacencyArray &adjArray){
+    uint64_t numNodes = 0;
+    uint64_t numContractedNodes = 0;
+    for(uint64_t nodeId = 0; nodeId < adjArray.width*adjArray.height; ++nodeId){
+        numNodes += !adjArray.nodes.at(nodeId);
+        uint64_t rank = adjArray.rank.at(nodeId);
+        numContractedNodes += (rank > 0) && (rank < UINT64_MAX);
+    }
+    std::cout << numNodes << " " << numContractedNodes << "\n";
+    std::cout << "contraction percentage: " << ((double)numContractedNodes)/((double)numNodes) << "\n";
+}
+
 void checkMultiDijkstra(){
     AdjacencyArray arr;
     arr.width = 2;
@@ -196,8 +230,14 @@ void checkMultiDijkstra(){
 }
 
 int main(){
-    AdjacencyArray adjArray("data/CHAdjArray_60_otherPc.graph_2");
+    AdjacencyArray adjArray("data/CHAdjArray_curr_20.graph_2");
     std::cout << "Number of edges: " << adjArray.allEdgeInfo.size() << "\n";
+    uint64_t numNodes = 0;
+    for(uint64_t i = 0; i<adjArray.nodes.size(); ++i){
+        numNodes += !adjArray.nodes.at(i);
+    }
+    std::cout << "Number of nodes: " << numNodes << "\n";
+    std::cout << "Number of edges: " << adjArray.edges.size() << "\n";
     for(uint64_t i = 0; i<adjArray.allEdgeInfo.size(); ++i){
         uint64_t v1 = adjArray.allEdgeInfo.at(i).v1;
         uint64_t v2 = adjArray.allEdgeInfo.at(i).v2;
@@ -222,24 +262,25 @@ int main(){
     }
     std::cout << "num contracted nodes: " << contractedNodes<< "\n";
 
-    checkRedundantEdges(adjArray);
+    // checkRedundantEdges(adjArray);
 
-    checkUndirectedness(adjArray);
+    // checkUndirectedness(adjArray);
 
-    checkEdgeIdSorted(adjArray);
+    // checkEdgeIdSorted(adjArray);
 
-    rank0ToRankMax(adjArray);
+    // rank0ToRankMax(adjArray);
 
-    removeRedundantEdges(adjArray);
+    // removeRedundantEdges(adjArray);
 
-    checkRedundantEdges(adjArray);
+    // checkRedundantEdges(adjArray);
 
-    checkUndirectedness(adjArray);
+    // checkUndirectedness(adjArray);
 
-    checkEdgeIdSorted(adjArray);
+    // checkEdgeIdSorted(adjArray);
 
-    adjArray.writeToDisk("data/CHAdjArray_otherPc_noDup.graph_2");
+    // adjArray.writeToDisk("data/CHAdjArray_currDup_110.graph_2");
     
     //checkMultiDijkstra();
     
+    printContractionPercentage(adjArray);
 }

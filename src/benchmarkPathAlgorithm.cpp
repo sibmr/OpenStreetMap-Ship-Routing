@@ -116,7 +116,7 @@ uint64_t computeStdDev(std::vector<uint64_t> &data, uint64_t dataAvg){
 void comparePathAlgorithms(PathAlgorithm &pathAlg, PathAlgorithm &pathAlg2,  AdjacencyArray &adjArray,
     double longStart, double latStart, double longGoal, double latGoal, int numSamplePoints)
 {
-    srand(time(NULL));
+    srand(2);
 
     std::vector<uint64_t> resultPathAlgOne;
     std::vector<uint64_t> resultPathAlgTwo;

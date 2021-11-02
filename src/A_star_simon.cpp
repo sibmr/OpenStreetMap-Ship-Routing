@@ -288,9 +288,12 @@ uint64_t A_star_rectangular::getHeuristic(AdjacencyArray &adjArray, uint64_t fir
             ((adjArray.height-latFirst)+(adjArray.height-latSecond))*constLngDist  
             ),
 
-            // shortest "manhattan" distance: latitude difference + minimum longitude difference (wraparound) on the smaller ring around the globe
+            // shortest "manhattan" distance: 
+            // latitude difference + minimum longitude difference 
+            // (wraparound) on the smaller ring around the globe
             (latSecond-latFirst)*constLngDist + 
-            std::min((lngSecond-lngFirst), (lngFirst+adjArray.width) - lngSecond) * std::min(constLatDist[latFirst], constLatDist[latSecond])
+            std::min((lngSecond-lngFirst), (lngFirst+adjArray.width) - lngSecond) 
+            * std::min(constLatDist[latFirst], constLatDist[latSecond])
         )
     );
 }
