@@ -100,20 +100,6 @@ uint64_t computeStdDev(std::vector<uint64_t> &data, uint64_t dataAvg){
     return stddev;
 }
 
-uint64_t computeAverage(std::vector<uint64_t> &data){
-    return std::accumulate(data.begin(), data.end(), 0) / data.size();
-}
-
-uint64_t computeStdDev(std::vector<uint64_t> &data, uint64_t dataAvg){
-    uint64_t stddev = 0;
-    for(uint64_t value : data){
-        uint64_t diff = value-dataAvg;
-        stddev += diff*diff;
-    }
-    stddev = sqrt(stddev)/data.size(); 
-    return stddev;
-}
-
 /**
  * @brief Test two PathAlgorithms to be identical and test how long each takes
  * in addition, execution duration and number of heap elements popped mean and standart deviation are printed
