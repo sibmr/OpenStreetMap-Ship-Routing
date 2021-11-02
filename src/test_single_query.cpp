@@ -1,5 +1,5 @@
 #include "shortestPathUtils.cpp"
-#include "CH_query_simon.cpp"
+#include "CH_query.cpp"
 
 void addForwardSettled(AdjacencyArray &adjArray, CH_query::CH_query &query, std::vector<uint64_t> &settled){
     for(uint64_t nodeId = 0; nodeId<adjArray.width*adjArray.height; ++nodeId){

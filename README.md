@@ -120,11 +120,11 @@ The number of threads num_threads(n_threads) in the edgeDifferenceFillContractio
 
 From the project root: 
 
-    ./build/bin/CH_preprocessing_simon {path to graph file}
+    ./build/bin/CH_preprocessing {path to graph file}
 
 Example:
 
-    ./build/bin/CH_preprocessing_simon data/planet.graph_2
+    ./build/bin/CH_preprocessing data/planet.graph_2
 
 ### Path Algorithm Names
 
@@ -137,12 +137,12 @@ All path algorithms (except the naive query) are referenced in the command line 
 * Contraction Hierarchies great-circle A* -> chastar
 * Contraction Hierarchies rectangular A* -> chrectastar
 
-The naive version of the Dijkstra for Contraction Hierarchies is included in the code CH_query_simon file, but is currently not accessible via CLI.
+The naive version of the Dijkstra for Contraction Hierarchies is included in the code CH_query file, but is currently not accessible via CLI.
 
 ### Start Server
 The server program reads a "*.graph" file and runs a server, where the user can interactively select two points on the map.  
 
-Please note, that for Contraction Hierarchies Algorithms, the graph file needs to be one of the output files of the CH_preprocessing_simon executable.
+Please note, that for Contraction Hierarchies Algorithms, the graph file needs to be one of the output files of the CH_preprocessing executable.
 
 From project root:
 

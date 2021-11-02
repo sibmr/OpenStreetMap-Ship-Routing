@@ -6,12 +6,12 @@
 #include <mutex>
 #include <fstream>
 
-#include "Dijkstra_simon.cpp"
-#include "Bidirectional_Dijkstra_simon.cpp"
-#include "A_star_simon.cpp"
-#include "CH_query_simon.cpp"
-#include "MultiDijkstra_simon.cpp"
-#include "CH_Astar_simon.cpp"
+#include "Dijkstra.cpp"
+#include "Bidirectional_Dijkstra.cpp"
+#include "A_star.cpp"
+#include "CH_query.cpp"
+#include "MultiDijkstra.cpp"
+#include "CH_Astar.cpp"
 
 /**
  * @brief load static file (html,js,css) from disk

@@ -3,8 +3,8 @@
 # include <omp.h>
 
 #include "shortestPathUtils.cpp"
-#include "Dijkstra_simon.cpp"
-#include "MultiDijkstra_simon.cpp"
+#include "Dijkstra.cpp"
+#include "MultiDijkstra.cpp"
 
 
 

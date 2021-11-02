@@ -1,6 +1,6 @@
 #include <set>
 #include "shortestPathUtils.cpp"
-#include "MultiDijkstra_simon.cpp"
+#include "MultiDijkstra.cpp"
 
 void recursiveUnpack(Edge &edge, std::vector<uint64_t> &unpackedShortcut, AdjacencyArray &adjArray){
     std::cout << "num shortcut edges: " << edge.shortcutPathEdges.size() << ", v1: " <<  edge.v1 << ", v2: " <<  edge.v2 << "\n";
