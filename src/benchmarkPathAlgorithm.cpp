@@ -195,12 +195,9 @@ void comparePathAlgorithms(PathAlgorithm &pathAlg, PathAlgorithm &pathAlg2,  Adj
         timingPathAlgOne.push_back(std::chrono::duration_cast<std::chrono::microseconds>(endQuery - startQuery).count());
         numNodesPoppedPathAlgOne.push_back(pathAlg.getNumNodesPopped());
 
-<<<<<<< HEAD
-=======
         // benchmark second algorithm
         pathAlg2.reset();
         
->>>>>>> simon_project
         startQuery = std::chrono::high_resolution_clock::now();
                 
         temp_result = pathAlg2.calculateDist(sNode, tNode);
@@ -234,13 +231,8 @@ void comparePathAlgorithms(PathAlgorithm &pathAlg, PathAlgorithm &pathAlg2,  Adj
     std::cout << "Second alg has from " << timingPathAlgTwo.size() << " Queries an Average of " << avgTwo << "us and stddev of: "<< stddevTwo << "us" <<  std::endl;
     std::cout << "On average the first algorithm takes  " <<  ((double)((avgOne * 10000)/(avgTwo)) / 10000) << " times longer" << std::endl;
     std::cout << "On average the second algorithm takes " <<  ((double)((avgTwo * 10000)/(avgOne)) / 10000) << " times longer" << std::endl;
-<<<<<<< HEAD
-    std::cout << "First alg has from  " << numNodesPoppedPathAlgOne.size() << " Queries an Average of " << avgPoppedOne << "nodes\n";
-    std::cout << "Second alg has from " << numNodesPoppedPathAlgTwo.size() << " Queries an Average of " << avgPoppedTwo << "nodes\n";
-=======
     std::cout << "First alg has from  " << numNodesPoppedPathAlgOne.size() << " Queries an Average of " << avgPoppedOne << " nodes\n";
     std::cout << "Second alg has from " << numNodesPoppedPathAlgTwo.size() << " Queries an Average of " << avgPoppedTwo << " nodes\n";
->>>>>>> simon_project
     std::cout << "On average the first algorithm pops  " <<  ((double)((avgPoppedOne * 10000)/(avgPoppedTwo)) / 10000) << " times more nodes" << std::endl;
     std::cout << "On average the second algorithm pops " <<  ((double)((avgPoppedTwo * 10000)/(avgPoppedOne)) / 10000) << " times more nodes" << std::endl;
 }
@@ -275,15 +267,6 @@ int main(int argc, char** argv) {
     }
 
     AdjacencyArray adjArray(inputFileName);
-<<<<<<< HEAD
-    {
-        SecondDijkstra dijk (adjArray);
-        PathAlgorithm &pa = dijk;
-        PathAlgorithm &pa_one = dijk;
-        //debugDijkstra(pa, adjArray, 59.5502,80.2847, 81.9907,84.0839);
-        //debugDijkstra(pa_one, adjArray, 59.5502,80.2847, 81.9907,84.0839);
-        testDijkstra(pa, pa_one, adjArray, -85, -180, 85, 180, 100);
-=======
     AdjacencyArray adjArrayCH(filenameCH);
     
     Dijkstra::Dijkstra dijk (adjArray);
@@ -308,7 +291,6 @@ int main(int argc, char** argv) {
         std::cout << "path algorithm with name " << pathAlg1 << " does not exist\n";
         return 0;
     }
->>>>>>> simon_project
 
     if(algs.find(pathAlg2)==algs.end()){
         std::cout << "path algorithm with name " << pathAlg2 << " does not exist\n";
